@@ -86,20 +86,6 @@ data/
 
 Supported: PDF, DOCX, TXT, MD, HTML, and more.
 
-## 🔐 Standup Bot (SSO Demo)
-
-Privacy-preserving meeting/standup bot with ASC/U2SSO-aligned identity:
-
-```bash
-python run_demo.py
-# Opens http://localhost:5000 — Sign up / Log in
-```
-
-- `identity_core/` — Nullifier store, auth verifier, schemas
-- `demo_app/` — Signup/login UI (mock mode)
-- `docs/U2SSO_SETUP.md` — Full U2SSO PoC setup
-- `tests/` — Registration, auth, replay rejection tests
-
 ## 🛠️ Project Structure
 
 ```
@@ -157,6 +143,7 @@ ollama serve
 |------------|---------|
 | [chatbot-rag-core](https://github.com/RanneG/chatbot-rag-core) | Reusable Python RAG library |
 | [chatbot-api-server](https://github.com/RanneG/chatbot-api-server) | Production Docker API server |
+| standup-bot-* | Privacy-preserving standup bot (see [STANDUP_BOT.md](STANDUP_BOT.md)) |
 
 ## 🎓 Resources
 

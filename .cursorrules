@@ -32,6 +32,8 @@ response = await chatbot.chat("Your question here")
 | Repository | Description | Tech |
 |------------|-------------|------|
 | **[cursor_linkup_mcp](https://github.com/RanneG/cursor_linkup_mcp)** | This repo - Cursor IDE MCP integration | Python |
+| **standup-bot-backend** | Privacy-preserving standup aggregation (private) | Python |
+| **standup-bot-frontend** | Standup bot demo UI (public) | — |
 | **[MineSentry](https://github.com/RanneG/MineSentry)** | Mining/monitoring project | Python |
 | **[Arbit](https://github.com/RanneG/Arbit)** | Arbitrage project | TypeScript |
 | **[pixel-portfolio](https://github.com/RanneG/pixel-portfolio)** | Portfolio website | TypeScript |
