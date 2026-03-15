@@ -1,5 +1,22 @@
 # Next Steps
 
+**Consolidated plan:** [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) (merged Mac + Windows)
+
+## Day 1-2 Progress (SSO Demo)
+- [x] `identity_core` module: schemas, nullifier store, auth verifier
+- [x] `demo_app`: signup/login UI with mock mode
+- [x] Verifier-scoped nullifier replay checks
+- [x] Tests for registration/auth/replay rejection
+- [ ] Wire to real U2SSO (see `docs/U2SSO_SETUP.md`)
+
+## Day 3-5 Progress (Transcript Ingestion)
+- [x] `processing_boundary`: TEE-ready abstraction (runs locally; partner adds TEE)
+- [x] `analytics_engine`: blocker/velocity/theme extraction (rule-based, no LLM)
+- [x] Transcript submit + team report (role-level only, no raw transcript)
+- [ ] TEE implementation (partner)
+
+**Run demo:** `python run_demo.py` → http://localhost:5000
+
 ## Immediate Priorities (SSO-First)
 1. Finalize minimal SSO demo interface:
    - Register master identity
