@@ -93,7 +93,6 @@ cursor_linkup_mcp/
 ├── server.py          # Main MCP server
 ├── rag.py             # RAG workflow
 ├── data/              # Your documents
-├── lucky-charm/       # Privacy-preserving standup demo (React + TEE)
 ├── pyproject.toml     # Dependencies
 ├── .cursorrules       # AI context for Cursor
 └── .env               # Environment variables (create this)
@@ -144,7 +143,6 @@ ollama serve
 |------------|---------|
 | [chatbot-rag-core](https://github.com/RanneG/chatbot-rag-core) | Reusable Python RAG library |
 | [chatbot-api-server](https://github.com/RanneG/chatbot-api-server) | Production Docker API server |
-| **Lucky Charm** | Privacy-preserving standup demo in `lucky-charm/` (see [lucky-charm/README.md](lucky-charm/README.md)) |
 
 ## 🎓 Resources
 

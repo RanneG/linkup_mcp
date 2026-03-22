@@ -81,8 +81,6 @@ data/RGerodiasCV.pdf
 
 # Node / frontend
 node_modules/
-lucky-charm/frontend/node_modules/
-lucky-charm/frontend/dist/
 
 # Cursor plans (development only)
 .cursor/plans/
