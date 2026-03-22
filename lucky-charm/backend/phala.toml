@@ -1,0 +1,3 @@
+name = "lucky-charm-tee"
+profile = "kyladizonangeles's projects"
+compose_file = "docker-compose.yml"

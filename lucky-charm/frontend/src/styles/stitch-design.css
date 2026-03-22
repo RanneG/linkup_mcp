@@ -1,0 +1,41 @@
+/**
+ * Stitch design system - Lucky Charm
+ * Colors, typography, and tokens from Stitch mockups
+ */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
+
+:root {
+  /* Stitch palette */
+  --lc-primary: #00478d;
+  --lc-primary-container: #005eb8;
+  --lc-on-primary: #ffffff;
+  --lc-secondary: #006c46;
+  --lc-secondary-container: #7bfabb;
+  --lc-on-secondary-container: #00734b;
+  --lc-surface: #f9f9ff;
+  --lc-surface-container: #e8edff;
+  --lc-surface-container-low: #f1f3ff;
+  --lc-surface-container-high: #e0e8ff;
+  --lc-surface-container-lowest: #ffffff;
+  --lc-on-surface: #101b30;
+  --lc-on-surface-variant: #424752;
+  --lc-outline: #727783;
+  --lc-outline-variant: #c2c6d4;
+  --lc-error: #ba1a1a;
+}
+
+.lc-font-headline { font-family: 'Manrope', sans-serif; }
+.lc-font-body { font-family: 'Plus Jakarta Sans', sans-serif; }
+.lc-font-label { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-size: 1.25rem;
+}
+
+.lc-glass {
+  background: rgba(249, 249, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}

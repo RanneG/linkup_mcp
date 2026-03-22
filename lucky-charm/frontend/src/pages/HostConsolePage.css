@@ -1,0 +1,217 @@
+.host-console {
+  min-height: 100vh;
+  padding: 2rem 1.5rem 3rem;
+  max-width: 52rem;
+  margin: 0 auto;
+}
+
+.host-console-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+@media (min-width: 560px) {
+  .host-console-header {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+}
+
+.host-console-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0 0 0.35rem 0;
+  color: var(--text);
+}
+
+.host-console-sub {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+  max-width: 36rem;
+}
+
+.host-console-user-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-top: 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.host-console-user-text {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.host-console-user-role {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.host-console-logout {
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.host-console-logout:hover {
+  color: var(--text);
+}
+
+.host-console-link {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.host-console-link:hover {
+  text-decoration: underline;
+}
+
+.host-console-link-btn {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  color: var(--accent);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.host-console-link-btn:hover {
+  color: var(--text);
+}
+
+.host-console-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  align-self: flex-start;
+}
+
+.host-console-demo-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.host-console-demo-toggle input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.host-console-refresh {
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.host-console-refresh:hover {
+  border-color: var(--accent);
+}
+
+.host-console-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.host-console-h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.35rem 0;
+  color: var(--text);
+}
+
+.host-console-desc {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin: 0 0 0.75rem 0;
+}
+
+.host-console-desc code {
+  font-size: 0.75rem;
+}
+
+.host-console-muted {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.host-console-team-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.host-console-team-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.host-console-team-row:last-child {
+  border-bottom: none;
+}
+
+.host-console-team-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.host-console-team-meta {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.host-console-tee-note {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin: 0 0 1rem 0;
+  line-height: 1.45;
+}
+
+.host-console-dashboard {
+  width: 100%;
+}

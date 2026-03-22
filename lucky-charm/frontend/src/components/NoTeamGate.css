@@ -1,0 +1,40 @@
+.no-team-gate {
+  max-width: 28rem;
+  margin: 2rem auto;
+  padding: 1.75rem 1.5rem;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.no-team-gate-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+  color: var(--text);
+}
+
+.no-team-gate-text,
+.no-team-gate-hint {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0 0 0.65rem 0;
+}
+
+.no-team-gate-hint {
+  margin-bottom: 1.1rem;
+}
+
+.no-team-gate-link {
+  display: inline-block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.no-team-gate-link:hover {
+  text-decoration: underline;
+}

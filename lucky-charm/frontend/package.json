@@ -1,0 +1,22 @@
+{
+  "name": "lucky-charm-frontend",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "free-3000": "bash ../scripts/free-port-3000.sh",
+    "build": "vite build",
+    "preview": "vite preview",
+    "sso:mock": "python3 ../sso-poc-stub/sso_stub.py"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.13.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.0.3"
+  }
+}

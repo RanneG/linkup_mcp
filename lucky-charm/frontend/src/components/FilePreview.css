@@ -1,0 +1,58 @@
+.file-preview {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+}
+
+.file-preview-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 0 0 0.75rem 0;
+}
+
+.file-preview-table-wrap {
+  overflow-x: auto;
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.file-preview-table {
+  width: 100%;
+  font-size: 0.75rem;
+  border-collapse: collapse;
+}
+
+.file-preview-table th,
+.file-preview-table td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.file-preview-table th {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.file-preview-table td {
+  color: var(--text);
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-preview-cell--blur {
+  filter: blur(4px);
+  user-select: none;
+  color: var(--text-muted);
+}
+
+.file-preview-hint {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  margin: 0.5rem 0 0 0;
+}

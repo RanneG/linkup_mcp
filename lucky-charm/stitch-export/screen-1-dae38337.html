@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lucky Charm - Secure Sign In</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "inverse-on-surface": "#edf0ff",
+                        "on-primary-container": "#c8daff",
+                        "primary-fixed": "#d6e3ff",
+                        "on-secondary-container": "#00734b",
+                        "error-container": "#ffdad6",
+                        "on-tertiary": "#ffffff",
+                        "outline-variant": "#c2c6d4",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed": "#ffe088",
+                        "background": "#f9f9ff",
+                        "surface-container-high": "#e0e8ff",
+                        "on-secondary-fixed-variant": "#005234",
+                        "on-error-container": "#93000a",
+                        "on-background": "#101b30",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary": "#006c46",
+                        "tertiary-container": "#cca72f",
+                        "surface-container-highest": "#d7e2ff",
+                        "surface": "#f9f9ff",
+                        "on-primary-fixed-variant": "#00468c",
+                        "on-secondary": "#ffffff",
+                        "inverse-primary": "#a9c7ff",
+                        "on-error": "#ffffff",
+                        "surface-container": "#e8edff",
+                        "on-surface-variant": "#424752",
+                        "on-tertiary-container": "#4e3d00",
+                        "surface-container-low": "#f1f3ff",
+                        "primary-fixed-dim": "#a9c7ff",
+                        "secondary-container": "#7bfabb",
+                        "primary": "#00478d",
+                        "secondary-fixed-dim": "#5ddda1",
+                        "tertiary-fixed-dim": "#e9c349",
+                        "on-secondary-fixed": "#002112",
+                        "surface-dim": "#cfdaf6",
+                        "surface-variant": "#d7e2ff",
+                        "inverse-surface": "#263046",
+                        "tertiary": "#735c00",
+                        "surface-bright": "#f9f9ff",
+                        "outline": "#727783",
+                        "error": "#ba1a1a",
+                        "secondary-fixed": "#7bfabb",
+                        "surface-tint": "#005db6",
+                        "on-tertiary-fixed": "#241a00",
+                        "primary-container": "#005eb8",
+                        "on-surface": "#101b30",
+                        "on-primary-fixed": "#001b3d",
+                        "on-tertiary-fixed-variant": "#574500"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Plus Jakarta Sans"],
+                        "label": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-morphism {
+            background: rgba(249, 249, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
+<div class="min-h-screen flex flex-col md:flex-row relative overflow-hidden">
+<!-- Left Column: Branding & Visuals (The Digital Concierge Approach) -->
+<div class="hidden md:flex md:w-1/2 bg-surface-container-low p-12 lg:p-24 flex-col justify-between relative">
+<div class="z-10">
+<div class="text-xl font-black text-on-surface tracking-tight font-headline mb-8">Lucky Charm</div>
+<h1 class="text-5xl lg:text-7xl font-extrabold font-headline leading-tight tracking-tighter text-on-surface">
+                    Your Privacy,<br/> <span class="text-primary italic">Perfected.</span>
+</h1>
+<p class="mt-6 text-on-surface-variant max-w-md text-lg leading-relaxed">
+                    Step into a Trusted Execution Environment where your data remains yours. Secure, private, and effortlessly handled.
+                </p>
+</div>
+<div class="relative z-10 space-y-4">
+<div class="inline-flex items-center gap-3 px-4 py-2 bg-secondary-container text-on-secondary-container rounded-full text-xs font-semibold tracking-widest uppercase font-label">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+                    TEE Verified Connection
+                </div>
+<div class="text-on-surface-variant font-label text-sm">
+                    Protected by Lucky Charm Security Console
+                </div>
+</div>
+<!-- Background Abstract Visual -->
+<div class="absolute inset-0 opacity-40 mix-blend-multiply pointer-events-none overflow-hidden">
+<div class="absolute -top-20 -left-20 w-96 h-96 bg-primary-container rounded-full blur-[120px]"></div>
+<div class="absolute bottom-20 right-10 w-80 h-80 bg-secondary-container rounded-full blur-[100px]"></div>
+</div>
+</div>
+<!-- Right Column: Login Interface (The Focus Canvas) -->
+<div class="flex-1 flex flex-col justify-center items-center p-8 lg:p-16 bg-surface relative">
+<!-- Mobile Logo -->
+<div class="md:hidden absolute top-8 left-8 text-xl font-black text-on-surface tracking-tight font-headline">Lucky Charm</div>
+<div class="w-full max-w-[420px] space-y-10">
+<div class="space-y-2">
+<h2 class="text-3xl font-bold font-headline text-on-surface tracking-tight">Welcome back</h2>
+<p class="text-on-surface-variant font-body">Connect your identity to access your private dashboard.</p>
+</div>
+<!-- Main Actions -->
+<div class="space-y-4">
+<button class="w-full flex items-center justify-between p-5 bg-gradient-to-br from-primary to-primary-container text-on-primary rounded-xl font-bold transition-all hover:scale-[1.02] active:scale-95 group">
+<span class="flex items-center gap-4">
+<span class="material-symbols-outlined text-2xl">account_balance_wallet</span>
+                            Connect Wallet
+                        </span>
+<span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+<button class="w-full flex items-center justify-center gap-3 p-5 bg-surface-container-lowest text-on-surface rounded-xl font-semibold border border-outline-variant/15 transition-all hover:bg-surface-container-low active:scale-95">
+                        Continue in demo mode
+                    </button>
+</div>
+<!-- Pseudonym Toggle (The Layering Principle) -->
+<div class="bg-surface-container-low p-5 rounded-xl flex items-center justify-between">
+<div class="space-y-0.5">
+<label class="block font-bold text-sm text-on-surface" for="pseudonym-toggle">Use pseudonym</label>
+<p class="text-xs text-on-surface-variant">Hide your real wallet address from the UI</p>
+</div>
+<div class="relative inline-flex h-6 w-11 items-center rounded-full bg-outline-variant/30 cursor-pointer">
+<input class="sr-only peer" id="pseudonym-toggle" type="checkbox"/>
+<div class="peer-checked:bg-secondary h-6 w-11 rounded-full transition-colors"></div>
+<div class="absolute left-1 h-4 w-4 rounded-full bg-white transition-transform peer-checked:translate-x-5"></div>
+</div>
+</div>
+<!-- Secondary Options (Asymmetrical / Hidden Logic) -->
+<div class="pt-6">
+<button class="text-sm font-semibold text-primary hover:underline flex items-center gap-2 mx-auto">
+                        Other sign-in options (email/pass)
+                        <span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+</div>
+</div>
+<!-- Accessibility/Legal -->
+<div class="absolute bottom-8 text-center md:text-left text-[11px] text-on-surface-variant/60 font-label tracking-widest uppercase">
+                End-to-End Encrypted • ISO 27001 Certified • No Tracking
+            </div>
+</div>
+</div>
+<!-- Assistant Widget (The Shared Component: BottomNavBar/Assistant) -->
+<div class="fixed bottom-8 right-8 z-50 flex items-end gap-4">
+<!-- Chat Bubble (The Concierge) -->
+<div class="glass-morphism rounded-2xl p-4 shadow-[0_12px_40px_rgba(16,27,48,0.06)] border border-outline-variant/15 max-w-[280px] mb-2 animate-in fade-in slide-in-from-bottom-4">
+<p class="text-sm font-medium leading-relaxed text-on-surface">
+                Let's get you signed in — you can use your wallet, or just hit demo mode if you're exploring.
+            </p>
+</div>
+<!-- FAB Container -->
+<button class="bg-gradient-to-br from-[#00478d] to-[#005eb8] text-white rounded-full p-6 flex items-center justify-center shadow-xl hover:scale-110 hover:shadow-2xl transition-all group">
+<span class="material-symbols-outlined text-[32px] group-hover:rotate-12 transition-transform" data-icon="smart_toy">smart_toy</span>
+<!-- Signature Texture Gradient Glow -->
+<div class="absolute -inset-1 bg-secondary opacity-20 blur-xl rounded-full animate-pulse"></div>
+</button>
+</div>
+<!-- TEE Status Micro-pill (Identity Detail) -->
+<div class="fixed top-8 right-8 z-50">
+<div class="bg-surface-container-lowest/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-outline-variant/10 flex items-center gap-2 shadow-sm">
+<div class="w-2 h-2 rounded-full bg-secondary-container"></div>
+<span class="text-[10px] font-bold font-label uppercase tracking-widest text-on-surface-variant">Global Shield Active</span>
+</div>
+</div>
+</body></html>

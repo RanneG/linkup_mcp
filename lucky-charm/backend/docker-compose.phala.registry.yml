@@ -1,0 +1,12 @@
+# Phala Cloud: use a pre-built image from a registry (Phala does not upload build context).
+# Build and push first: docker build --platform linux/amd64 -t YOUR_USER/lucky-charm-tee:latest . && docker push YOUR_USER/lucky-charm-tee:latest
+services:
+  app:
+    platform: linux/amd64
+    # Replace myuser with your Docker Hub username (e.g. kylabuildsthings)
+    image: kylabuildsthings/lucky-charm-tee:latest
+    pull_policy: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/dstack.sock:/var/run/dstack.sock

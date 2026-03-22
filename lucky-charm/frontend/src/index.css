@@ -1,0 +1,49 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  /* Soft light theme — reduced contrast, desaturated accents */
+  --bg: #f5f6fa;
+  --surface: #ffffff;
+  --surface-dim: #eef1f8;
+  --border: #dfe4ed;
+  --text: #2d3748;
+  --text-muted: #5a6478;
+  --accent: #5b7cba;
+  --accent-dim: rgba(91, 124, 186, 0.12);
+  --on-accent: #ffffff;
+  --success: #2d9d78;
+  --success-bg: rgba(45, 157, 120, 0.1);
+  /* Stitch palette (softer variants) */
+  --lc-primary: #3d6ba8;
+  --lc-primary-container: #4a7bb8;
+  --lc-on-primary: #ffffff;
+  --lc-secondary: #2d7a5a;
+  --lc-secondary-container: #6bcf9f;
+  --lc-surface: #f9f9ff;
+  --lc-surface-container: #e8edff;
+  --lc-surface-container-low: #f1f3ff;
+  --lc-surface-container-high: #dfe6f5;
+  --lc-surface-container-lowest: #ffffff;
+  --lc-on-surface: #2d3748;
+  --lc-on-surface-variant: #5a6478;
+  --lc-outline: #8b95a5;
+  --lc-outline-variant: #c5cdd9;
+  --lc-error: #c53030;
+}
+
+body {
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', 'DM Sans', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}

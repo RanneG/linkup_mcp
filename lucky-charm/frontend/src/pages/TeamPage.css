@@ -1,0 +1,584 @@
+.team-page {
+  width: 100%;
+  max-width: 28rem;
+  margin: 0 auto;
+}
+
+.team-page--wide {
+  max-width: 48rem;
+}
+
+.team-page--member-join .team-page-card--full {
+  max-width: 32rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.team-page-actions--host-only {
+  margin-top: 1rem;
+}
+
+.team-page-actions--host-only .team-page-btn {
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
+}
+
+.team-page-demo-panel {
+  max-width: 48rem;
+  margin: 0 auto 1.25rem;
+  padding: 1rem 1.15rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.team-page-demo-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.team-page-demo-toggle input {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.team-page-demo-warn {
+  margin: 0.65rem 0 0 0;
+  padding: 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.team-page-demo-join-alt {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.team-page-demo-join-alt-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  color: var(--text-muted);
+}
+
+.team-page-demo-join-alt-hint {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.75rem;
+}
+
+.team-page--host-wrap {
+  max-width: 48rem;
+  margin: 0 auto 1.5rem;
+}
+
+.team-page-lead--host {
+  text-align: center;
+  margin-top: 0;
+}
+
+.team-page-host-above {
+  margin-bottom: 1.5rem;
+}
+
+.team-page-host-above .team-page-section {
+  margin-bottom: 0;
+}
+
+.team-page-split {
+  display: grid;
+  gap: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .team-page-split {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+.team-page-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+}
+
+.team-page-card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.35rem 0;
+  color: var(--text);
+}
+
+.team-page-card-desc {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin: 0 0 1rem 0;
+  line-height: 1.45;
+}
+
+.team-page-optional {
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+.team-page-required {
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--accent);
+}
+
+.team-page-hint {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+}
+
+.team-page-reset-wrap {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.team-page-btn--small {
+  font-size: 0.8125rem;
+  padding: 0.35rem 0.65rem;
+}
+
+.team-page-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+@media (min-width: 480px) {
+  .team-page-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+}
+
+.team-page-btn--outline {
+  background: transparent;
+  border: 1px solid rgba(248, 113, 113, 0.45);
+}
+
+.team-page-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  color: var(--text);
+}
+
+.team-page-lead {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin: 0 0 1.25rem 0;
+  line-height: 1.5;
+}
+
+.team-page-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.team-page-section--host {
+  border-color: rgba(91, 124, 186, 0.35);
+}
+
+.team-page-section-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin: 0 0 0.35rem 0;
+  color: var(--text);
+}
+
+.team-page-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.team-page-section-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.team-page-add-member-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.team-page-input--add-member {
+  width: 10rem;
+  font-size: 0.875rem;
+}
+
+.team-page-section-title--inline {
+  margin-bottom: 0;
+}
+
+.team-page-members-hint {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.team-page-section-desc {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin: 0 0 0.75rem 0;
+  line-height: 1.45;
+}
+
+.team-page-muted {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.team-page-banner {
+  font-size: 0.8125rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.team-page-banner--ok {
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--success);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.team-page-banner--error {
+  background: rgba(248, 113, 113, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.team-page-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.team-page-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.team-page-input {
+  font-family: inherit;
+  font-size: 0.875rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.team-page-input--mono {
+  font-family: ui-monospace, monospace;
+  letter-spacing: 0.08em;
+}
+
+.team-page-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.team-page-btn {
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  padding: 0.55rem 1rem;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.team-page-btn--primary {
+  background: var(--accent);
+  color: var(--on-accent, #fff);
+  margin-top: 0.25rem;
+}
+
+.team-page-btn--primary:hover {
+  background: #6d8fd4;
+}
+
+.team-page-btn--secondary {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.team-page-btn--secondary:hover {
+  background: var(--border);
+}
+
+.team-page-btn--danger {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+  font-size: 0.8125rem;
+  padding: 0.35rem 0.65rem;
+}
+
+.team-page-btn--danger:hover {
+  background: rgba(248, 113, 113, 0.25);
+}
+
+.team-page-btn--ghost {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--border);
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.team-page-btn--ghost:hover {
+  background: var(--accent-dim);
+}
+
+.team-code-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.team-code-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface-dim, #eef1f8);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--accent);
+}
+
+.team-members-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.team-members-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.team-members-item:last-child {
+  border-bottom: none;
+}
+
+.team-members-list--readonly .team-members-item {
+  padding: 0.4rem 0;
+}
+
+.team-page-title-block {
+  width: 100%;
+}
+
+.team-page-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.team-page-title-row .team-page-title {
+  margin: 0;
+}
+
+.team-page-inline-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.team-page-inline-edit--title {
+  max-width: 22rem;
+}
+
+.team-page-inline-edit--member {
+  flex: 1 1 100%;
+  min-width: min(100%, 16rem);
+}
+
+.team-page-inline-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.team-page-input--inline-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.team-page-input--inline-member {
+  max-width: 18rem;
+}
+
+.team-page-btn--compact {
+  padding: 0.3rem 0.55rem;
+  font-size: 0.75rem;
+}
+
+.team-members-edit-name {
+  flex-shrink: 0;
+}
+
+.team-members-name {
+  font-weight: 500;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+}
+
+.team-members-role {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.team-host-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.team-host-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  background: var(--bg);
+}
+
+.team-host-card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.team-host-name {
+  display: block;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.team-host-meta {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+
+.team-host-anon {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.8125rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.team-host-anon p {
+  margin: 0.35rem 0;
+}
+
+.team-page-anon-note {
+  margin-top: 0.5rem !important;
+}
+
+/* Stitch design overrides */
+.app--stitch .team-page {
+  max-width: 1440px;
+  padding-top: 1rem;
+}
+
+.app--stitch .team-page-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: var(--lc-on-surface);
+  letter-spacing: -0.02em;
+}
+
+.app--stitch .team-page-title span {
+  background: linear-gradient(135deg, var(--lc-primary), var(--lc-primary-container));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.app--stitch .team-page-lead {
+  color: var(--lc-on-surface-variant);
+}
+
+.app--stitch .team-page-card {
+  background: var(--lc-surface-container-lowest);
+  border: 1px solid var(--lc-outline-variant);
+  border-radius: 0.75rem;
+}
+
+.app--stitch .team-page-card-title {
+  font-family: 'Manrope', sans-serif;
+  color: var(--lc-on-surface);
+}
+
+.app--stitch .team-page-btn--primary {
+  background: var(--lc-primary);
+  color: var(--lc-on-primary);
+}
+
+.app--stitch .team-page-btn--primary:hover {
+  background: var(--lc-primary-container);
+}
+
+.app--stitch .team-page-btn--secondary {
+  background: var(--lc-surface-container-low);
+  color: var(--lc-on-surface);
+  border-color: var(--lc-outline-variant);
+}
+
+.app--stitch .team-page-split {
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}

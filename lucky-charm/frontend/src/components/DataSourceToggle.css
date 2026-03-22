@@ -1,0 +1,46 @@
+.data-source-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.data-source-toggle-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.data-source-toggle-buttons {
+  display: flex;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.data-source-toggle-btn {
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 0.35rem 0.65rem;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+
+.data-source-toggle-btn:hover {
+  color: var(--text);
+}
+
+.data-source-toggle-btn--active {
+  color: var(--bg);
+  background: var(--accent);
+}
+
+.data-source-toggle-btn--active:hover {
+  color: var(--bg);
+}

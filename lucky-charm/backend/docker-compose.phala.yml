@@ -1,0 +1,10 @@
+# Phala Cloud CPU TEE: same as docker-compose.yml but with dstack.sock for TEE communication
+# platform: linux/amd64 required — Phala TEE is x86_64; without it, ARM-built images fail to start
+services:
+  app:
+    platform: linux/amd64
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/dstack.sock:/var/run/dstack.sock

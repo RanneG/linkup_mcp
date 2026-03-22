@@ -1,0 +1,53 @@
+.tee-status {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  z-index: 1000;
+}
+
+.tee-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tee-status--checking .tee-status-dot {
+  background: #eab308;
+  animation: tee-status-pulse 1s ease-in-out infinite;
+}
+
+.tee-status--connected .tee-status-dot {
+  background: var(--success);
+}
+
+.tee-status--offline .tee-status-dot {
+  background: #f87171;
+}
+
+.tee-status--demo .tee-status-dot {
+  background: var(--accent);
+}
+
+.tee-status-label {
+  white-space: nowrap;
+}
+
+@keyframes tee-status-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "lucky-charm",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "fetch-stitch": "node scripts/fetch-stitch-screens.js"
+  },
+  "dependencies": {
+    "@google/stitch-sdk": "^0.0.3"
+  }
+}

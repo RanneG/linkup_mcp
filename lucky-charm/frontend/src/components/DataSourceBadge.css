@@ -1,0 +1,22 @@
+.data-source-badge {
+  position: fixed;
+  bottom: 1rem;
+  left: 1rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  z-index: 999;
+}
+
+.data-source-badge--real {
+  color: var(--success);
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+.data-source-badge--mock {
+  color: var(--text-muted);
+}
