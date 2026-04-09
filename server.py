@@ -18,14 +18,27 @@ client = None
 if linkup_api_key:
     client = LinkupClient()
 
-# Initialize RAG workflow
-rag_workflow = RAGWorkflow()
+# RAG is heavy (HF embed download + ingest). Lazy-init so MCP stdio handshake is not blocked.
+rag_workflow: Optional[RAGWorkflow] = None
+_rag_ready_lock = asyncio.Lock()
 
 # Initialize LLM for agents (reuse the same Ollama instance)
 agent_llm = Ollama(model="llama3.2")
 
 # We'll initialize the orchestrator after defining tools
 agent_orchestrator: Optional[AgentOrchestrator] = None
+
+
+async def _ensure_rag_ready() -> RAGWorkflow:
+    """Build embedding index on first use so bundled MCP clients do not time out at startup."""
+    global rag_workflow
+    if rag_workflow is not None:
+        return rag_workflow
+    async with _rag_ready_lock:
+        if rag_workflow is None:
+            rag_workflow = RAGWorkflow()
+            await rag_workflow.ingest_documents("data")
+        return rag_workflow
 
 @mcp.tool()
 def web_search(query: str) -> str:
@@ -44,7 +57,8 @@ def web_search(query: str) -> str:
 @mcp.tool()
 async def rag(query: str) -> str:
     """Use a simple RAG workflow to answer queries using documents from data directory about Deep Seek"""
-    response = await rag_workflow.query(query)
+    wf = await _ensure_rag_ready()
+    response = await wf.query(query)
     return str(response)
 
 
@@ -116,7 +130,8 @@ def _setup_agent_orchestrator():
         return str(search_response)
     
     async def rag_tool(query: str) -> str:
-        response = await rag_workflow.query(query)
+        wf = await _ensure_rag_ready()
+        response = await wf.query(query)
         return str(response)
     
     tools = {
@@ -128,13 +143,10 @@ def _setup_agent_orchestrator():
 
 
 if __name__ == "__main__":
-    # Ingest documents for RAG
-    asyncio.run(rag_workflow.ingest_documents("data"))
-    
-    # Set up the agent orchestrator
+    # Set up the agent orchestrator (RAG loads on first rag / document agent use)
     _setup_agent_orchestrator()
-    
-    # Run the MCP server
+
+    # Run the MCP server (stdio must start quickly for OpenClaw / Cursor MCP)
     mcp.run(transport="stdio")
 
 

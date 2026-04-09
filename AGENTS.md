@@ -67,6 +67,13 @@ Ranne is moving personal agent / PKM work to **OpenClaw**, with a **dedicated Ma
 
 When helping Ranne with OpenClaw, **prefer official OpenClaw documentation + his live `openclaw` version** over video details (commands and UIs change).
 
+## Cursor (Nami) vs OpenClaw `AGENTS.md`
+
+- **This file** in **`cursor_linkup_mcp`** is **canonical** for Ranne ↔ **Nami** handoff, MCP setup, GitHub ecosystem links, and anything that should live in **git** and ship to **GitHub**.
+- **`~/.openclaw/workspace/AGENTS.md`** begins with a **pointer** to this file (GitHub URL + local clone path), then keeps **OpenClaw-only** runtime: memory layout, heartbeats, cron programs, `TOOLS.md`, channel behavior.
+
+There is **no automatic sync** between apps. When **shared** expectations change, edit **this** `AGENTS.md`, commit, and push; update the OpenClaw workspace only for **gateway-specific** behavior. On a new machine, fix the **local path** in the OpenClaw pointer if the repo is not at the same location.
+
 ## Maintenance
 
 - Keep `AGENTS.md` short; link out for long setup steps.
