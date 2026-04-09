@@ -69,7 +69,7 @@ When helping Ranne with OpenClaw, **prefer official OpenClaw documentation + his
 
 ## Cursor (Nami) vs OpenClaw `AGENTS.md`
 
-- **This file** in **`cursor_linkup_mcp`** is **canonical** for Ranne ↔ **Nami** handoff, MCP setup, GitHub ecosystem links, and anything that should live in **git** and ship to **GitHub**.
+- **This file** in the **`cursor_linkup_mcp`** repo is **canonical** for Ranne ↔ **Nami** handoff, MCP setup, GitHub ecosystem links, and anything that should live in **git** and ship to **GitHub**. **On GitHub:** https://github.com/RanneG/linkup_mcp/blob/main/AGENTS.md
 - **`~/.openclaw/workspace/AGENTS.md`** begins with a **pointer** to this file (GitHub URL + local clone path), then keeps **OpenClaw-only** runtime: memory layout, heartbeats, cron programs, `TOOLS.md`, channel behavior.
 
 There is **no automatic sync** between apps. When **shared** expectations change, edit **this** `AGENTS.md`, commit, and push; update the OpenClaw workspace only for **gateway-specific** behavior. On a new machine, fix the **local path** in the OpenClaw pointer if the repo is not at the same location.
