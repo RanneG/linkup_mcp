@@ -13,7 +13,7 @@ The **Jarvis / Iron Man** framing is about partnership and execution quality—n
 
 ## Project in one paragraph
 
-**cursor_linkup_mcp** is a Python MCP server for Cursor: **web search** via Linkup, **RAG** over `data/` via LlamaIndex + Ollama (`server.py`, `rag.py`). Package and commands are in `README.md` and `.cursorrules`. Reuse libraries from Ranne’s GitHub ecosystem when building adjacent features (see `.cursorrules`).
+**linkup_mcp** ([GitHub](https://github.com/RanneG/linkup_mcp)) is a Python MCP server for Cursor: **web search** via Linkup, **RAG** over `data/` via LlamaIndex + Ollama (`server.py`, `rag.py`). Your local clone folder may still be named `cursor_linkup_mcp`; that is fine. Package and commands are in `README.md` and `.cursorrules`. Reuse libraries from Ranne’s GitHub ecosystem when building adjacent features (see `.cursorrules`).
 
 ## Where else to look
 
@@ -69,7 +69,7 @@ When helping Ranne with OpenClaw, **prefer official OpenClaw documentation + his
 
 ## Cursor (Nami) vs OpenClaw `AGENTS.md`
 
-- **This file** in the **`cursor_linkup_mcp`** repo is **canonical** for Ranne ↔ **Nami** handoff, MCP setup, GitHub ecosystem links, and anything that should live in **git** and ship to **GitHub**. **On GitHub:** https://github.com/RanneG/linkup_mcp/blob/main/AGENTS.md
+- **This file** in the **`linkup_mcp`** repo is **canonical** for Ranne ↔ **Nami** handoff, MCP setup, GitHub ecosystem links, and anything that should live in **git** and ship to **GitHub**. **On GitHub:** https://github.com/RanneG/linkup_mcp/blob/main/AGENTS.md
 - **`~/.openclaw/workspace/AGENTS.md`** begins with a **pointer** to this file (GitHub URL + local clone path), then keeps **OpenClaw-only** runtime: memory layout, heartbeats, cron programs, `TOOLS.md`, channel behavior.
 
 There is **no automatic sync** between apps. When **shared** expectations change, edit **this** `AGENTS.md`, commit, and push; update the OpenClaw workspace only for **gateway-specific** behavior. On a new machine, fix the **local path** in the OpenClaw pointer if the repo is not at the same location.

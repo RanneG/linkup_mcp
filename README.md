@@ -24,8 +24,8 @@ Custom MCP (Model Context Protocol) server for Cursor IDE with:
 ### 1. Clone & Install Dependencies
 
 ```bash
-git clone https://github.com/RanneG/cursor_linkup_mcp.git
-cd cursor_linkup_mcp
+git clone https://github.com/RanneG/linkup_mcp.git
+cd linkup_mcp
 uv sync
 ```
 
@@ -56,7 +56,7 @@ Add to `~/.cursor/mcp.json` (or `C:\Users\<username>\.cursor\mcp.json` on Window
       "command": "C:\\Users\\YOUR_USERNAME\\AppData\\Local\\Microsoft\\WindowsApps\\python.exe",
       "args": [
         "-m", "uv", "run",
-        "--directory", "C:\\path\\to\\cursor_linkup_mcp",
+        "--directory", "C:\\path\\to\\linkup_mcp",
         "python", "server.py"
       ]
     }
@@ -89,7 +89,7 @@ Supported: PDF, DOCX, TXT, MD, HTML, and more.
 ## 🛠️ Project Structure
 
 ```
-cursor_linkup_mcp/
+linkup_mcp/
 ├── server.py          # Main MCP server
 ├── rag.py             # RAG workflow
 ├── data/              # Your documents
