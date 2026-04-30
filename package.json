@@ -1,0 +1,8 @@
+{
+  "name": "cursor-linkup-mcp",
+  "private": true,
+  "description": "Root scripts only. The Stitch browser dev server lives under temp_repo/stitch/apps/desktop.",
+  "scripts": {
+    "dev:browser": "npm --prefix temp_repo/stitch/apps/desktop run dev:browser"
+  }
+}
