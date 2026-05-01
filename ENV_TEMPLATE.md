@@ -11,6 +11,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 
 # Optional: Stitch HTTP bridge (stitch_rag_bridge.py)
 # STITCH_RAG_BRIDGE_PORT=8765
+# STITCH_ALLOWED_ORIGINS=http://127.0.0.1:1420,http://localhost:1420
 
 # Optional: include debug_retrieval_cards on rag_stitch / bridge fallback responses
 # STITCH_RAG_DEBUG=1
@@ -27,16 +28,11 @@ OPENAI_API_KEY=your_openai_api_key_here
 # STITCH_FACE_DEV_SKIP_LIVENESS=1   # dev only: bypass liveness in POST /api/face/verify
 
 # --- Google OAuth + Gmail (Stitch bridge /api/auth/*, /api/subscriptions/*) ---
-# Create an OAuth 2.0 Web client in Google Cloud Console and add authorized redirect URI:
-#   http://127.0.0.1:8765/api/auth/google/callback
-# Enable Gmail API for the project. Scopes are requested by the bridge (readonly Gmail + profile email).
-# GOOGLE_OAUTH_CLIENT_ID=
-# GOOGLE_OAUTH_CLIENT_SECRET=
-# Optional: override redirect (must match Console exactly)
-# STITCH_GOOGLE_REDIRECT_URI=http://127.0.0.1:8765/api/auth/google/callback
-# Optional: SQLite DB path (default ~/.stitch/stitch_auth.db)
+# See "Google OAuth (Stitch)" below for setup. Uncomment and fill when using Stitch desktop + bridge.
+# GOOGLE_OAUTH_CLIENT_ID=your_client_id.apps.googleusercontent.com
+# GOOGLE_OAUTH_CLIENT_SECRET=your_secret
+# STITCH_GOOGLE_REDIRECT_URI=http://127.0.0.1:8765/api/auth/google/callback   # optional; must match Console
 # STITCH_AUTH_DB=
-# Optional: Fernet key for refresh tokens (default: auto-generated file ~/.stitch/.google_fernet_key)
 # STITCH_GOOGLE_FERNET_KEY=
 # STITCH_SESSION_TTL_SEC=2592000
 ```
@@ -53,6 +49,31 @@ OPENAI_API_KEY=your_openai_api_key_here
 
 1. Visit https://platform.openai.com/
 2. Open **API keys** and create a key
+
+### Google OAuth (Stitch sign-in + Gmail discovery)
+
+Used by `stitch_rag_bridge.py` for `/api/auth/google/*`, sessions, and `/api/subscriptions/from-gmail`.
+
+1. **Google Cloud Console** — Create (or pick) a project → **APIs & Services** → **Credentials** → **Create credentials** → **OAuth client ID** → Application type **Web application**. Under **Authorized redirect URIs**, add exactly:
+   - `http://127.0.0.1:8765/api/auth/google/callback`  
+   Enable **Gmail API** (and Google People / userinfo if prompted) for the same project so the bridge can read subscription mail with the scopes it requests.
+
+2. **Root `.env`** (same folder as `stitch_rag_bridge.py`, i.e. this repo root — never commit it):
+
+   ```bash
+   GOOGLE_OAUTH_CLIENT_ID=your_client_id.apps.googleusercontent.com
+   GOOGLE_OAUTH_CLIENT_SECRET=your_secret
+   ```
+
+3. **Restart the bridge** so it reloads env (from repo root, with `uv`):
+
+   ```bash
+   uv run python stitch_rag_bridge.py
+   ```
+
+   If you use a venv instead: `.\.venv\Scripts\python.exe stitch_rag_bridge.py` (Windows) or `.venv/bin/python stitch_rag_bridge.py` (macOS/Linux).
+
+The Stitch UI calls the bridge on **127.0.0.1:8765** in local dev; the redirect URI in Console must match what the bridge uses (default above).
 
 Never commit `.env`; it is listed in `.gitignore`.
 

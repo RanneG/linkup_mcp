@@ -80,6 +80,7 @@ NOTES.md
 
 # Personal documents
 data/RGerodiasCV.pdf
+data/*.pdf
 
 # Node / frontend
 node_modules/

@@ -21,6 +21,9 @@ Defaults: http://127.0.0.1:8765
   POST /api/auth/active-email     JSON {"email":"..."}  primary for notifications
   GET  /api/subscriptions/from-gmail  (session) optional ?account_id=
   POST /api/subscriptions/import    JSON {"selections":[{serviceName, amountUsd, renewalDateIso, category, sourceEmail}]}
+  GET  /api/subscriptions/list      (session) persisted subscriptions for active account
+  POST /api/subscriptions/upsert    JSON {"subscriptions":[{id?, name, amountUsd, dueDateIso, category, status}]}
+  POST /api/subscriptions/delete    JSON {"id":"sub-..."}
 """
 from __future__ import annotations
 
@@ -37,6 +40,15 @@ logger = logging.getLogger(__name__)
 
 # Enrollment sends multiple base64 JPEGs; cap to keep requests and DeepFace work bounded.
 _MAX_ENROLL_IMAGES = int(os.getenv("STITCH_FACE_MAX_ENROLL_IMAGES", "5"))
+_DEFAULT_ALLOWED_ORIGINS = "http://127.0.0.1:1420,http://localhost:1420,http://127.0.0.1:5173,http://localhost:5173"
+
+
+def _parse_allowed_origins(raw: str) -> set[str]:
+    origins = {(item or "").strip() for item in raw.split(",")}
+    return {origin for origin in origins if origin}
+
+
+_ALLOWED_ORIGINS = _parse_allowed_origins(os.getenv("STITCH_ALLOWED_ORIGINS", _DEFAULT_ALLOWED_ORIGINS))
 
 from server import _ensure_rag_ready, _to_stitch_view
 
@@ -49,7 +61,10 @@ _face_lock = threading.Lock()
 
 @app.after_request
 def _cors(resp):
-    resp.headers["Access-Control-Allow-Origin"] = "*"
+    origin = request.headers.get("Origin", "").strip() if has_request_context() else ""
+    if origin and origin in _ALLOWED_ORIGINS:
+        resp.headers["Access-Control-Allow-Origin"] = origin
+        resp.headers["Vary"] = "Origin"
     resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return resp
@@ -112,7 +127,9 @@ def _face_imports():
         DEFAULT_MATCH_THRESHOLD,
         DEFAULT_MODEL_NAME,
         build_single_frame_enrollment_embeddings,
+        diagnose_enrollment_failure,
         embed_bgr,
+        embed_bgr_enrollment_mode,
         enrollment_consistency_score,
         match_embeddings,
     )
@@ -124,6 +141,8 @@ def _face_imports():
         DEFAULT_MATCH_THRESHOLD,
         DEFAULT_MODEL_NAME,
         embed_bgr,
+        embed_bgr_enrollment_mode,
+        diagnose_enrollment_failure,
         build_single_frame_enrollment_embeddings,
         enrollment_consistency_score,
         match_embeddings,
@@ -144,7 +163,9 @@ def face_enroll():
             decode_image_base64,
             _thr,
             DEFAULT_MODEL_NAME,
-            embed_bgr,
+            _embed_bgr,
+            embed_bgr_enrollment_mode,
+            diagnose_enrollment_failure,
             build_single_frame_enrollment_embeddings,
             enrollment_consistency_score,
             _match,
@@ -227,16 +248,10 @@ def face_enroll():
 
             embeddings_multi: list = []
             for idx, im in enumerate(decoded):
-                emb = embed_bgr(im, enforce_detection=quality_check == "strict")
-                if emb is None and quality_check == "lenient":
-                    emb = embed_bgr(im, enforce_detection=False)
+                emb = embed_bgr_enrollment_mode(im, quality_check=quality_check)
                 if emb is None:
-                    return jsonify(
-                        {
-                            "ok": False,
-                            "error": f"No face detected in image {idx + 1} — move closer, improve lighting, and try again.",
-                        }
-                    ), 400
+                    hint = diagnose_enrollment_failure(im)
+                    return jsonify({"ok": False, "error": f"Image {idx + 1}: {hint}"}), 400
                 embeddings_multi.append(emb)
             try:
                 storage.save_enrollment(email, embeddings_multi, model_name=DEFAULT_MODEL_NAME)
@@ -273,6 +288,8 @@ def face_verify():
             DEFAULT_MATCH_THRESHOLD,
             DEFAULT_MODEL_NAME,
             embed_bgr,
+            _embed_bgr_enrollment_mode,
+            _diagnose_enrollment_failure,
             _build_single_frame_enrollment_embeddings,
             _enrollment_consistency_score,
             match_embeddings,
@@ -479,5 +496,5 @@ if __name__ == "__main__":
         f"[stitch_rag_bridge] http://127.0.0.1:{port}  MAX_CONTENT_LENGTH={app.config.get('MAX_CONTENT_LENGTH')}",
         flush=True,
     )
-    # Single-threaded: one asyncio.run per request; avoids concurrent event-loop issues.
-    app.run(host="127.0.0.1", port=port, debug=False, threaded=False)
+    # Threaded server keeps lightweight endpoints responsive during long local ops.
+    app.run(host="127.0.0.1", port=port, debug=False, threaded=True)
