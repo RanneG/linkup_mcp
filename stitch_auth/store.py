@@ -76,6 +76,20 @@ def _migrate(c: sqlite3.Connection) -> None:
             active_email TEXT,
             payload_json TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS subscriptions (
+            id TEXT PRIMARY KEY,
+            owner_email TEXT NOT NULL,
+            name TEXT NOT NULL,
+            category TEXT NOT NULL,
+            amount_usd REAL NOT NULL,
+            due_date_iso TEXT NOT NULL,
+            status TEXT NOT NULL,
+            source_email TEXT,
+            created_at REAL NOT NULL,
+            updated_at REAL NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_subscriptions_owner_email
+            ON subscriptions(owner_email);
         """
     )
     c.commit()
@@ -210,3 +224,94 @@ def session_accounts_detail(session_id: str) -> list[dict]:
                 }
             )
     return out
+
+
+def subscriptions_list(owner_email: str) -> list[dict]:
+    c = _get_conn()
+    rows = c.execute(
+        """
+        SELECT id, owner_email, name, category, amount_usd, due_date_iso, status, source_email, created_at, updated_at
+        FROM subscriptions
+        WHERE owner_email = ?
+        ORDER BY due_date_iso ASC, name COLLATE NOCASE ASC
+        """,
+        (owner_email,),
+    ).fetchall()
+    return [
+        {
+            "id": str(r["id"]),
+            "ownerEmail": str(r["owner_email"]),
+            "name": str(r["name"]),
+            "category": str(r["category"]),
+            "amountUsd": round(float(r["amount_usd"]), 2),
+            "dueDateIso": str(r["due_date_iso"]),
+            "status": str(r["status"]),
+            "sourceEmail": r["source_email"],
+            "createdAt": float(r["created_at"]),
+            "updatedAt": float(r["updated_at"]),
+        }
+        for r in rows
+    ]
+
+
+def subscriptions_upsert_many(owner_email: str, items: list[dict]) -> list[dict]:
+    c = _get_conn()
+    now = time.time()
+    out: list[dict] = []
+    with _lock:
+        for item in items:
+            sub_id = str(item.get("id") or uuid.uuid4().hex)
+            row = {
+                "id": sub_id,
+                "owner_email": owner_email,
+                "name": str(item.get("name") or "").strip(),
+                "category": str(item.get("category") or "software").strip(),
+                "amount_usd": round(float(item.get("amountUsd") or 0.0), 2),
+                "due_date_iso": str(item.get("dueDateIso") or time.strftime("%Y-%m-%d")).strip(),
+                "status": str(item.get("status") or "pending").strip(),
+                "source_email": item.get("sourceEmail"),
+                "created_at": now,
+                "updated_at": now,
+            }
+            c.execute(
+                """
+                INSERT INTO subscriptions
+                    (id, owner_email, name, category, amount_usd, due_date_iso, status, source_email, created_at, updated_at)
+                VALUES
+                    (:id, :owner_email, :name, :category, :amount_usd, :due_date_iso, :status, :source_email, :created_at, :updated_at)
+                ON CONFLICT(id) DO UPDATE SET
+                    owner_email=excluded.owner_email,
+                    name=excluded.name,
+                    category=excluded.category,
+                    amount_usd=excluded.amount_usd,
+                    due_date_iso=excluded.due_date_iso,
+                    status=excluded.status,
+                    source_email=excluded.source_email,
+                    updated_at=excluded.updated_at
+                """,
+                row,
+            )
+            out.append(
+                {
+                    "id": row["id"],
+                    "name": row["name"],
+                    "category": row["category"],
+                    "amountUsd": row["amount_usd"],
+                    "dueDateIso": row["due_date_iso"],
+                    "status": row["status"],
+                    "sourceEmail": row["source_email"],
+                }
+            )
+        c.commit()
+    return out
+
+
+def subscription_delete(owner_email: str, sub_id: str) -> bool:
+    c = _get_conn()
+    with _lock:
+        cur = c.execute(
+            "DELETE FROM subscriptions WHERE owner_email = ? AND id = ?",
+            (owner_email, sub_id),
+        )
+        c.commit()
+        return int(cur.rowcount or 0) > 0

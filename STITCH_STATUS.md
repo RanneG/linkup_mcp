@@ -17,6 +17,7 @@ _Last updated: 2026-04-30 (end of session)._
 - **Face verification:** Guided single-frame enrollment, purchase gate wired to “Upcoming payments” approve flow (`purpose="purchase"` on `FaceVerificationPanel`), bridge enroll/verify APIs.
 - **Theme system (desktop):** Implemented under `temp_repo/stitch/…` — not in this git tree; `integrations/stitch` is the portable reference if you copy files back.
 - **Google sign-in + Gmail discovery:** Backend routes on bridge (`/api/auth/*`, `/api/subscriptions/*`), SQLite + encrypted refresh tokens, PKCE OAuth, popup callback `postMessage`, `GoogleSignInPanel` + `lib/stitchBridge.ts` in **local** Stitch app (`temp_repo`).
+- **Subscription persistence API:** Bridge now stores imported/edited subscriptions in SQLite per active authenticated email (`/api/subscriptions/list|upsert|delete` + persisted `/api/subscriptions/import`).
 - **Health:** `GET /api/health` includes `google_oauth: true|false` when client id/secret are set.
 - **Env docs:** `ENV_TEMPLATE.md` — Google OAuth vars documented.
 
@@ -29,7 +30,7 @@ _Last updated: 2026-04-30 (end of session)._
 
 ## Next steps (priority order)
 
-1. **Persist Stitch subscriptions** — Imports and dashboard edits are in-memory; add `localStorage` or SQLite sync if you want reload survival.  
+1. **Wire Stitch UI to new persistence routes** — Call `/api/subscriptions/list` on load and `/api/subscriptions/upsert|delete` for dashboard edits so reload survival is fully enabled in the app.  
 2. **Tauri / production OAuth** — Today tokens live on the **bridge** machine; client holds session id. For packaged desktop, consider `safeStorage` + deep link or loopback only in the shell, or a tiny local auth service.  
 3. **Gmail parsing depth** — Currently metadata + snippet + regex; improve with selective `format=full` for low-confidence rows only (quota-aware).  
 4. **Sync `temp_repo/stitch` ↔ git** — Either stop gitignoring a slim `apps/desktop` subtree or maintain `integrations/stitch` as source of truth and document copy steps in README/AGENTS.  

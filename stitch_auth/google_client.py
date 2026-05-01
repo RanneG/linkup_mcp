@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import json
 import logging
 import os
 import re
@@ -26,6 +27,37 @@ SCOPES = [
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
+
+
+def claims_from_id_token(id_token: str | None) -> dict[str, Any] | None:
+    """Decode JWT payload (no signature verify). Safe here because `id_token` came from Google's token endpoint."""
+    if not id_token or not isinstance(id_token, str):
+        return None
+    parts = id_token.split(".")
+    if len(parts) != 3:
+        return None
+    payload_b64 = parts[1]
+    pad = "=" * (-len(payload_b64) % 4)
+    try:
+        raw = base64.urlsafe_b64decode(payload_b64 + pad)
+        data = json.loads(raw.decode("utf-8"))
+    except (ValueError, json.JSONDecodeError, UnicodeDecodeError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def userinfo_from_token_response(token: dict[str, Any]) -> dict[str, Any]:
+    """Prefer id_token claims to skip a round-trip to the userinfo endpoint (saves latency on sign-in)."""
+    claims = claims_from_id_token(token.get("id_token"))
+    if isinstance(claims, dict):
+        email = (str(claims.get("email") or "")).strip()
+        if email:
+            out: dict[str, Any] = {"email": email, "sub": claims.get("sub"), "picture": claims.get("picture")}
+            return out
+    access = token.get("access_token") or ""
+    if not access:
+        raise ValueError("missing access_token")
+    return fetch_userinfo(access)
 
 
 def _client_id() -> str:

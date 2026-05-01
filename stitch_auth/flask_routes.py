@@ -23,6 +23,9 @@ from stitch_auth.store import (
     session_delete,
     session_load,
     session_update,
+    subscription_delete,
+    subscriptions_list,
+    subscriptions_upsert_many,
 )
 
 logger = logging.getLogger(__name__)
@@ -59,20 +62,38 @@ def _html_callback_page(target_origin: str, payload: dict[str, Any]) -> str:
 
 
 def register_stitch_auth_routes(app: Flask) -> None:
+    def _owner_email_for_session() -> tuple[str | None, tuple[dict[str, Any], int] | None]:
+        sid = _session_from_request()
+        if not sid:
+            return None, ({"ok": False, "error": "not_authenticated"}, 401)
+        sess = session_load(sid)
+        if not sess:
+            return None, ({"ok": False, "error": "invalid_session"}, 401)
+        active = (sess.get("active_email") or "").strip()
+        ids = [int(x) for x in sess.get("account_ids") or []]
+        if not active and ids:
+            row = google_account_by_id(ids[0])
+            active = str(row["email"]) if row else ""
+        if not active:
+            return None, ({"ok": False, "error": "no_accounts"}, 400)
+        return active, None
+
     @app.route("/api/auth/google", methods=["OPTIONS"])
+    @app.route("/api/auth/google/url", methods=["OPTIONS"])
     def auth_google_options():
         return "", 204
 
-    @app.route("/api/auth/google", methods=["POST"])
-    def auth_google_start():
+    def _auth_google_start_impl():
         if not google_client.oauth_configured():
-            return jsonify(
-                {
-                    "ok": False,
-                    "error": "Google OAuth is not configured. Set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET.",
-                }
-            ),
-            503
+            return (
+                jsonify(
+                    {
+                        "ok": False,
+                        "error": "Google OAuth is not configured. Set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET.",
+                    }
+                ),
+                503,
+            )
         body = request.get_json(silent=True) or {}
         client_origin = (body.get("client_origin") or request.headers.get("Origin") or "http://localhost:1420").strip()
         if not client_origin.startswith("http"):
@@ -87,6 +108,16 @@ def register_stitch_auth_routes(app: Flask) -> None:
             logger.exception("build auth url")
             return jsonify({"ok": False, "error": str(e)}), 500
         return jsonify({"ok": True, "auth_url": url, "state": state})
+
+    @app.route("/api/auth/google", methods=["POST"])
+    def auth_google_start():
+        # Backwards-compatible alias.
+        return _auth_google_start_impl()
+
+    @app.route("/api/auth/google/url", methods=["POST"])
+    def auth_google_url():
+        # Canonical endpoint used by the basic sign-in flow.
+        return _auth_google_start_impl()
 
     @app.route("/api/auth/google/callback", methods=["GET"])
     def auth_google_callback():
@@ -113,7 +144,7 @@ def register_stitch_auth_routes(app: Flask) -> None:
             payload = {"ok": False, "error": "no_refresh_token", "detail": "Try again and ensure consent is granted."}
             return _html_callback_page(origin, payload), 200, {"Content-Type": "text/html; charset=utf-8"}
         try:
-            info = google_client.fetch_userinfo(access)
+            info = google_client.userinfo_from_token_response(token)
         except Exception as e:  # noqa: BLE001
             payload = {"ok": False, "error": "userinfo_failed", "detail": str(e)}
             return _html_callback_page(origin, payload), 200, {"Content-Type": "text/html; charset=utf-8"}
@@ -251,16 +282,15 @@ def register_stitch_auth_routes(app: Flask) -> None:
     def subscriptions_import():
         if request.method == "OPTIONS":
             return "", 204
-        sid = _session_from_request()
-        if not sid:
-            return jsonify({"ok": False, "error": "not_authenticated"}), 401
-        if not session_load(sid):
-            return jsonify({"ok": False, "error": "invalid_session"}), 401
+        owner_email, err = _owner_email_for_session()
+        if err:
+            payload, status = err
+            return jsonify(payload), status
         body = request.get_json(silent=True) or {}
         selections = body.get("selections") or body.get("items") or []
         if not isinstance(selections, list):
             return jsonify({"ok": False, "error": "selections_must_be_list"}), 400
-        imported: list[dict[str, Any]] = []
+        imported_input: list[dict[str, Any]] = []
         for item in selections:
             if not isinstance(item, dict):
                 continue
@@ -278,7 +308,7 @@ def register_stitch_auth_routes(app: Flask) -> None:
             cat = (item.get("category") or "software").strip()
             if cat not in ("streaming", "music", "fitness", "shopping", "software"):
                 cat = "software"
-            imported.append(
+            imported_input.append(
                 {
                     "id": f"sub-import-{secrets.token_hex(6)}",
                     "name": name,
@@ -289,4 +319,75 @@ def register_stitch_auth_routes(app: Flask) -> None:
                     "sourceEmail": item.get("sourceEmail"),
                 }
             )
-        return jsonify({"ok": True, "imported": imported, "count": len(imported)})
+        imported = subscriptions_upsert_many(owner_email or "", imported_input)
+        all_subscriptions = subscriptions_list(owner_email or "")
+        return jsonify(
+            {
+                "ok": True,
+                "ownerEmail": owner_email,
+                "imported": imported,
+                "count": len(imported),
+                "subscriptions": all_subscriptions,
+            }
+        )
+
+    @app.route("/api/subscriptions/list", methods=["GET", "OPTIONS"])
+    def subscriptions_list_route():
+        if request.method == "OPTIONS":
+            return "", 204
+        owner_email, err = _owner_email_for_session()
+        if err:
+            payload, status = err
+            return jsonify(payload), status
+        rows = subscriptions_list(owner_email or "")
+        return jsonify({"ok": True, "ownerEmail": owner_email, "count": len(rows), "subscriptions": rows})
+
+    @app.route("/api/subscriptions/upsert", methods=["POST", "OPTIONS"])
+    def subscriptions_upsert_route():
+        if request.method == "OPTIONS":
+            return "", 204
+        owner_email, err = _owner_email_for_session()
+        if err:
+            payload, status = err
+            return jsonify(payload), status
+        body = request.get_json(silent=True) or {}
+        items = body.get("subscriptions") or body.get("items") or []
+        if not isinstance(items, list):
+            return jsonify({"ok": False, "error": "subscriptions_must_be_list"}), 400
+        normalized: list[dict[str, Any]] = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            name = (item.get("name") or "").strip()
+            if not name:
+                continue
+            normalized.append(
+                {
+                    "id": item.get("id"),
+                    "name": name,
+                    "category": (item.get("category") or "software"),
+                    "amountUsd": item.get("amountUsd"),
+                    "dueDateIso": item.get("dueDateIso"),
+                    "status": (item.get("status") or "pending"),
+                    "sourceEmail": item.get("sourceEmail"),
+                }
+            )
+        upserted = subscriptions_upsert_many(owner_email or "", normalized)
+        rows = subscriptions_list(owner_email or "")
+        return jsonify({"ok": True, "ownerEmail": owner_email, "upserted": upserted, "count": len(upserted), "subscriptions": rows})
+
+    @app.route("/api/subscriptions/delete", methods=["POST", "OPTIONS"])
+    def subscriptions_delete_route():
+        if request.method == "OPTIONS":
+            return "", 204
+        owner_email, err = _owner_email_for_session()
+        if err:
+            payload, status = err
+            return jsonify(payload), status
+        body = request.get_json(silent=True) or {}
+        sub_id = (body.get("id") or "").strip()
+        if not sub_id:
+            return jsonify({"ok": False, "error": "missing_id"}), 400
+        removed = subscription_delete(owner_email or "", sub_id)
+        rows = subscriptions_list(owner_email or "")
+        return jsonify({"ok": True, "ownerEmail": owner_email, "removed": removed, "subscriptions": rows, "count": len(rows)})

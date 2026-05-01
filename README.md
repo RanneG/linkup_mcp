@@ -70,6 +70,7 @@ Add to `~/.cursor/mcp.json` (or `C:\Users\<username>\.cursor\mcp.json` on Window
 
 In Cursor's chat:
 - **"Use the rag tool to tell me about [topic]"**
+- **"Use the rag_stitch tool to get a UI-ready answer payload"**
 - **"Search the web for [query]"** (requires Linkup API key)
 
 ## 📚 Using the RAG Tool
@@ -86,12 +87,76 @@ data/
 
 Supported: PDF, DOCX, TXT, MD, HTML, and more.
 
+### Stitch-style response shape
+
+The `rag` tool now returns a JSON string with:
+- `answer`: final synthesized answer text
+- `confidence`: `low`, `medium`, or `high`
+- `fallback`: `true` when evidence is weak/insufficient
+- `sources`: ranked source snippets (`source_id`, `score`, `snippet`)
+
+The `rag_stitch` tool returns a UI-oriented JSON string:
+- `state`: `answered` or `fallback`
+- `answer`
+- `confidence` (`low`, `medium`, or `high`)
+- `source_cards` (empty when `state` is `fallback` so the UI stays clean)
+- `show_sources` (`false` on fallback)
+- `debug_retrieval_cards` (only when `STITCH_RAG_DEBUG=1` and fallback — raw top chunks for debugging)
+
+### Stitch HTTP bridge (for the Stitch desktop app)
+
+Run a small Flask server that exposes the same payload as `rag_stitch`, plus optional **local face verification** (`/api/face/*`, DeepFace + OpenCV liveness — see `face_verification/`):
+
+```bash
+.\.venv\Scripts\python.exe stitch_rag_bridge.py
+```
+
+Then point Stitch’s Vite dev proxy at `http://127.0.0.1:8765` (see [integrations/stitch/README.md](integrations/stitch/README.md); proxy `/api` for both RAG and face routes).
+
+### Quick regression run
+
+To run the v1 prompt suite against your local PDF corpus:
+
+```bash
+python rag_regression.py
+```
+
+This prints each response payload and a small summary (sourced count, fallback count, low-confidence count).
+
+### Stitch JSON contract tests
+
+```bash
+python -m unittest tests.test_rag_stitch_contract -v
+```
+
+Validates `_to_stitch_view` shapes (`answered` vs `fallback`, `show_sources`, optional `debug_retrieval_cards`).
+
+If MCP-security prompts fall back, add the MCP landscape paper to `data/`:
+- [Model Context Protocol (MCP): Landscape, Security Threats, and Future Research Directions](https://arxiv.org/pdf/2503.23278.pdf)
+
+### Stitch CLI demo
+
+To preview Stitch-oriented output states in a local terminal:
+
+```bash
+python stitch_demo_cli.py
+```
+
+This renders:
+- `state` (`answered` or `fallback`)
+- `confidence`
+- `answer`
+- source cards when `show_sources` is true; optional `debug_retrieval_cards` when `STITCH_RAG_DEBUG=1`
+
 ## 🛠️ Project Structure
 
 ```
 linkup_mcp/
 ├── server.py          # Main MCP server
 ├── rag.py             # RAG workflow
+├── stitch_rag_bridge.py  # Local HTTP bridge for Stitch UI dev (RAG + /api/face)
+├── face_verification/    # Local 1:1 face match + liveness (used by bridge)
+├── integrations/stitch/  # Tracked Stitch UI patch + instructions
 ├── data/              # Your documents
 ├── pyproject.toml     # Dependencies
 ├── .cursorrules       # AI context for Cursor

@@ -15,6 +15,18 @@ The **Jarvis / Iron Man** framing is about partnership and execution quality—n
 
 **linkup_mcp** ([GitHub](https://github.com/RanneG/linkup_mcp)) is a Python MCP server for Cursor: **web search** via Linkup, **RAG** over `data/` via LlamaIndex + Ollama (`server.py`, `rag.py`). Your local clone folder may still be named `cursor_linkup_mcp`; that is fine. Package and commands are in `README.md` and `.cursorrules`. Reuse libraries from Ranne’s GitHub ecosystem when building adjacent features (see `.cursorrules`).
 
+## Stitch (hackathon UI) + local RAG
+
+- **Stitch app:** [kylabuildsthings-oss/stitch](https://github.com/kylabuildsthings-oss/stitch) — subscription UX; optional **Local document brain** panel talks to this repo over HTTP, not MCP stdio.
+- **Bridge:** `stitch_rag_bridge.py` (Flask, default `127.0.0.1:8765`) proxies the desktop **`/api`** prefix from Vite. Same-process routes include:
+  - **RAG:** `POST /api/rag/stitch` (same JSON shape as MCP `rag_stitch`).
+  - **Face (local):** `POST /api/face/enroll`, `POST /api/face/verify`, `GET /api/face/status`, `POST /api/face/delete`.
+  - **Google OAuth + session:** `POST /api/auth/google/url` (and legacy `POST /api/auth/google`), `GET /api/auth/google/callback`, `GET /api/auth/status`, `POST /api/auth/logout`, `POST /api/auth/active-email`.
+  - **Subscriptions (SQLite, per signed-in owner email):** `GET /api/subscriptions/list`, `POST /api/subscriptions/upsert`, `POST /api/subscriptions/delete`, `POST /api/subscriptions/import`, `GET /api/subscriptions/from-gmail` (live Gmail scan on the bridge).
+- **Desktop work layout:** A full clone often lives under **`temp_repo/stitch/`** (gitignored here) for local dev. **Portable / PR-ready copies** of the main integration files live under **`integrations/stitch/`** — refresh them with **`scripts/copy-stitch-desktop-to-integrations.ps1`**, then follow **`integrations/stitch/README.md`** to paste into the upstream Stitch repo (`apps/desktop/src/...`) and open a PR.
+- **Handoff doc:** **[CHANGELOG.md](CHANGELOG.md)** — lists `temp_repo/stitch` files touched, features (Google auth, subscription CRUD, Gmail discovery UI with **`USE_MOCK_DISCOVERY`** mock vs real `from-gmail`), demo payment modal, and PR workflow.
+- **Env:** Google client id/secret and redirect URI — see **`ENV_TEMPLATE.md`** (`GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `STITCH_GOOGLE_REDIRECT_URI` / default callback on `8765`).
+
 ## Where else to look
 
 - **`.cursorrules`** — detailed setup, MCP tool list, Cursor `mcp.json` snippet, related repos.

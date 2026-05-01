@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 DEFAULT_MATCH_THRESHOLD = float(os.getenv("STITCH_FACE_MATCH_THRESHOLD", "0.6"))
 DEFAULT_MODEL_NAME = os.getenv("STITCH_FACE_MODEL", "Facenet")
 DEFAULT_DETECTOR_BACKEND = os.getenv("STITCH_FACE_DETECTOR", "opencv")
+# Lenient enrollment uses a larger resize so small faces still embed when enforce_detection=False.
+_STITCH_FACE_ENROLL_MAX_SIDE_LENIENT = int(os.getenv("STITCH_FACE_ENROLL_MAX_SIDE_LENIENT", "640"))
 
 
 def _deepface():
@@ -75,6 +77,38 @@ def embed_bgr(
         return None
 
 
+def diagnose_enrollment_failure(bgr: np.ndarray | None) -> str:
+    """
+    Heuristic hints when DeepFace cannot produce an embedding (demo-friendly copy).
+    """
+    if bgr is None or bgr.size == 0:
+        return "Move camera — we could not read a frame from the camera."
+    try:
+        gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+    except Exception:
+        return "Could not read the image — try again."
+    h, w = gray.shape[:2]
+    if h < 20 or w < 20:
+        return "Move camera — image is too small; try moving closer."
+    mean_lum = float(np.mean(gray))
+    if mean_lum < 42.0:
+        return "Too dark — turn on a lamp or face a window for more light."
+    if mean_lum > 245.0:
+        return "Too bright — reduce glare or step out of direct sunlight."
+    cascade_path = os.path.join(cv2.data.haarcascades, "haarcascade_frontalface_default.xml")
+    if not os.path.isfile(cascade_path):
+        return "No face embedding — center your face, hold steady, and try again."
+    cascade = cv2.CascadeClassifier(cascade_path)
+    faces = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=3, minSize=(28, 28))
+    if faces is None or len(faces) == 0:
+        return "Move camera — center your face and fill more of the frame."
+    areas = [float(fw * fh) / float(max(1, w * h)) for (_x, _y, fw, fh) in faces]
+    best = max(areas) if areas else 0.0
+    if best < 0.018:
+        return "Face too small — move closer so your face fills more of the view."
+    return "No face embedding — try again with good lighting and a steady hold."
+
+
 def embed_bgr_enrollment_mode(
     bgr: np.ndarray,
     *,
@@ -83,33 +117,36 @@ def embed_bgr_enrollment_mode(
     detector_backend: str = DEFAULT_DETECTOR_BACKEND,
 ) -> np.ndarray | None:
     """
-    Lenient enrollment: try strict detection first, then OpenCV with enforce_detection=False.
-    Uses a larger resize cap so small faces (~80px+) still embed when lenient.
+    Enrollment embedding: **lenient** (default) prefers ``enforce_detection=False`` first
+    (more forgiving), then falls back to strict detection. **strict** uses detection only.
+
+    Lenient uses a larger resize cap so small faces still embed.
     """
     strict = (quality_check or "lenient").lower() == "strict"
-    max_side = 512 if not strict else int(os.getenv("STITCH_FACE_MAX_SIDE", "320"))
+    max_side_strict = int(os.getenv("STITCH_FACE_MAX_SIDE", "320"))
+    max_side_loose = max(max_side_strict, _STITCH_FACE_ENROLL_MAX_SIDE_LENIENT)
     if strict:
         return embed_bgr(
             bgr,
             model_name=model_name,
             detector_backend=detector_backend,
             enforce_detection=True,
-            max_side=max_side,
+            max_side=max_side_strict,
         )
     emb = embed_bgr(
         bgr,
         model_name=model_name,
         detector_backend=detector_backend,
-        enforce_detection=True,
-        max_side=max_side,
+        enforce_detection=False,
+        max_side=max_side_loose,
     )
     if emb is None:
         emb = embed_bgr(
             bgr,
             model_name=model_name,
             detector_backend=detector_backend,
-            enforce_detection=False,
-            max_side=max_side,
+            enforce_detection=True,
+            max_side=max_side_loose,
         )
     return emb
 
@@ -156,7 +193,7 @@ def build_single_frame_enrollment_embeddings(
     """
     variants = augment_bgr_for_enrollment_templates(bgr)
     if not variants:
-        return [], 0.0, "empty frame"
+        return [], 0.0, diagnose_enrollment_failure(bgr)
     embeddings: list[np.ndarray] = []
     for v in variants:
         emb = embed_bgr_enrollment_mode(
@@ -168,7 +205,7 @@ def build_single_frame_enrollment_embeddings(
         if emb is not None:
             embeddings.append(emb)
     if not embeddings:
-        return [], 0.0, "No face detected in the captured image — try better lighting and center your face."
+        return [], 0.0, diagnose_enrollment_failure(bgr)
     score = enrollment_consistency_score(embeddings)
     return embeddings, score, None
 

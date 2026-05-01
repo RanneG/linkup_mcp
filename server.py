@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 from typing import Optional
 from dotenv import load_dotenv
@@ -29,6 +30,23 @@ agent_llm = Ollama(model="llama3.2")
 agent_orchestrator: Optional[AgentOrchestrator] = None
 
 
+def _to_stitch_view(payload: dict) -> dict:
+    """Adapt RAG payload to Stitch-like UI contract."""
+    fallback = bool(payload.get("fallback"))
+    sources = payload.get("sources") or []
+    show_debug = os.getenv("STITCH_RAG_DEBUG", "").lower() in ("1", "true", "yes")
+    view = {
+        "state": "fallback" if fallback else "answered",
+        "answer": payload.get("answer", ""),
+        "confidence": payload.get("confidence", "unknown"),
+        "source_cards": [] if fallback else sources,
+        "show_sources": bool(sources) and not fallback,
+    }
+    if fallback and show_debug and sources:
+        view["debug_retrieval_cards"] = sources
+    return view
+
+
 async def _ensure_rag_ready() -> RAGWorkflow:
     """Build embedding index on first use so bundled MCP clients do not time out at startup."""
     global rag_workflow
@@ -56,10 +74,18 @@ def web_search(query: str) -> str:
 
 @mcp.tool()
 async def rag(query: str) -> str:
-    """Use a simple RAG workflow to answer queries using documents from data directory about Deep Seek"""
+    """Use local PDF RAG and return answer with evidence sources."""
     wf = await _ensure_rag_ready()
-    response = await wf.query(query)
-    return str(response)
+    response_payload = await wf.query(query)
+    return json.dumps(response_payload)
+
+
+@mcp.tool()
+async def rag_stitch(query: str) -> str:
+    """Use local PDF RAG and return a Stitch-friendly UI payload."""
+    wf = await _ensure_rag_ready()
+    response_payload = await wf.query(query)
+    return json.dumps(_to_stitch_view(response_payload))
 
 
 @mcp.tool()
@@ -131,8 +157,8 @@ def _setup_agent_orchestrator():
     
     async def rag_tool(query: str) -> str:
         wf = await _ensure_rag_ready()
-        response = await wf.query(query)
-        return str(response)
+        response_payload = await wf.query(query)
+        return json.dumps(response_payload)
     
     tools = {
         "web_search": web_search_tool,
