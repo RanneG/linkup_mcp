@@ -3,6 +3,7 @@
   "private": true,
   "description": "Root scripts only. The Stitch browser dev server lives under temp_repo/stitch/apps/desktop.",
   "scripts": {
-    "dev:browser": "npm --prefix temp_repo/stitch/apps/desktop run dev:browser"
+    "sync:stitch": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/sync-integrations-stitch-to-desktop.ps1",
+    "dev:browser": "npm run sync:stitch && npm --prefix temp_repo/stitch/apps/desktop run dev:browser"
   }
 }

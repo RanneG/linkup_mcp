@@ -39,6 +39,67 @@ const LIGHT_MAX = 225;
 const ALIGN_HOLD_MS = 550;
 const COUNTDOWN_STEP_MS = 850;
 const GUIDE_DEBOUNCE_FRAMES = 10;
+/** Strict mode: green oval / countdown when capture-side match quality reaches this (0–100). */
+const ENROLL_CAPTURE_QUALITY_READY_STRICT = 55;
+/** Easy mode: lower bar so demo captures succeed more often. */
+const ENROLL_CAPTURE_QUALITY_READY_EASY = 48;
+const SESSION_FACE_SETUP_SKIPPED_KEY = "stitch.face_setup_skipped";
+
+/** Primary CTA — matches SubscriptionCard (`noir-cmd-primary`). */
+const btnPrimary = "noir-cmd-primary rounded-sm px-4 py-2 font-body text-xs disabled:opacity-50";
+
+/** Secondary — black border + elevated surface + neo-shadow-sm (matches card actions). */
+const btnOutline =
+  "rounded-sm border-2 border-black bg-stitch-elevated px-4 py-2 font-body text-xs font-semibold text-stitch-heading neo-shadow-sm outline-none transition hover:bg-stitch-variant active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50";
+
+/** Accent outline — primary container border + primary text on surface. */
+const btnOutlineElectric =
+  "rounded-sm border-2 border-stitch-primary-container bg-stitch-surface px-4 py-2 font-body text-xs font-semibold text-stitch-primary neo-shadow-sm outline-none transition hover:bg-stitch-card active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50";
+
+function FaceHudCorners({ active }: { active: boolean }) {
+  const edge = active ? "border-stitch-primary-container" : "border-stitch-surface-secondary";
+  return (
+    <div className="pointer-events-none absolute inset-2 sm:inset-3" aria-hidden>
+      <div className={`absolute left-0 top-0 h-7 w-7 border-l-2 border-t-2 ${edge}`} />
+      <div className={`absolute right-0 top-0 h-7 w-7 border-r-2 border-t-2 ${edge}`} />
+      <div className={`absolute bottom-0 left-0 h-7 w-7 border-b-2 border-l-2 ${edge}`} />
+      <div className={`absolute bottom-0 right-0 h-7 w-7 border-b-2 border-r-2 ${edge}`} />
+    </div>
+  );
+}
+
+function CircularConfidenceMeter({ value01, label }: { value01: number; label: string }) {
+  const pct = Math.round(Math.min(100, Math.max(0, value01 * 100)));
+  const r = 36;
+  const c = 2 * Math.PI * r;
+  const dash = (pct / 100) * c;
+  return (
+    <div className="flex flex-col items-center gap-2" role="img" aria-label={`${label}: ${pct} percent`}>
+      <div className="relative h-[100px] w-[100px]">
+        <svg width="100" height="100" viewBox="0 0 100 100" className="rotate-[-90deg]" aria-hidden>
+          <circle cx="50" cy="50" r={r} fill="none" stroke="var(--stitch-surface-secondary)" strokeWidth="6" />
+          <circle
+            cx="50"
+            cy="50"
+            r={r}
+            fill="none"
+            stroke="var(--stitch-primary-container)"
+            strokeWidth="6"
+            strokeLinecap="square"
+            strokeDasharray={`${dash} ${c}`}
+            className="transition-[stroke-dasharray] duration-500 ease-out"
+          />
+        </svg>
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <span className="font-display text-xl font-bold tracking-tight text-stitch-heading">{pct}%</span>
+        </div>
+      </div>
+      <p className="max-w-[9rem] text-center font-display text-[10px] font-bold uppercase tracking-[0.05em] text-stitch-text">
+        {label}
+      </p>
+    </div>
+  );
+}
 
 /**
  * In Vite dev, default to calling Flask on 127.0.0.1:8765 so large JSON POSTs are not mangled by the Vite proxy.
@@ -192,12 +253,17 @@ export function FaceVerificationPanel({
   const [multiShots, setMultiShots] = useState<string[]>([]);
 
   const [enrollGuideStarted, setEnrollGuideStarted] = useState(false);
-  const [guidanceText, setGuidanceText] = useState("Center your face in the oval.");
+  const [guidanceText, setGuidanceText] = useState("Center face, good lighting, natural blink.");
   const [enrollQualityPct, setEnrollQualityPct] = useState(0);
   const [ovalGood, setOvalGood] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [enrollProcessing, setEnrollProcessing] = useState(false);
   const [pendingCapture, setPendingCapture] = useState<string | null>(null);
+  /** Demo default: easier capture, lower verify threshold, friendlier copy. */
+  const [easyMode, setEasyMode] = useState(true);
+  const [enrollFailCount, setEnrollFailCount] = useState(0);
+  const [lastEnrollTemplateScore, setLastEnrollTemplateScore] = useState<number | null>(null);
+  const [faceSkippedDemo, setFaceSkippedDemo] = useState(false);
   const [enrollTestBusy, setEnrollTestBusy] = useState(false);
   const [enrollTestResult, setEnrollTestResult] = useState<{
     ok: boolean;
@@ -206,6 +272,8 @@ export function FaceVerificationPanel({
   } | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const easyModeRef = useRef(true);
+  easyModeRef.current = easyMode;
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number>(0);
   const enrollGuideRafRef = useRef<number>(0);
@@ -232,6 +300,21 @@ export function FaceVerificationPanel({
   }, []);
 
   useEffect(() => () => stopCamera(), [stopCamera]);
+
+  const skipForDemoAfterFailedEnrolls = useCallback(() => {
+    stopCamera();
+    setError(null);
+    setPendingCapture(null);
+    setEnrollFailCount(0);
+    sessionStorage.setItem(SESSION_FACE_SETUP_SKIPPED_KEY, "1");
+    if (purpose === "settings") {
+      setFaceSkippedDemo(true);
+      setStep("success");
+    } else {
+      setFallbackCode(generateFallbackCode(email.trim() || initialEmail || "user"));
+      setStep("code");
+    }
+  }, [email, initialEmail, purpose, stopCamera]);
 
   const checkBridge = useCallback(async () => {
     setBridgeState("checking");
@@ -389,14 +472,15 @@ export function FaceVerificationPanel({
         const filesetResolver = await vision.FilesetResolver.forVisionTasks(
           "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm",
         );
+        const easy = easyModeRef.current;
         detector = await vision.FaceDetector.createFromOptions(filesetResolver, {
           baseOptions: {
             modelAssetPath:
               "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite",
           },
           runningMode: "VIDEO",
-          minDetectionConfidence: 0.45,
-          minSuppressionThreshold: 0.3,
+          minDetectionConfidence: easy ? 0.32 : 0.45,
+          minSuppressionThreshold: easy ? 0.22 : 0.3,
         });
         if (!cancelled) rafRef.current = requestAnimationFrame(() => void tick());
       } catch {
@@ -409,7 +493,7 @@ export function FaceVerificationPanel({
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       setFaceBox(null);
     };
-  }, [step, streamEpoch]);
+  }, [step, streamEpoch, easyMode]);
 
   useEffect(() => {
     if (step !== "enroll" || !enrollGuideStarted || multiAdvanced || countdown !== null || enrollProcessing) {
@@ -433,11 +517,20 @@ export function FaceVerificationPanel({
 
       const fb = faceBoxRef.current;
       const light = sampleVideoBrightness(video);
+      const easy = easyModeRef.current;
+      const lightMin = easy ? 58 : LIGHT_MIN;
+      const lightMax = easy ? 238 : LIGHT_MAX;
+      const areaMin = easy ? 6 : AREA_MIN;
+      const areaMax = easy ? 48 : AREA_MAX;
 
       if (!fb) {
         setOvalGood(false);
         setEnrollQualityPct(0);
-        setGuidanceText("No face detected — center your face in the oval.");
+        setGuidanceText(
+          easy
+            ? "No face yet — center face, good lighting, natural blink."
+            : "No face detected — center your face, improve lighting, or move the camera.",
+        );
         alignSinceRef.current = null;
         setCountdown(null);
       } else {
@@ -445,24 +538,24 @@ export function FaceVerificationPanel({
         const inOval = insideOval(fb);
         setOvalGood(inOval);
 
-        let msg = "Face detected — adjust position.";
-        let q = 35;
-        if (light != null && (light < LIGHT_MIN || light > LIGHT_MAX)) {
-          msg = light < LIGHT_MIN ? "Poor lighting — turn on more light." : "Too bright — reduce glare on your face.";
-          q = 25;
-        } else if (area < AREA_MIN) {
-          msg = "Face too small — move closer to the camera.";
-          q = 30 + Math.min(40, (area / AREA_MIN) * 40);
-        } else if (area > AREA_MAX) {
-          msg = "Face too large — move back slightly.";
-          q = 30 + Math.min(40, ((AREA_MAX + 8 - area) / 8) * 40);
+        let msg = easy ? "Almost there — small adjustments help." : "Face detected — adjust position.";
+        let q = easy ? 42 : 35;
+        if (light != null && (light < lightMin || light > lightMax)) {
+          msg = light < lightMin ? "A bit more light helps the demo." : "Ease off bright glare if you can.";
+          q = easy ? 32 : 25;
+        } else if (area < areaMin) {
+          msg = easy ? "Scoot a little closer — we almost have you." : "Face too small — move closer to the camera.";
+          q = 30 + Math.min(40, (area / areaMin) * 40);
+        } else if (area > areaMax) {
+          msg = easy ? "Tiny step back — perfect framing incoming." : "Face too large — move back slightly.";
+          q = 30 + Math.min(40, ((areaMax + 8 - area) / 8) * 40);
         } else if (!inOval) {
-          msg = "Center your face in the oval.";
+          msg = easy ? "Center face, good lighting, natural blink — line up the oval." : "Center your face in the oval.";
           q = 45 + Math.min(35, area * 0.5);
         } else {
           msg = "Hold still — lining up…";
-          q = 55 + Math.min(45, (area / AREA_MAX) * 45);
-          if (light != null && light >= LIGHT_MIN && light <= LIGHT_MAX) q += 10;
+          q = 55 + Math.min(45, (area / areaMax) * 45);
+          if (light != null && light >= lightMin && light <= lightMax) q += easy ? 12 : 10;
         }
         setEnrollQualityPct(Math.round(Math.min(100, q)));
         setGuidanceText(msg);
@@ -470,11 +563,11 @@ export function FaceVerificationPanel({
         const ready =
           fb &&
           inOval &&
-          area >= AREA_MIN &&
-          area <= AREA_MAX &&
+          area >= areaMin &&
+          area <= areaMax &&
           light != null &&
-          light >= LIGHT_MIN &&
-          light <= LIGHT_MAX;
+          light >= lightMin &&
+          light <= lightMax;
 
         const now = Date.now();
         if (ready) {
@@ -499,7 +592,7 @@ export function FaceVerificationPanel({
       if (enrollGuideRafRef.current) cancelAnimationFrame(enrollGuideRafRef.current);
       enrollGuideRafRef.current = 0;
     };
-  }, [step, enrollGuideStarted, multiAdvanced, countdown, enrollProcessing]);
+  }, [step, enrollGuideStarted, multiAdvanced, countdown, enrollProcessing, easyMode]);
 
   useEffect(() => {
     if (countdown === null || countdown === 0) return;
@@ -509,7 +602,7 @@ export function FaceVerificationPanel({
     return () => clearTimeout(t);
   }, [countdown]);
 
-  const submitSimpleEnrollment = useCallback(async (imageDataUrl: string) => {
+  const submitSimpleEnrollment = useCallback(async (imageDataUrl: string, showRetryHint = false) => {
     setEnrollProcessing(true);
     setBusy(true);
     setError(null);
@@ -521,7 +614,7 @@ export function FaceVerificationPanel({
           email: email.trim(),
           image: imageDataUrl,
           enroll_mode: "simple",
-          quality_check: "lenient",
+          quality_check: easyMode ? "lenient" : "strict",
         }),
       });
       const { data: raw, parseError } = await readJsonFromResponse(res);
@@ -530,23 +623,28 @@ export function FaceVerificationPanel({
       if (!res.ok || !data.ok) throw new Error(data.error || res.statusText || `HTTP ${res.status}`);
       setPendingCapture(null);
       setEnrollTestResult(null);
+      setEnrollFailCount(0);
+      const sc = data.confidence_score;
+      setLastEnrollTemplateScore(typeof sc === "number" && !Number.isNaN(sc) ? sc : null);
       setStep("enroll_test");
     } catch (e) {
       if (isNetworkError(e)) {
         setBridgeState("down");
         setError("Cannot reach the bridge while enrolling.");
       } else {
+        setEnrollFailCount((n) => n + 1);
+        const msg = e instanceof Error ? e.message : String(e);
         setError(
-          e instanceof Error
-            ? `Processing failed — ${e.message}. You can retry with the same capture below.`
-            : String(e),
+          msg
+            ? `${msg}${showRetryHint ? " You can retry with the same capture below." : ""}`
+            : "Enrollment failed.",
         );
       }
     } finally {
       setEnrollProcessing(false);
       setBusy(false);
     }
-  }, [email]);
+  }, [email, easyMode]);
 
   useEffect(() => {
     if (countdown !== 0) return;
@@ -561,12 +659,12 @@ export function FaceVerificationPanel({
     setPendingCapture(dataUrl);
     setCountdown(null);
     setEnrollGuideStarted(false);
-    void submitSimpleEnrollment(dataUrl);
+    void submitSimpleEnrollment(dataUrl, true);
   }, [countdown, submitSimpleEnrollment]);
 
   async function retryEnrollmentFromPending() {
     if (!pendingCapture) return;
-    await submitSimpleEnrollment(pendingCapture);
+    await submitSimpleEnrollment(pendingCapture, true);
   }
 
   async function submitMultiEnrollment() {
@@ -586,7 +684,7 @@ export function FaceVerificationPanel({
           email: email.trim(),
           images,
           enroll_mode: "multi",
-          quality_check: "lenient",
+          quality_check: easyMode ? "lenient" : "strict",
         }),
       });
       const { data: raw, parseError } = await readJsonFromResponse(res);
@@ -594,6 +692,7 @@ export function FaceVerificationPanel({
       const data = raw as { ok?: boolean; error?: string };
       if (!res.ok || !data.ok) throw new Error(data.error || res.statusText || `HTTP ${res.status}`);
       setMultiShots([]);
+      setEnrollFailCount(0);
       stopCamera();
       setStep("verify");
     } catch (e) {
@@ -601,6 +700,7 @@ export function FaceVerificationPanel({
         setBridgeState("down");
         setError("Cannot reach the bridge while enrolling.");
       } else {
+        setEnrollFailCount((n) => n + 1);
         setError(e instanceof Error ? e.message : String(e));
       }
     } finally {
@@ -633,7 +733,7 @@ export function FaceVerificationPanel({
           email: email.trim(),
           image: main,
           liveness_frames: frames.length ? frames : [main],
-          threshold: 0.55,
+          threshold: easyMode ? 0.45 : 0.55,
         }),
       });
       const { data: raw, parseError } = await readJsonFromResponse(res);
@@ -725,7 +825,7 @@ export function FaceVerificationPanel({
           email: email.trim(),
           image: main,
           liveness_frames: frames,
-          threshold: 0.6,
+          threshold: easyMode ? 0.48 : 0.6,
         }),
       });
       const { data: raw, parseError } = await readJsonFromResponse(res);
@@ -807,27 +907,36 @@ export function FaceVerificationPanel({
     return () => clearInterval(t);
   }, [step, email, initialEmail, stopCamera]);
 
+  const captureReadyThreshold = easyMode ? ENROLL_CAPTURE_QUALITY_READY_EASY : ENROLL_CAPTURE_QUALITY_READY_STRICT;
   const ringClass =
-    ovalGood && enrollQualityPct >= 72
-      ? "ring-4 ring-emerald-400 ring-offset-2 ring-offset-black/90"
-      : "ring-2 ring-stitch-secondary/40";
+    ovalGood && enrollQualityPct >= captureReadyThreshold
+      ? "border-2 border-stitch-primary-container neo-shadow-sm"
+      : "border-2 border-stitch-surface-secondary neo-shadow-sm";
 
   const panelTitle = purpose === "purchase" ? "Verify to approve this payment" : "Face verification (local)";
 
   return (
-    <section className="rounded-2xl bg-white/90 p-4 shadow-sm ring-1 ring-stitch-neutral/40">
+    <section className="noir-card p-4 font-body text-stitch-heading md:p-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="font-display text-base font-semibold text-stitch-action">{panelTitle}</p>
+          <p className="font-display text-lg font-semibold leading-snug tracking-[-0.02em] text-stitch-heading">
+            {panelTitle}
+          </p>
+          {import.meta.env.DEV ? (
+            <p className="mt-1 text-[9px] font-display font-bold uppercase tracking-[0.14em] text-stitch-muted">
+              Noir face panel · run <code className="text-stitch-text">npm run sync:stitch</code> if this banner is missing after editing{" "}
+              <code className="text-stitch-text">integrations/stitch</code>
+            </p>
+          ) : null}
           {purpose === "purchase" && purchaseSubtitle ? (
-            <p className="mt-1 font-body text-sm text-stitch-secondary">{purchaseSubtitle}</p>
+            <p className="mt-1 text-sm text-stitch-text">{purchaseSubtitle}</p>
           ) : null}
         </div>
         {purpose === "purchase" && onPurchaseCancel ? (
           <button
             type="button"
             onClick={onPurchaseCancel}
-            className="shrink-0 rounded-full bg-white px-3 py-1.5 font-body text-xs font-semibold text-stitch-action ring-1 ring-stitch-secondary/45"
+            className="shrink-0 rounded-sm border-2 border-black bg-stitch-elevated px-3 py-1.5 font-body text-xs font-semibold text-stitch-heading neo-shadow-sm hover:bg-stitch-variant active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
           >
             Cancel
           </button>
@@ -835,76 +944,116 @@ export function FaceVerificationPanel({
       </div>
 
       {bridgeState === "checking" ? (
-        <p className="mt-3 font-body text-sm text-stitch-secondary">Checking local bridge (/health)…</p>
+        <p className="mt-3 text-sm text-stitch-text">Checking local bridge (/health)…</p>
       ) : null}
 
       {bridgeState === "down" ? (
-        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 font-body text-sm text-amber-950">
-          <p className="font-semibold">Bridge not reachable</p>
-          <p className="mt-1 text-xs leading-relaxed">
-            You need <strong>two</strong> processes: (1) Flask bridge in <code className="rounded bg-white/80 px-1">cursor_linkup_mcp</code>:{" "}
-            <code className="rounded bg-white/80 px-1">.\.venv\Scripts\python.exe stitch_rag_bridge.py</code>{" "}
-            (<code className="rounded bg-white/80 px-1">127.0.0.1:8765</code>). (2) Vite dev server for Stitch desktop (e.g.{" "}
-            <code className="rounded bg-white/80 px-1">npm run dev:browser</code>, default{" "}
-            <code className="rounded bg-white/80 px-1">http://localhost:1420</code>) so{" "}
-            <code className="rounded bg-white/80 px-1">/api</code> is proxied to 8765. 'Failed to fetch' with the bridge running
+        <div className="mt-3 rounded-sm border-2 border-amber-500/40 bg-stitch-surface-low p-3 font-body text-sm text-amber-100 neo-shadow-sm">
+          <p className="font-semibold text-amber-50">Bridge not reachable</p>
+          <p className="mt-1 text-xs leading-relaxed text-amber-100/90">
+            You need <strong className="text-stitch-heading">two</strong> processes: (1) Flask bridge in{" "}
+            <code className="rounded-sm border-2 border-stitch-surface-secondary bg-stitch-surface-lowest px-1 text-amber-200">cursor_linkup_mcp</code>:{" "}
+            <code className="rounded-sm border-2 border-stitch-surface-secondary bg-stitch-surface-lowest px-1 text-amber-200">.\.venv\Scripts\python.exe stitch_rag_bridge.py</code>{" "}
+            (<code className="rounded-sm border-2 border-stitch-surface-secondary bg-stitch-surface-lowest px-1 text-amber-200">127.0.0.1:8765</code>). (2) Vite dev server for Stitch desktop (e.g.{" "}
+            <code className="rounded-sm border-2 border-stitch-surface-secondary bg-stitch-surface-lowest px-1 text-amber-200">npm run dev:browser</code>, default{" "}
+            <code className="rounded-sm border-2 border-stitch-surface-secondary bg-stitch-surface-lowest px-1 text-amber-200">http://localhost:1420</code>) so{" "}
+            <code className="rounded-sm border-2 border-stitch-surface-secondary bg-stitch-surface-lowest px-1 text-amber-200">/api</code> is proxied to 8765. &apos;Failed to fetch&apos; with the bridge running
             usually means Vite is not running or you opened the app outside that dev URL.
           </p>
           <button
             type="button"
-            className="mt-2 rounded-full bg-stitch-action px-4 py-2 text-xs font-semibold text-white"
+            className={`mt-2 ${btnPrimary}`}
             onClick={() => void checkBridge()}
           >
             Retry connection
           </button>
-          {error ? <p className="mt-2 text-xs text-red-700">{error}</p> : null}
+          {error ? <p className="mt-2 text-xs text-amber-200">{error}</p> : null}
         </div>
       ) : null}
 
       {bridgeState === "up" ? (
         <>
+          {step === "enroll" || step === "enroll_test" || step === "verify" ? (
+            <div className="mt-3 rounded-sm border-2 border-black bg-stitch-card px-3 py-3 neo-shadow-sm">
+              <div className="flex items-start gap-3">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={easyMode}
+                  onClick={() => setEasyMode((v) => !v)}
+                  className={`relative mt-0.5 inline-flex h-7 w-11 shrink-0 items-center rounded-full border-2 px-0.5 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stitch-primary-container ${
+                    easyMode
+                      ? "justify-end border-black bg-stitch-primary-container neo-shadow-sm"
+                      : "justify-start border-stitch-surface-secondary bg-stitch-surface-low neo-shadow-sm"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-5 w-5 rounded-full ${
+                      easyMode ? "bg-black" : "bg-stitch-variant"
+                    }`}
+                  />
+                </button>
+                <div className="min-w-0 flex-1">
+                  <p className="font-display text-xs font-bold uppercase tracking-[0.05em] text-stitch-primary">
+                    ✨ Easy Mode
+                  </p>
+                  <p className="mt-1 font-body text-[11px] leading-relaxed text-stitch-text">
+                    Lower detector threshold, friendlier guidance, and after two failed enrolls you can skip in one tap
+                    (presentations).
+                  </p>
+                  {!easyMode ? (
+                    <p className="mt-1.5 font-body text-[10px] leading-relaxed text-stitch-text">
+                      <span className="font-semibold text-stitch-heading">Strict:</span> tighter framing, higher match bar,
+                      stricter server-side detection.
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           {purpose === "settings" ? (
-            <ul className="mt-2 list-inside list-disc font-body text-[11px] leading-relaxed text-stitch-secondary">
+            <ul className="mt-2 list-inside list-disc font-body text-[11px] leading-relaxed text-stitch-text">
               <li>This is a demo of face verification — not high-security authentication.</li>
               <li>Your face data stays on this device (encrypted under ~/.stitch/face_db/), never uploaded by this bridge.</li>
               <li>When in doubt, use the code fallback.</li>
             </ul>
           ) : (
-            <p className="mt-2 font-body text-[11px] leading-relaxed text-stitch-secondary">
+            <p className="mt-2 font-body text-[11px] leading-relaxed text-stitch-text">
               Uses the same local bridge as Settings. If verification fails, use the on-screen confirmation code.
             </p>
           )}
 
           {purpose === "purchase" && !initialEmail.trim() ? (
-            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 font-body text-sm text-amber-950">
-              <p className="font-semibold">Account email required</p>
-              <p className="mt-1 text-xs leading-relaxed">
-                Save your email in <strong>Settings</strong> (demo auth), enroll your face there, then approve this payment again.
+            <div className="mt-4 rounded-sm border-2 border-amber-500/40 bg-stitch-surface-low p-3 font-body text-sm text-amber-100 neo-shadow-sm">
+              <p className="font-semibold text-amber-50">Account email required</p>
+              <p className="mt-1 text-xs leading-relaxed text-amber-100/90">
+                Save your email in <strong className="text-stitch-heading">Settings</strong> (demo auth), enroll your face there, then approve this payment again.
               </p>
             </div>
           ) : null}
 
           {step === "email" && purpose === "settings" ? (
             <div className="mt-4 space-y-2">
-              <label className="block font-body text-xs text-stitch-secondary">
+              <label className="block font-display text-xs font-bold uppercase tracking-[0.05em] text-stitch-text">
                 Step 1 — Email
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="mt-1 w-full rounded-xl border border-stitch-secondary/40 bg-white px-3 py-2 font-body text-sm text-stitch-action"
+                  className="mt-1 w-full rounded-sm border-2 border-black bg-stitch-surface-lowest px-3 py-2 font-body text-sm text-stitch-heading placeholder:text-stitch-muted focus:border-stitch-primary-container focus:outline-none"
                 />
               </label>
-              <p className="font-body text-[11px] text-stitch-secondary">
+              <p className="font-body text-[11px] text-stitch-text">
                 If you already set <strong>Account email</strong> above, you can still confirm or change it here.
               </p>
-              {error ? <p className="font-body text-xs text-red-600">{error}</p> : null}
+              {error ? <p className="font-body text-xs text-stitch-error">{error}</p> : null}
               <button
                 type="button"
                 disabled={busy}
                 onClick={() => void submitEmail()}
-                className="rounded-full bg-stitch-action px-4 py-2 font-body text-xs font-semibold text-white disabled:opacity-50"
+                className={btnPrimary}
               >
                 {busy ? "Checking…" : "Continue"}
               </button>
@@ -912,13 +1061,13 @@ export function FaceVerificationPanel({
           ) : null}
 
           {purpose === "purchase" && initialEmail.trim() && step === "email" && busy ? (
-            <p className="mt-4 font-body text-sm text-stitch-secondary">Checking face enrollment…</p>
+            <p className="mt-4 font-body text-sm text-stitch-text">Checking face enrollment…</p>
           ) : null}
 
           {step === "purchase_need_enroll" ? (
-            <div className="mt-4 rounded-xl border border-stitch-secondary/30 bg-stitch-neutral/20 p-4">
-              <p className="font-body text-sm font-semibold text-stitch-action">No face on file for this email</p>
-              <p className="mt-2 font-body text-xs leading-relaxed text-stitch-secondary">
+            <div className="mt-4 rounded-sm border-2 border-black bg-stitch-card p-4 neo-shadow-sm">
+              <p className="font-body text-sm font-semibold text-stitch-heading">No face on file for this email</p>
+              <p className="mt-2 font-body text-xs leading-relaxed text-stitch-text">
                 Open <strong>Settings</strong>, confirm your account email, complete <strong>Face verification</strong> enrollment, then return here and tap Approve again.
               </p>
             </div>
@@ -926,12 +1075,23 @@ export function FaceVerificationPanel({
 
           {step === "enroll" ? (
             <div className="mt-4 space-y-3">
-              <p className="font-body text-sm text-stitch-action">Enroll — {email}</p>
-              <p className="font-body text-xs text-stitch-secondary">
+              <p className="font-body text-sm font-medium text-stitch-heading">Enroll — {email}</p>
+              <p className="font-body text-xs text-stitch-text">
                 One guided capture: align in the oval, then we save a few augmented templates from that frame (like Face ID). This may take a few seconds while embeddings generate.
               </p>
+              <p className="rounded-sm border-2 border-black bg-stitch-surface-low px-3 py-2 font-body text-[11px] leading-relaxed text-stitch-heading neo-shadow-sm">
+                <span className="font-display text-[10px] font-bold uppercase tracking-[0.05em] text-stitch-primary-container">
+                  Pro tip
+                </span>
+                <span className="mt-1 block italic text-stitch-primary">
+                  Center face, good lighting, natural blink
+                </span>
+                <span className="mt-1 block not-italic text-stitch-text">
+                  Then hold steady for the countdown (Easy Mode on by default).
+                </span>
+              </p>
 
-              <label className="flex cursor-pointer items-center gap-2 font-body text-[11px] text-stitch-secondary">
+              <label className="flex cursor-pointer items-center gap-2 font-body text-[11px] text-stitch-text">
                 <input type="checkbox" checked={multiAdvanced} onChange={(e) => setMultiAdvanced(e.target.checked)} />
                 Advanced: multi-angle capture (legacy)
               </label>
@@ -945,18 +1105,21 @@ export function FaceVerificationPanel({
                       onClick={() => {
                         setError(null);
                         countdownCaptureDoneRef.current = false;
+                        setLastEnrollTemplateScore(null);
+                        setEnrollFailCount(0);
                         setEnrollGuideStarted(true);
-                        setGuidanceText("Center your face in the oval.");
+                        setGuidanceText(easyMode ? "Center face, good lighting, natural blink." : "Center your face in the oval.");
                         alignSinceRef.current = null;
                       }}
-                      className="rounded-full bg-stitch-action px-4 py-2 font-body text-xs font-semibold text-white disabled:opacity-50"
+                      className={btnPrimary}
                     >
                       Start enrollment
                     </button>
                   ) : null}
 
-                  <div className={`relative mx-auto aspect-video w-full max-w-md overflow-hidden rounded-xl bg-black/90 ${ringClass}`}>
+                  <div className={`relative mx-auto aspect-video w-full max-w-md overflow-hidden rounded-sm bg-black/90 ${ringClass}`}>
                     <video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-cover" />
+                    <FaceHudCorners active={ovalGood && enrollQualityPct >= captureReadyThreshold} />
                     <svg
                       className="pointer-events-none absolute inset-0 h-full w-full"
                       viewBox="0 0 100 100"
@@ -968,13 +1131,17 @@ export function FaceVerificationPanel({
                         rx={OVAL.rx}
                         ry={OVAL.ry}
                         fill="none"
-                        stroke={ovalGood && enrollQualityPct >= 72 ? "rgba(52,211,153,0.95)" : "rgba(255,255,255,0.55)"}
+                        stroke={
+                          ovalGood && enrollQualityPct >= captureReadyThreshold
+                            ? "color-mix(in srgb, var(--stitch-primary-container) 95%, transparent)"
+                            : "color-mix(in srgb, var(--stitch-outline) 45%, transparent)"
+                        }
                         strokeWidth="1.2"
                       />
                     </svg>
                     {faceBox ? (
                       <div
-                        className={`pointer-events-none absolute border-2 ${ovalGood ? "border-emerald-300/90" : "border-white/50"}`}
+                        className={`pointer-events-none absolute border-2 ${ovalGood ? "border-stitch-primary-container" : "border-stitch-surface-secondary"}`}
                         style={{
                           left: `${faceBox.left}%`,
                           top: `${faceBox.top}%`,
@@ -985,52 +1152,77 @@ export function FaceVerificationPanel({
                     ) : null}
                     {countdown !== null && countdown > 0 ? (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/55">
-                        <span className="font-display text-6xl font-bold text-white">{countdown}</span>
+                        <span className="font-display text-6xl font-bold tracking-tight text-stitch-primary">
+                          {countdown}
+                        </span>
                       </div>
                     ) : null}
                   </div>
 
                   {enrollGuideStarted || enrollProcessing ? (
-                    <div className="rounded-xl bg-stitch-neutral/20 p-3">
-                      <p className="font-body text-xs font-semibold text-stitch-action">{guidanceText}</p>
-                      <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-stitch-neutral/50">
+                    <div className="rounded-sm border-2 border-black bg-stitch-card p-3 neo-shadow-sm">
+                      <p
+                        className={`font-body text-xs font-medium leading-relaxed text-stitch-heading ${
+                          easyMode ? "italic text-stitch-primary" : ""
+                        }`}
+                      >
+                        {guidanceText}
+                      </p>
+                      <div className="mt-2 h-2 w-full overflow-hidden rounded-sm bg-stitch-elevated">
                         <div
-                          className="h-full rounded-full bg-stitch-primary transition-all"
+                          className="h-full rounded-sm bg-stitch-primary-container transition-all"
                           style={{ width: `${enrollQualityPct}%` }}
                         />
                       </div>
-                      <p className="mt-1 font-body text-[11px] text-stitch-secondary">Quality {enrollQualityPct}%</p>
+                      <p className="mt-1 font-body text-[11px] text-stitch-text">
+                        {easyMode
+                          ? "Match quality (how ready we are to capture): "
+                          : "Match quality (capture readiness, 0–100%): "}
+                        {enrollQualityPct}%
+                      </p>
                     </div>
                   ) : null}
 
                   {enrollProcessing ? (
-                    <p className="font-body text-xs text-stitch-secondary">Saving face templates… this may take a few seconds.</p>
+                    <p className="font-body text-xs text-stitch-text">Saving face templates… this may take a few seconds.</p>
                   ) : null}
 
                   {pendingCapture && error ? (
-                    <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/80 p-3">
-                      <p className="font-body text-xs text-amber-950">{error}</p>
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void retryEnrollmentFromPending()}
-                        className="rounded-full bg-stitch-action px-4 py-2 font-body text-xs font-semibold text-white disabled:opacity-50"
-                      >
-                        Retry embedding with same capture
-                      </button>
+                    <div className="space-y-2 rounded-sm border-2 border-amber-500/40 bg-stitch-surface-low p-3 neo-shadow-sm">
+                      <p className="font-body text-xs text-amber-100">{error}</p>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => void retryEnrollmentFromPending()}
+                          className={btnPrimary}
+                        >
+                          Retry embedding with same capture
+                        </button>
+                        {enrollFailCount >= 2 && easyMode ? (
+                          <button
+                            type="button"
+                            onClick={skipForDemoAfterFailedEnrolls}
+                            className={btnOutlineElectric}
+                          >
+                            Skip for demo
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
                   ) : null}
                 </>
               ) : (
                 <>
-                  <p className="font-body text-[11px] text-stitch-secondary">
-                    Capture 2–3 angles; up to five images are sent. Lenient detection is used for enrollment.
+                  <p className="font-body text-[11px] text-stitch-text">
+                    Capture 2–3 angles; up to five images are sent. Respects Easy Mode (lenient vs strict server detection).
                   </p>
-                  <div className="relative mx-auto aspect-video w-full max-w-md overflow-hidden rounded-xl bg-black/90 ring-2 ring-stitch-secondary/40">
+                  <div className="relative mx-auto aspect-video w-full max-w-md overflow-hidden rounded-sm border-2 border-stitch-surface-secondary bg-black/90 neo-shadow-sm">
                     <video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-cover" />
+                    <FaceHudCorners active={Boolean(faceBox)} />
                     {faceBox ? (
                       <div
-                        className="pointer-events-none absolute border-2 border-emerald-400/90"
+                        className="pointer-events-none absolute border-2 border-stitch-primary-container"
                         style={{
                           left: `${faceBox.left}%`,
                           top: `${faceBox.top}%`,
@@ -1049,7 +1241,7 @@ export function FaceVerificationPanel({
                         if (!v) return;
                         setMultiShots((s) => [...s, frameToJpegDataUrl(v, { maxWidth: 480, quality: 0.72 })]);
                       }}
-                      className="rounded-full bg-stitch-primary px-4 py-2 font-body text-xs font-semibold text-white"
+                      className={btnPrimary}
                     >
                       Capture angle
                     </button>
@@ -1057,7 +1249,7 @@ export function FaceVerificationPanel({
                       type="button"
                       disabled={busy || multiShots.length < 2}
                       onClick={() => void submitMultiEnrollment()}
-                      className="rounded-full bg-stitch-action px-4 py-2 font-body text-xs font-semibold text-white disabled:opacity-50"
+                      className={btnPrimary}
                     >
                       {busy ? "Saving…" : "Save enrollment (multi)"}
                     </button>
@@ -1070,38 +1262,84 @@ export function FaceVerificationPanel({
                   type="button"
                   onClick={() => {
                     stopCamera();
+                    sessionStorage.setItem(SESSION_FACE_SETUP_SKIPPED_KEY, "1");
+                    setFaceSkippedDemo(true);
+                    setError(null);
+                    setStep("success");
+                  }}
+                  className={btnOutline}
+                >
+                  Skip face setup (demo)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    stopCamera();
                     setStep("code");
                     setFallbackCode(generateFallbackCode(email));
                   }}
-                  className="rounded-full bg-white px-4 py-2 font-body text-xs font-semibold text-stitch-action ring-1 ring-stitch-secondary/45"
+                  className={btnOutline}
                 >
-                  Skip — use code only
+                  Use confirmation code instead
                 </button>
               </div>
-              {error && !pendingCapture ? <p className="font-body text-xs text-red-600">{error}</p> : null}
+              {error && !pendingCapture ? (
+                <div className="space-y-2">
+                  <p className="font-body text-xs text-stitch-error">{error}</p>
+                  {enrollFailCount >= 2 && easyMode ? (
+                    <button
+                      type="button"
+                      onClick={skipForDemoAfterFailedEnrolls}
+                      className={btnOutlineElectric}
+                    >
+                      Skip for demo
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           ) : null}
 
           {step === "enroll_test" ? (
             <div className="mt-4 space-y-3">
-              <p className="font-body text-sm font-semibold text-emerald-800">Face saved</p>
-              <p className="font-body text-xs text-stitch-secondary">
+              <p className="font-body text-sm font-semibold text-stitch-success">Face saved</p>
+              <p className="font-body text-xs text-stitch-text">
                 Test that the camera recognizes you before continuing to full verification.
               </p>
-              <div className="relative mx-auto aspect-video w-full max-w-md overflow-hidden rounded-xl bg-black/90 ring-2 ring-stitch-secondary/40">
+              {lastEnrollTemplateScore != null ? (
+                <div className="rounded-sm border-2 border-black bg-stitch-card p-3 neo-shadow-sm">
+                  <p className="font-display text-[11px] font-bold uppercase tracking-[0.05em] text-stitch-text">
+                    Enrollment template quality
+                  </p>
+                  <p className="mt-0.5 font-body text-[10px] text-stitch-text">
+                    Server-side 0–100% match quality across saved templates (higher is more consistent).
+                  </p>
+                  <div className="mt-2 h-2 w-full overflow-hidden rounded-sm bg-stitch-elevated">
+                    <div
+                      className="h-full rounded-sm bg-stitch-primary-container transition-all"
+                      style={{ width: `${Math.min(100, lastEnrollTemplateScore)}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 font-body text-xs font-medium text-stitch-text">
+                    {lastEnrollTemplateScore.toFixed(0)}%
+                  </p>
+                </div>
+              ) : null}
+              <div className="relative mx-auto aspect-video w-full max-w-md overflow-hidden rounded-sm border-2 border-stitch-surface-secondary bg-black/90 neo-shadow-sm">
                 <video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-cover" />
+                <FaceHudCorners active={false} />
               </div>
               <button
                 type="button"
                 disabled={enrollTestBusy}
                 onClick={() => void runQuickEnrollTest()}
-                className="rounded-full bg-stitch-action px-4 py-2 font-body text-xs font-semibold text-white disabled:opacity-50"
+                className={btnPrimary}
               >
                 {enrollTestBusy ? "Verifying…" : "Test verification"}
               </button>
               {enrollTestResult ? (
                 <div
-                  className={`rounded-xl p-3 font-body text-sm ${enrollTestResult.ok ? "bg-emerald-50 text-emerald-900" : "bg-rose-50 text-rose-900"}`}
+                  className={`rounded-sm border-2 p-3 font-body text-sm neo-shadow-sm ${enrollTestResult.ok ? "border-emerald-500/40 bg-emerald-950/40 text-emerald-100" : "border-rose-500/40 bg-rose-950/40 text-rose-100"}`}
                 >
                   {enrollTestResult.ok ? (
                     <p>
@@ -1120,51 +1358,57 @@ export function FaceVerificationPanel({
                   stopCamera();
                   setStep("verify");
                 }}
-                className="rounded-full bg-stitch-primary px-4 py-2 font-body text-xs font-semibold text-white"
+                className={btnPrimary}
               >
                 Continue to sign-in verification
               </button>
-              {error ? <p className="font-body text-xs text-red-600">{error}</p> : null}
+              {error ? <p className="font-body text-xs text-stitch-error">{error}</p> : null}
             </div>
           ) : null}
 
           {step === "verify" ? (
             <div className="mt-4 space-y-3">
-              <p className="font-body text-sm text-stitch-action">Verify — {email}</p>
-              <p className="font-body text-xs text-amber-900">{livenessHint}</p>
-              <div className="relative mx-auto aspect-video w-full max-w-md overflow-hidden rounded-xl bg-black/90 ring-2 ring-stitch-secondary/40">
-                <video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-cover" />
-                {faceBox ? (
-                  <div
-                    className="pointer-events-none absolute border-2 border-emerald-400/90"
-                    style={{
-                      left: `${faceBox.left}%`,
-                      top: `${faceBox.top}%`,
-                      width: `${faceBox.width}%`,
-                      height: `${faceBox.height}%`,
-                    }}
-                  />
-                ) : null}
-              </div>
-              <div className="rounded-xl bg-stitch-neutral/25 p-3">
-                <p className="font-body text-[11px] font-semibold text-stitch-action">Match confidence</p>
-                <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-stitch-neutral/50">
-                  <div
-                    className="h-full rounded-full bg-stitch-primary transition-all"
-                    style={{ width: `${Math.min(100, confidence * 100)}%` }}
-                  />
-                </div>
-                <p className="mt-1 font-mono text-xs text-stitch-secondary">
-                  {(confidence * 100).toFixed(1)}% (threshold 60%)
+              <p className="font-body text-sm font-medium text-stitch-heading">Verify — {email}</p>
+              {easyMode ? (
+                <p className="font-body text-xs italic leading-relaxed text-stitch-primary">
+                  Center face, good lighting, natural blink — then run the check.
                 </p>
-                {liveDetail ? <p className="mt-1 font-body text-[11px] text-stitch-secondary">{liveDetail}</p> : null}
+              ) : null}
+              <p className="font-body text-xs text-amber-200/95">{livenessHint}</p>
+              <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-start sm:justify-center">
+                <div
+                  className={`relative mx-auto aspect-video w-full max-w-md shrink-0 overflow-hidden rounded-sm bg-black/90 ${
+                    faceBox ? "border-2 border-stitch-primary-container neo-shadow-sm" : "border-2 border-stitch-surface-secondary neo-shadow-sm"
+                  }`}
+                >
+                  <video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-cover" />
+                  <FaceHudCorners active={Boolean(faceBox)} />
+                  {faceBox ? (
+                    <div
+                      className="pointer-events-none absolute border-2 border-stitch-primary-container"
+                      style={{
+                        left: `${faceBox.left}%`,
+                        top: `${faceBox.top}%`,
+                        width: `${faceBox.width}%`,
+                        height: `${faceBox.height}%`,
+                      }}
+                    />
+                  ) : null}
+                </div>
+                <div className="flex flex-col items-center gap-2 rounded-sm border-2 border-black bg-stitch-card px-4 py-3 neo-shadow-sm sm:min-w-[120px]">
+                  <CircularConfidenceMeter value01={confidence} label="Match confidence" />
+                  <p className="font-body text-[11px] font-medium text-stitch-text">
+                    Pass bar ~{easyMode ? 48 : 60}%
+                  </p>
+                  {liveDetail ? <p className="max-w-[220px] text-center font-body text-[11px] text-stitch-text">{liveDetail}</p> : null}
+                </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   disabled={busy}
                   onClick={() => void runVerification()}
-                  className="rounded-full bg-stitch-action px-4 py-2 font-body text-xs font-semibold text-white disabled:opacity-50"
+                  className={btnPrimary}
                 >
                   {busy ? "Verifying…" : "Run check (~2.5s capture)"}
                 </button>
@@ -1175,24 +1419,37 @@ export function FaceVerificationPanel({
                     setFallbackCode(generateFallbackCode(email));
                     setStep("code");
                   }}
-                  className="rounded-full bg-white px-4 py-2 font-body text-xs font-semibold text-stitch-action ring-2 ring-stitch-primary"
+                  className={btnOutline}
                 >
                   Use confirmation code instead
                 </button>
               </div>
-              {error ? <p className="font-body text-xs text-red-600">{error}</p> : null}
+              {error ? <p className="font-body text-xs text-stitch-error">{error}</p> : null}
             </div>
           ) : null}
 
           {step === "success" && purpose === "settings" ? (
-            <div className="mt-4 rounded-xl bg-emerald-50 p-3 font-body text-sm text-stitch-action">
-              Verified for this session. You can return to the dashboard.
+            <div className="mt-4 rounded-sm border-2 border-emerald-500/35 bg-emerald-950/40 p-3 font-body text-sm text-emerald-50 neo-shadow-sm">
+              {faceSkippedDemo ? (
+                <p>
+                  Face enrollment was skipped (demo). You can still use confirmation codes or enroll later from this
+                  panel.
+                </p>
+              ) : (
+                <p>Verified for this session. You can return to the dashboard.</p>
+              )}
               <button
                 type="button"
-                className="mt-2 block rounded-full bg-stitch-action px-4 py-2 text-xs font-semibold text-white"
+                className={`mt-2 block ${btnPrimary}`}
                 onClick={() => {
                   bootstrapRef.current = false;
                   stopCamera();
+                  const skipped = faceSkippedDemo;
+                  setFaceSkippedDemo(false);
+                  if (skipped) {
+                    setStep(initialEmail.trim() || email.trim() ? "enroll" : "email");
+                    return;
+                  }
                   if (initialEmail.trim()) {
                     setEmail(initialEmail.trim());
                     setStep("verify");
@@ -1207,16 +1464,18 @@ export function FaceVerificationPanel({
           ) : null}
 
           {step === "code" ? (
-            <div className="mt-4 space-y-2 border-stitch-neutral/40 border-t pt-3">
-              <p className="font-body text-sm font-semibold text-stitch-action">Confirmation code fallback</p>
-              <p className="font-mono text-lg font-bold tracking-wider text-stitch-action">{fallbackCode}</p>
+            <div className="mt-4 space-y-2 border-t-2 border-black pt-3">
+              <p className="font-display text-xs font-bold uppercase tracking-[0.05em] text-stitch-text">
+                Confirmation code fallback
+              </p>
+              <p className="font-body text-lg font-semibold tracking-wide text-stitch-heading">{fallbackCode}</p>
               <input
                 value={typedCode}
                 onChange={(e) => setTypedCode(e.target.value)}
                 placeholder="Type the code"
-                className="w-full rounded-xl border border-stitch-secondary/40 px-3 py-2 font-mono text-sm"
+                className="w-full rounded-sm border-2 border-black bg-stitch-surface-lowest px-3 py-2 font-body text-sm font-medium tracking-wide text-stitch-heading placeholder:text-stitch-muted focus:border-stitch-primary-container focus:outline-none"
               />
-              {codeError ? <p className="text-xs text-red-600">{codeError}</p> : null}
+              {codeError ? <p className="text-xs text-stitch-error">{codeError}</p> : null}
               <button
                 type="button"
                 onClick={() => {
@@ -1233,7 +1492,7 @@ export function FaceVerificationPanel({
                   }
                   setStep("success");
                 }}
-                className="rounded-full bg-stitch-action px-4 py-2 font-body text-xs font-semibold text-white"
+                className={btnPrimary}
               >
                 Confirm with code
               </button>

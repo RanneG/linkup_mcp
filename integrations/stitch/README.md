@@ -2,6 +2,8 @@
 
 This folder holds **tracked** UI glue for [Stitch](https://github.com/kylabuildsthings-oss/stitch). The `temp_repo/` clone is gitignored; copy these files into your Stitch repo when opening a PR upstream.
 
+**Sync from a local Stitch clone:** from the **linkup_mcp** repo root run `.\scripts\copy-stitch-desktop-to-integrations.ps1` to refresh the flat files here from `temp_repo/stitch/apps/desktop/src/`. **What changed and why:** see the repo root **[CHANGELOG.md](../../CHANGELOG.md)** (Stitch desktop + bridge summary, `USE_MOCK_DISCOVERY`, demo payments).
+
 ## 1. HTTP bridge (this repo)
 
 From `cursor_linkup_mcp` root, with venv active and Ollama running:
