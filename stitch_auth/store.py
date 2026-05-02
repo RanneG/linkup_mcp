@@ -261,6 +261,15 @@ def subscriptions_upsert_many(owner_email: str, items: list[dict]) -> list[dict]
     with _lock:
         for item in items:
             sub_id = str(item.get("id") or uuid.uuid4().hex)
+            existing = c.execute("SELECT owner_email FROM subscriptions WHERE id = ?", (sub_id,)).fetchone()
+            if existing is not None and str(existing["owner_email"]) != owner_email:
+                # IDs come from the desktop client. Never let a colliding client ID move
+                # another account's row to the active owner.
+                while True:
+                    sub_id = uuid.uuid4().hex
+                    collision = c.execute("SELECT 1 FROM subscriptions WHERE id = ?", (sub_id,)).fetchone()
+                    if collision is None:
+                        break
             row = {
                 "id": sub_id,
                 "owner_email": owner_email,
@@ -280,7 +289,6 @@ def subscriptions_upsert_many(owner_email: str, items: list[dict]) -> list[dict]
                 VALUES
                     (:id, :owner_email, :name, :category, :amount_usd, :due_date_iso, :status, :source_email, :created_at, :updated_at)
                 ON CONFLICT(id) DO UPDATE SET
-                    owner_email=excluded.owner_email,
                     name=excluded.name,
                     category=excluded.category,
                     amount_usd=excluded.amount_usd,
