@@ -273,14 +273,13 @@ def subscriptions_upsert_many(owner_email: str, items: list[dict]) -> list[dict]
                 "created_at": now,
                 "updated_at": now,
             }
-            c.execute(
+            cur = c.execute(
                 """
                 INSERT INTO subscriptions
                     (id, owner_email, name, category, amount_usd, due_date_iso, status, source_email, created_at, updated_at)
                 VALUES
                     (:id, :owner_email, :name, :category, :amount_usd, :due_date_iso, :status, :source_email, :created_at, :updated_at)
                 ON CONFLICT(id) DO UPDATE SET
-                    owner_email=excluded.owner_email,
                     name=excluded.name,
                     category=excluded.category,
                     amount_usd=excluded.amount_usd,
@@ -288,9 +287,12 @@ def subscriptions_upsert_many(owner_email: str, items: list[dict]) -> list[dict]
                     status=excluded.status,
                     source_email=excluded.source_email,
                     updated_at=excluded.updated_at
+                WHERE subscriptions.owner_email = excluded.owner_email
                 """,
                 row,
             )
+            if int(cur.rowcount or 0) == 0:
+                continue
             out.append(
                 {
                     "id": row["id"],
