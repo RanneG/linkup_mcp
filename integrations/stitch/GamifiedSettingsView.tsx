@@ -3,7 +3,7 @@ import type { VoiceFaceSettings } from "../fixtures/subscriptions";
 import { AppearanceSection } from "./AppearanceSection";
 import { FaceVerificationPanel } from "./FaceVerificationPanel";
 import { GoogleSignInPanel } from "./GoogleSignInPanel";
-import { LinkupRagPanel } from "./LinkupRagPanel";
+import { LinkupRagPanel, type RagVoiceRunRequest } from "./LinkupRagPanel";
 import { SettingsPanel } from "./SettingsPanel";
 
 type TabId = "appearance" | "faceVerification" | "billing" | "notifications" | "account";
@@ -27,6 +27,10 @@ export type GamifiedSettingsViewProps = {
   onAuthSessionChange: () => void;
   /** Increment from parent to switch to Account tab (e.g. account dock). */
   openAccountTabSignal?: number;
+  /** Increment from parent to switch to Billing tab (document brain / RAG). */
+  openBillingTabSignal?: number;
+  /** When id changes, LinkupRagPanel runs this query (Billing tab). */
+  ragVoiceRunRequest?: RagVoiceRunRequest | null;
 };
 
 export function GamifiedSettingsView({
@@ -39,16 +43,26 @@ export function GamifiedSettingsView({
   onGoogleLinkedEmail,
   onAuthSessionChange,
   openAccountTabSignal = 0,
+  openBillingTabSignal = 0,
+  ragVoiceRunRequest = null,
 }: GamifiedSettingsViewProps) {
   const [tab, setTab] = useState<TabId>("appearance");
-  const prevSignal = useRef(0);
+  const prevAccountSignal = useRef(0);
+  const prevBillingSignal = useRef(0);
 
   useEffect(() => {
-    if (openAccountTabSignal > prevSignal.current) {
-      prevSignal.current = openAccountTabSignal;
+    if (openAccountTabSignal > prevAccountSignal.current) {
+      prevAccountSignal.current = openAccountTabSignal;
       setTab("account");
     }
   }, [openAccountTabSignal]);
+
+  useEffect(() => {
+    if (openBillingTabSignal > prevBillingSignal.current) {
+      prevBillingSignal.current = openBillingTabSignal;
+      setTab("billing");
+    }
+  }, [openBillingTabSignal]);
 
   return (
     <section className="noir-card p-4 md:p-5" aria-label="Settings">
@@ -115,7 +129,7 @@ export function GamifiedSettingsView({
               <p className="font-semibold text-stitch-heading">Billing</p>
               <p className="mt-1 text-xs text-stitch-muted">Demo billing only — no real charges in this build.</p>
             </div>
-            <LinkupRagPanel />
+            <LinkupRagPanel voiceRunRequest={ragVoiceRunRequest} />
           </div>
         ) : null}
         {tab === "notifications" ? (

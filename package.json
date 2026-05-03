@@ -1,9 +1,15 @@
 {
   "name": "cursor-linkup-mcp",
   "private": true,
-  "description": "Root scripts only. The Stitch browser dev server lives under temp_repo/stitch/apps/desktop.",
+  "description": "Root scripts only. Stitch UI lives under temp_repo/stitch/apps/desktop (Tauri + Vite).",
   "scripts": {
     "sync:stitch": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/sync-integrations-stitch-to-desktop.ps1",
-    "dev:browser": "npm run sync:stitch && npm --prefix temp_repo/stitch/apps/desktop run dev:browser"
+    "dev:browser": "npm run sync:stitch && npm --prefix temp_repo/stitch/apps/desktop run dev:browser",
+    "dev:desktop": "npm run sync:stitch && npm --prefix temp_repo/stitch/apps/desktop run dev",
+    "launch:stitch": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/Start-StitchDesktop.ps1",
+    "launch:stitch:ui-only": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/Start-StitchDesktop.ps1 -SkipBridge",
+    "build:stitch-app": "npm run sync:stitch && npm --prefix temp_repo/stitch/apps/desktop run tauri -- build",
+    "build:stitch-web": "npm run sync:stitch && npm --prefix temp_repo/stitch/apps/desktop run build",
+    "gui:stitch": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/Start-StitchBundledGui.ps1"
   }
 }

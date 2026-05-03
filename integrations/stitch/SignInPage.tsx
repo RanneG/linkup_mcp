@@ -3,6 +3,7 @@ import {
   authHeaders,
   readJsonFromResponse,
   readSessionId,
+  stitchPreferSameWindowGoogleOAuth,
   stitchRagApiUrl,
   writeDemoMagicAuth,
   writeSessionId,
@@ -136,16 +137,14 @@ export function SignInPage({ onSignedIn, onToast }: SignInPageProps) {
         setLoading(false);
         return;
       }
+      if (stitchPreferSameWindowGoogleOAuth()) {
+        window.location.assign(d.auth_url);
+        return;
+      }
       // Do not use noopener: OAuth callback uses window.opener.postMessage to this window.
       const w = window.open(d.auth_url, "stitch_google_oauth", "width=520,height=720");
       if (!w) {
-        try {
-          await navigator.clipboard.writeText(d.auth_url);
-          setOauthMessage("Popup blocked — sign-in URL copied. Paste it into a new browser tab.");
-        } catch {
-          setOauthMessage(`Popup blocked — open this URL in a new tab:\n${d.auth_url}`);
-        }
-        setLoading(false);
+        window.location.assign(d.auth_url);
         return;
       }
       setOauthMessage("Complete sign-in in the popup…");

@@ -42,7 +42,7 @@ $componentFiles = @(
   "AppShell.tsx", "Dashboard.tsx", "WelcomeHero.tsx", "GamificationStats.tsx", "SubscriptionCard.tsx",
   "GamifiedSettingsView.tsx", "SettingsPanel.tsx", "gamifyStorage.ts", "animations.ts",
   "GoogleSignInPanel.tsx", "GmailSubscriptionDiscovery.tsx", "FaceVerificationPanel.tsx",
-  "LinkupRagPanel.tsx", "SignInPage.tsx", "StitchAppRoot.tsx"
+  "LinkupRagPanel.tsx", "voiceCommands.ts", "SignInPage.tsx", "StitchAppRoot.tsx"
 )
 
 foreach ($f in $componentFiles) {

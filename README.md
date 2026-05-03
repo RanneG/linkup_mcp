@@ -113,6 +113,31 @@ Run a small Flask server that exposes the same payload as `rag_stitch`, plus opt
 
 Then point Stitch’s Vite dev proxy at `http://127.0.0.1:8765` (see [integrations/stitch/README.md](integrations/stitch/README.md); proxy `/api` for both RAG and face routes).
 
+### Stitch single-window GUI (API + built UI in one process)
+
+If you want **one native window** without separate “bridge terminal” + “Vite/Tauri terminal”, use **pywebview** + Flask serving the **production Vite build** from the same port (`8765`):
+
+1. **Build** the Stitch desktop bundle: `npm run build` in `temp_repo/stitch/apps/desktop` (after `npm run sync:stitch` if you edit files under `integrations/stitch/`).
+2. **Install** `pywebview`: `uv sync --extra stitch-gui` or `pip install "pywebview>=5,<6"` into `.venv`.
+3. **Run** by double-clicking **`Stitch.bat`** at the repo root (no terminal needed). It creates `.venv` if missing, installs Python deps + **pywebview**, syncs `integrations/stitch`, runs **`npm install`** + **`npm run build`**, then opens the window. Same script as **`Stitch-Bundled-Gui.bat`**. Optional: `npm run gui:stitch` or `.\scripts\Start-StitchBundledGui.ps1 -SkipBuild` after a successful build.
+
+Implementation: [stitch_gui.py](stitch_gui.py) starts Flask from [stitch_rag_bridge.py](stitch_rag_bridge.py) with `STITCH_DESKTOP_DIST` pointing at `dist/` so `/` and `/assets/*` serve the SPA while `/api/*` stays the bridge. A **single `.exe`** later is possible with PyInstaller around `stitch_gui.py` (not automated here yet).
+
+### Stitch as a native desktop app (no long manual command chain)
+
+Stitch’s `apps/desktop` package uses **Tauri** for a real windowed app (`npm run dev` there = `tauri dev`). In this repo:
+
+| Goal | What to do |
+|------|----------------|
+| **One double-click** (bridge + sync + Tauri) | Run **`Stitch-Desktop.bat`** at the repository root. |
+| Same from a terminal | `npm run launch:stitch` |
+| Bridge already running | `npm run launch:stitch:ui-only` or `.\scripts\Start-StitchDesktop.ps1 -SkipBridge` |
+| Tauri only (you start the bridge yourself) | `npm run dev:desktop` |
+| Browser tab only (no Tauri) | `npm run dev:browser` (unchanged) |
+| Packaged `.exe` / installer | `npm run build:stitch-app` (after [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) and a `temp_repo/stitch` clone) |
+
+You still need a **`temp_repo/stitch`** clone and **Node** on `PATH`. The first Tauri dev run may compile Rust dependencies (one-time wait).
+
 ### Quick regression run
 
 To run the v1 prompt suite against your local PDF corpus:

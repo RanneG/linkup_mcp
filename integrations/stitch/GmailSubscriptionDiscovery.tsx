@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { authHeaders, readJsonFromResponse, readSessionId, stitchFetch } from "../lib/stitchBridge";
 
 /** Set to `true` to always use mock candidates (ignores live Gmail even when connected). */
@@ -49,9 +49,17 @@ type Props = {
   onImported: () => void | Promise<void>;
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
+  /** Increment (e.g. from voice) to run the same path as “Run discovery”. */
+  autoDiscoverSignal?: number;
 };
 
-export function GmailSubscriptionDiscovery({ googleSignedIn, onImported, onSuccess, onError }: Props) {
+export function GmailSubscriptionDiscovery({
+  googleSignedIn,
+  onImported,
+  onSuccess,
+  onError,
+  autoDiscoverSignal = 0,
+}: Props) {
   const [discoverBusy, setDiscoverBusy] = useState(false);
   const [importBusy, setImportBusy] = useState(false);
   const [candidates, setCandidates] = useState<GmailDiscoveryCandidate[]>([]);
@@ -60,6 +68,7 @@ export function GmailSubscriptionDiscovery({ googleSignedIn, onImported, onSucce
   const [gmailLinkStatus, setGmailLinkStatus] = useState<"loading" | "linked" | "none">("loading");
 
   const hasValidGmailToken = gmailLinkStatus === "linked";
+  const prevAutoDiscover = useRef(0);
 
   useEffect(() => {
     if (!googleSignedIn) {
@@ -170,6 +179,12 @@ export function GmailSubscriptionDiscovery({ googleSignedIn, onImported, onSucce
     }
   }, [hasValidGmailToken, onError, onSuccess]);
 
+  useEffect(() => {
+    if (!autoDiscoverSignal || autoDiscoverSignal <= prevAutoDiscover.current) return;
+    prevAutoDiscover.current = autoDiscoverSignal;
+    if (googleSignedIn) void runDiscovery();
+  }, [autoDiscoverSignal, googleSignedIn, runDiscovery]);
+
   const importSelected = useCallback(async () => {
     const sid = readSessionId();
     if (!sid) {
@@ -219,7 +234,7 @@ export function GmailSubscriptionDiscovery({ googleSignedIn, onImported, onSucce
   }
 
   return (
-    <section className="noir-card p-4 md:p-5">
+    <section id="stitch-gmail-discovery" className="noir-card p-4 md:p-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="font-display text-sm font-bold text-stitch-heading">Gmail — discover subscriptions</p>

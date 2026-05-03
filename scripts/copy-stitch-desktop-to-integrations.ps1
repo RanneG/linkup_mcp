@@ -36,6 +36,7 @@ $files = @(
   @{ Rel = "components\GmailSubscriptionDiscovery.tsx"; Dst = "GmailSubscriptionDiscovery.tsx" }
   @{ Rel = "components\FaceVerificationPanel.tsx"; Dst = "FaceVerificationPanel.tsx" }
   @{ Rel = "components\LinkupRagPanel.tsx";       Dst = "LinkupRagPanel.tsx" }
+  @{ Rel = "components\voiceCommands.ts";        Dst = "voiceCommands.ts" }
   @{ Rel = "components\Dashboard.tsx";          Dst = "Dashboard.tsx" }
   @{ Rel = "components\WelcomeHero.tsx";        Dst = "WelcomeHero.tsx" }
   @{ Rel = "components\GamificationStats.tsx";  Dst = "GamificationStats.tsx" }

@@ -14,6 +14,7 @@ import {
   writeDemoMagicAuth,
   writeSessionId,
 } from "../lib/stitchBridge";
+import { matchStitchVoiceCommand } from "./voiceCommands";
 
 /** Demo auth: account email for local face DB + panels (replace with real auth when you wire it). */
 const STITCH_AUTH_EMAIL_KEY = "stitch.userEmail";
@@ -91,6 +92,9 @@ export function AppShell({
   const [confettiTrigger, setConfettiTrigger] = useState(0);
   const [gamifyRefreshTick, setGamifyRefreshTick] = useState(0);
   const pendingApprovalRef = useRef<SubscriptionItem | null>(null);
+  const startApprovalRef = useRef<(subscription: SubscriptionItem, source: "button" | "voice" | "auto") => Promise<void>>(
+    async () => undefined,
+  );
   const [displayYear, setDisplayYear] = useState(2026);
   const [displayMonthIndex, setDisplayMonthIndex] = useState(4);
   const [voiceSupported, setVoiceSupported] = useState(false);
@@ -100,6 +104,9 @@ export function AppShell({
   const [authEmailCommitted, setAuthEmailCommitted] = useState<string>(() => readAuthEmail());
   const [sessionProfile, setSessionProfile] = useState<SessionProfile | null>(null);
   const [settingsAccountTabSignal, setSettingsAccountTabSignal] = useState(0);
+  const [settingsBillingTabSignal, setSettingsBillingTabSignal] = useState(0);
+  const [gmailDiscoverSignal, setGmailDiscoverSignal] = useState(0);
+  const [ragVoiceRun, setRagVoiceRun] = useState<{ id: number; query: string } | null>(null);
 
   const mapApiSubscription = useCallback((raw: unknown): SubscriptionItem | null => {
     if (!raw || typeof raw !== "object") return null;
@@ -349,6 +356,10 @@ export function AppShell({
   }, [loadSubscriptions]);
 
   useEffect(() => {
+    if (view !== "settings") setRagVoiceRun(null);
+  }, [view]);
+
+  useEffect(() => {
     if (googleSignedIn) void refreshSessionProfile();
     else setSessionProfile(null);
   }, [googleSignedIn, refreshSessionProfile]);
@@ -384,45 +395,6 @@ export function AppShell({
     const timer = window.setInterval(checkDuePayments, DUE_CHECK_INTERVAL_MS);
     return () => window.clearInterval(timer);
   }, [subscriptions]);
-
-  useEffect(() => {
-    if (!settings.voiceActivation || !pendingApproval || !voiceSupported) {
-      setVoiceListening(false);
-      return;
-    }
-
-    type SpeechCtor = new () => {
-      continuous: boolean;
-      lang: string;
-      interimResults: boolean;
-      onstart: (() => void) | null;
-      onend: (() => void) | null;
-      onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript?: string }>> }) => void) | null;
-      start: () => void;
-      stop: () => void;
-    };
-    const W = window as Window & {
-      SpeechRecognition?: SpeechCtor;
-      webkitSpeechRecognition?: SpeechCtor;
-    };
-    const Recognition = W.SpeechRecognition ?? W.webkitSpeechRecognition;
-    if (!Recognition) return;
-
-    const recognition = new Recognition();
-    recognition.continuous = true;
-    recognition.lang = "en-US";
-    recognition.interimResults = false;
-    recognition.onstart = () => setVoiceListening(true);
-    recognition.onend = () => setVoiceListening(false);
-    recognition.onresult = (event) => {
-      const transcript = event.results[event.results.length - 1]?.[0]?.transcript?.toLowerCase() ?? "";
-      if (transcript.includes("approve")) {
-        void startApproval(pendingApproval, "voice");
-      }
-    };
-    recognition.start();
-    return () => recognition.stop();
-  }, [pendingApproval, settings.voiceActivation, voiceSupported]);
 
   function cancelFaceApproval() {
     setFaceModalOpen(false);
@@ -503,6 +475,108 @@ export function AppShell({
       `${subscription.name} payment approved ${method === "auto" ? "automatically" : "with MFA"}.`,
     );
   }
+
+  startApprovalRef.current = startApproval;
+
+  useEffect(() => {
+    if (!settings.voiceActivation || !voiceSupported) {
+      setVoiceListening(false);
+      return;
+    }
+
+    type SpeechCtor = new () => {
+      continuous: boolean;
+      lang: string;
+      interimResults: boolean;
+      onstart: (() => void) | null;
+      onend: (() => void) | null;
+      onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript?: string }>> }) => void) | null;
+      start: () => void;
+      stop: () => void;
+    };
+    const W = window as Window & {
+      SpeechRecognition?: SpeechCtor;
+      webkitSpeechRecognition?: SpeechCtor;
+    };
+    const Recognition = W.SpeechRecognition ?? W.webkitSpeechRecognition;
+    if (!Recognition) return;
+
+    const recognition = new Recognition();
+    recognition.continuous = true;
+    recognition.lang = "en-US";
+    recognition.interimResults = false;
+    recognition.onstart = () => setVoiceListening(true);
+    recognition.onend = () => setVoiceListening(false);
+    recognition.onresult = (event) => {
+      const raw = event.results[event.results.length - 1]?.[0]?.transcript ?? "";
+      const transcriptLower = raw.toLowerCase();
+      const pending = pendingApprovalRef.current;
+      if (pending && transcriptLower.includes("approve")) {
+        void startApprovalRef.current(pending, "voice");
+        return;
+      }
+      const cmd = matchStitchVoiceCommand(raw);
+      if (!cmd) return;
+
+      switch (cmd.type) {
+        case "open_rag":
+          setRagVoiceRun(null);
+          setView("settings");
+          setSettingsBillingTabSignal((n) => n + 1);
+          window.setTimeout(() => {
+            document.getElementById("stitch-linkup-rag")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }, 120);
+          setStatusText("Opened document brain (Settings → Billing).");
+          break;
+        case "rag_query":
+          setView("settings");
+          setSettingsBillingTabSignal((n) => n + 1);
+          window.setTimeout(() => {
+            setRagVoiceRun({ id: Date.now(), query: cmd.query });
+            document.getElementById("stitch-linkup-rag")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }, 100);
+          setStatusText("Running your document question…");
+          break;
+        case "open_settings":
+          setView("settings");
+          setStatusText("Settings.");
+          break;
+        case "open_account":
+          setView("settings");
+          setSettingsAccountTabSignal((n) => n + 1);
+          window.requestAnimationFrame(() => {
+            document.getElementById("settings-tab-account")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            document.getElementById("settings-panel-account")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+          setStatusText("Account settings.");
+          break;
+        case "open_history":
+          setView("history");
+          setStatusText("Payment history.");
+          break;
+        case "open_upcoming":
+          setView("upcoming");
+          setStatusText("Upcoming renewals.");
+          break;
+        case "scan_gmail":
+          if (!readSessionId()) {
+            setStatusText("Sign in with Google to scan Gmail.");
+            break;
+          }
+          setView("upcoming");
+          window.setTimeout(() => {
+            setGmailDiscoverSignal((n) => n + 1);
+            document.getElementById("stitch-gmail-discovery")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }, 0);
+          setStatusText("Scanning subscriptions from email…");
+          break;
+        default:
+          break;
+      }
+    };
+    recognition.start();
+    return () => recognition.stop();
+  }, [settings.voiceActivation, voiceSupported]);
 
   function toggleSetting<K extends keyof VoiceFaceSettings>(key: K, value: VoiceFaceSettings[K]) {
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -596,6 +670,9 @@ export function AppShell({
           });
         }}
         settingsAccountTabSignal={settingsAccountTabSignal}
+        settingsBillingTabSignal={settingsBillingTabSignal}
+        ragVoiceRun={ragVoiceRun}
+        gmailDiscoverSignal={gmailDiscoverSignal}
       />
       <RightRail
         subscriptions={subscriptions}
@@ -940,6 +1017,9 @@ function CenterPane({
   gamifyRefreshTick,
   onRequestGoogleConnect,
   settingsAccountTabSignal,
+  settingsBillingTabSignal,
+  ragVoiceRun,
+  gmailDiscoverSignal,
 }: {
   view: "upcoming" | "history" | "settings";
   subscriptions: SubscriptionItem[];
@@ -972,6 +1052,9 @@ function CenterPane({
   gamifyRefreshTick: number;
   onRequestGoogleConnect: () => void;
   settingsAccountTabSignal: number;
+  settingsBillingTabSignal: number;
+  ragVoiceRun: { id: number; query: string } | null;
+  gmailDiscoverSignal: number;
 }) {
   if (view === "upcoming") {
     return (
@@ -1007,6 +1090,7 @@ function CenterPane({
           pendingLabel={pendingApproval?.name}
           onApproveByVoice={onApproveByVoice}
           onRequestGoogleConnect={onRequestGoogleConnect}
+          gmailDiscoverSignal={gmailDiscoverSignal}
         />
       </main>
     );
@@ -1042,6 +1126,8 @@ function CenterPane({
             onGoogleLinkedEmail={onGoogleLinkedEmail}
             onAuthSessionChange={onAuthSessionChange}
             openAccountTabSignal={settingsAccountTabSignal}
+            openBillingTabSignal={settingsBillingTabSignal}
+            ragVoiceRunRequest={ragVoiceRun}
           />
         ) : null}
       </div>

@@ -2,7 +2,7 @@
 
 This folder holds **tracked** UI glue for [Stitch](https://github.com/kylabuildsthings-oss/stitch). The `temp_repo/` clone is gitignored; copy these files into your Stitch repo when opening a PR upstream.
 
-**Sync from a local Stitch clone:** from the **linkup_mcp** repo root run `.\scripts\copy-stitch-desktop-to-integrations.ps1` to refresh the flat files here from `temp_repo/stitch/apps/desktop/src/`. **What changed and why:** see the repo root **[CHANGELOG.md](../../CHANGELOG.md)** (Stitch desktop + bridge summary, `USE_MOCK_DISCOVERY`, demo payments).
+**Sync from a local Stitch clone:** from the **linkup_mcp** repo root run `.\scripts\copy-stitch-desktop-to-integrations.ps1` to refresh the flat files here from `temp_repo/stitch/apps/desktop/src/`. Push **integrations → desktop** with `.\scripts\sync-integrations-stitch-to-desktop.ps1` (includes `voiceCommands.ts` next to other desktop components). **What changed and why:** see **[CHANGELOG.md](../../CHANGELOG.md)** and **[STITCH_STATUS.md](../../STITCH_STATUS.md)** (voice intents, `USE_MOCK_DISCOVERY`, demo payments).
 
 ## 1. HTTP bridge (this repo)
 
@@ -44,7 +44,9 @@ proxy: {
 },
 ```
 
-**Restart** `npm run dev:browser` after any `vite.config.ts` proxy edit — Vite only applies the proxy table on startup. Proxy the full **`/api`** prefix (not only `/api/rag`) so **`/api/face/*`** reaches the bridge; a narrower rule can make Vite serve SPA `index.html` for face routes and trigger confusing JSON parse errors in the UI.
+**Restart** the dev server after any `vite.config.ts` proxy edit — Vite only applies the proxy table on startup. Proxy the full **`/api`** prefix (not only `/api/rag`) so **`/api/face/*`** reaches the bridge; a narrower rule can make Vite serve SPA `index.html` for face routes and trigger confusing JSON parse errors in the UI.
+
+**Native window (Tauri):** From the **linkup_mcp** repo root use **`Stitch-Desktop.bat`**, **`npm run launch:stitch`**, or **`npm run dev:desktop`** (see root [README.md](../../README.md)). **`npm run dev:browser`** is browser-only and does not open the Tauri shell.
 
 `FaceVerificationPanel` defaults to **`http://127.0.0.1:8765`** when the page is on **`localhost` / `127.0.0.1`** and the port is **`1420`** or **`5173`**, or when `import.meta.env.DEV` is true — so large enroll POSTs bypass the Vite proxy. Set **`VITE_STITCH_RAG_USE_PROXY=1`** in `apps/desktop/.env.local` to force same-origin `/api` through the proxy instead. Optional **`VITE_STITCH_RAG_BRIDGE_ORIGIN`** overrides the bridge origin.
 

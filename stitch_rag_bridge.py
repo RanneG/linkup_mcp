@@ -7,6 +7,7 @@ Run from repo root (use the project venv so deps resolve):
     .\\.venv\\Scripts\\python.exe stitch_rag_bridge.py
 
 Defaults: http://127.0.0.1:8765
+  GET  /                 (HTML hint, JSON, or built SPA when STITCH_DESKTOP_DIST is set — see stitch_gui.py)
   GET  /api/health       (same payload as GET /health — use under Vite `/api` proxy)
   POST /api/rag/stitch  JSON {"query":"..."}
   POST /api/face/enroll  JSON single-frame (default): {"email","image","quality_check":"lenient"|"strict","enroll_mode":"simple"}
@@ -33,14 +34,17 @@ import os
 import threading
 
 import numpy as np
-from flask import Flask, has_request_context, jsonify, request
+from flask import Flask, Response, abort, has_request_context, jsonify, request, send_file
 from werkzeug.exceptions import HTTPException, InternalServerError
 
 logger = logging.getLogger(__name__)
 
 # Enrollment sends multiple base64 JPEGs; cap to keep requests and DeepFace work bounded.
 _MAX_ENROLL_IMAGES = int(os.getenv("STITCH_FACE_MAX_ENROLL_IMAGES", "5"))
-_DEFAULT_ALLOWED_ORIGINS = "http://127.0.0.1:1420,http://localhost:1420,http://127.0.0.1:5173,http://localhost:5173"
+_DEFAULT_ALLOWED_ORIGINS = (
+    "http://127.0.0.1:1420,http://localhost:1420,http://127.0.0.1:5173,http://localhost:5173,"
+    "http://127.0.0.1:8765,http://localhost:8765"
+)
 
 
 def _parse_allowed_origins(raw: str) -> set[str]:
@@ -49,6 +53,21 @@ def _parse_allowed_origins(raw: str) -> set[str]:
 
 
 _ALLOWED_ORIGINS = _parse_allowed_origins(os.getenv("STITCH_ALLOWED_ORIGINS", _DEFAULT_ALLOWED_ORIGINS))
+
+
+def _get_stitch_spa_dist() -> str | None:
+    """When set to a Vite `dist` folder (index.html + assets/), Flask also serves the Stitch SPA from this process."""
+    raw = (os.environ.get("STITCH_DESKTOP_DIST") or "").strip()
+    if not raw:
+        return None
+    try:
+        root = os.path.abspath(raw)
+    except OSError:
+        return None
+    if not os.path.isdir(root) or not os.path.isfile(os.path.join(root, "index.html")):
+        return None
+    return root
+
 
 from server import _ensure_rag_ready, _to_stitch_view
 
@@ -116,6 +135,51 @@ def api_health():
     except Exception:
         google_oauth = False
     return jsonify({"ok": True, "service": "stitch-rag-bridge", "google_oauth": google_oauth})
+
+
+_BRIDGE_ROOT_HTML = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><title>Stitch RAG bridge</title>
+<style>body{font-family:system-ui,sans-serif;max-width:42rem;margin:2rem;line-height:1.5}
+code{background:#eee;padding:.1rem .35rem;border-radius:4px}a{color:#06c}</style></head><body>
+<h1>Stitch RAG bridge is running</h1>
+<p><strong>This tab is not the Stitch app.</strong> Port <code>8765</code> is only the Flask API
+(RAG, Google auth, subscriptions, face). The UI runs elsewhere.</p>
+<h2>Open the real Stitch UI</h2>
+<ul>
+  <li><strong>One bundled window (UI + API):</strong> double-click <code>Stitch.bat</code> at the
+    <code>cursor_linkup_mcp</code> repo root (builds and installs automatically; needs Python + Node + <code>temp_repo/stitch</code>).</li>
+  <li><strong>Tauri desktop:</strong> from the <code>cursor_linkup_mcp</code> repo run
+    <code>Stitch-Desktop.bat</code> or <code>npm run launch:stitch</code> (native window).</li>
+  <li><strong>Browser dev:</strong> after <code>npm run dev:browser</code>, open
+    <a href="http://localhost:5173/">http://localhost:5173/</a> (Vite default) or the URL printed in the terminal.</li>
+  <li><strong>Tauri dev</strong> often uses <a href="http://localhost:1420/">http://localhost:1420/</a> for the webview — use the window Tauri opens.</li>
+</ul>
+<p>API check: <a href="/api/health">GET /api/health</a> (JSON)</p>
+</body></html>"""
+
+
+@app.route("/", methods=["GET"])
+def bridge_root():
+    """With STITCH_DESKTOP_DIST, serve the built Stitch SPA; else explainer HTML or JSON."""
+    spa = _get_stitch_spa_dist()
+    if spa:
+        return send_file(os.path.join(spa, "index.html"))
+    accept = (request.headers.get("Accept") or "").lower()
+    if "text/html" in accept:
+        return Response(_BRIDGE_ROOT_HTML, mimetype="text/html; charset=utf-8")
+    return jsonify(
+        {
+            "ok": True,
+            "service": "stitch-rag-bridge",
+            "hint": "This process is an API bridge for Stitch, not the Stitch UI. Open Tauri/Vite (see repo README).",
+            "try": ["GET /api/health", "POST /api/rag/stitch with JSON {\"query\":\"...\"}"],
+        }
+    )
+
+
+@app.route("/favicon.ico", methods=["GET"])
+def favicon():
+    return "", 204
 
 
 # --- Face verification (local DeepFace + OpenCV liveness) ---
@@ -455,13 +519,16 @@ def _json_for_uncaught_face_api(exc: BaseException):
         raise exc
     path = request.path
     if not path.startswith("/api/face") and not path.startswith("/api/auth") and not path.startswith("/api/subscriptions"):
+        # Re-raising HTTPException from inside this handler can surface as 500; return the real status.
+        if isinstance(exc, HTTPException):
+            return exc.get_response()
         raise exc
     # Client errors (404, etc.) should use normal Werkzeug/Flask responses.
     # InternalServerError is also an HTTPException but must NOT be re-raised or the UI gets HTML 500.
     if isinstance(exc, HTTPException):
         code = getattr(exc, "code", None)
         if code is not None and code < 500:
-            raise exc
+            return exc.get_response()
     logger.exception("uncaught exception on %s", path)
     root = exc
     if isinstance(exc, InternalServerError):
@@ -488,6 +555,43 @@ try:
     register_stitch_auth_routes(app)
 except Exception as _auth_exc:  # noqa: BLE001
     logger.warning("Stitch Google auth routes not registered: %s", _auth_exc)
+
+
+def _maybe_register_stitch_spa_extra_routes() -> None:
+    """Register /assets/* and SPA fallback when STITCH_DESKTOP_DIST is set (see stitch_gui.py)."""
+    if not _get_stitch_spa_dist():
+        return
+
+    @app.route("/assets/<path:rel>", methods=["GET"])
+    def stitch_spa_assets(rel: str):
+        root = _get_stitch_spa_dist()
+        if not root:
+            abort(404)
+        base = os.path.normpath(os.path.join(root, "assets"))
+        if not os.path.isdir(base):
+            abort(404)
+        candidate = os.path.normpath(os.path.join(base, rel))
+        if not candidate.startswith(base) or not os.path.isfile(candidate):
+            abort(404)
+        return send_file(candidate)
+
+    @app.route("/<path:path>", methods=["GET"])
+    def stitch_spa_history(path: str):
+        root = _get_stitch_spa_dist()
+        if not root:
+            abort(404)
+        if path.startswith("api/"):
+            abort(404)
+        candidate = os.path.normpath(os.path.join(root, path))
+        rootn = os.path.normpath(root)
+        if not candidate.startswith(rootn):
+            abort(404)
+        if os.path.isfile(candidate):
+            return send_file(candidate)
+        return send_file(os.path.join(root, "index.html"))
+
+
+_maybe_register_stitch_spa_extra_routes()
 
 
 if __name__ == "__main__":

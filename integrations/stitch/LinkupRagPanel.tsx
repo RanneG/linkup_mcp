@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type RagStitchView = {
   state: string;
@@ -19,19 +19,22 @@ type RagStitchView = {
   }>;
 };
 
+export type RagVoiceRunRequest = { id: number; query: string };
+
 /**
  * Optional local "document brain": POST /api/rag/stitch proxied to
  * cursor_linkup_mcp stitch_rag_bridge.py (default http://127.0.0.1:8765).
  */
-export function LinkupRagPanel() {
+export function LinkupRagPanel({ voiceRunRequest }: { voiceRunRequest?: RagVoiceRunRequest | null }) {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RagStitchView | null>(null);
 
-  async function runQuery() {
-    const trimmed = query.trim();
+  async function runQuery(override?: string) {
+    const trimmed = (override ?? query).trim();
     if (!trimmed) return;
+    setQuery(trimmed);
     setLoading(true);
     setError(null);
     setResult(null);
@@ -54,8 +57,14 @@ export function LinkupRagPanel() {
     }
   }
 
+  useEffect(() => {
+    if (!voiceRunRequest?.query.trim()) return;
+    void runQuery(voiceRunRequest.query);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when voice intent id changes
+  }, [voiceRunRequest?.id]);
+
   return (
-    <section className="noir-card p-4">
+    <section id="stitch-linkup-rag" className="noir-card p-4">
       <p className="font-display text-base font-semibold text-stitch-heading">Local document brain</p>
       <p className="mt-1 font-body text-xs text-stitch-secondary">
         Runs PDF RAG via the Linkup MCP bridge. Start{" "}

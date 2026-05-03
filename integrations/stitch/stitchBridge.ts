@@ -21,6 +21,21 @@ export function stitchRagApiUrl(path: string): string {
   return base ? `${base}${p}` : p;
 }
 
+/**
+ * Use full-window navigation for Google OAuth instead of `window.open`.
+ * WebView2/pywebview often hands popups to the system browser, which duplicates the sign-in UI
+ * and splits storage from the embedded app. Production bundles (e.g. Flask-served `dist/`) use this path.
+ */
+export function stitchPreferSameWindowGoogleOAuth(): boolean {
+  if (import.meta.env.PROD) return true;
+  try {
+    const w = window as unknown as { chrome?: { webview?: unknown } };
+    return Boolean(w.chrome?.webview);
+  } catch {
+    return false;
+  }
+}
+
 export const STITCH_FETCH_TIMEOUT_MS = 12000;
 
 export const STITCH_GOOGLE_SESSION_KEY = "stitch.googleSessionId";
@@ -45,6 +60,52 @@ export function writeSessionId(id: string | null): void {
   } catch {
     /* ignore */
   }
+}
+
+export type StitchOAuthHashResult =
+  | { kind: "none" }
+  | { kind: "session" }
+  | { kind: "error"; message: string };
+
+/**
+ * When OAuth finishes without window.opener (same-window flow, pasted URL in same profile, etc.),
+ * the bridge redirects to `/#stitch_oauth_session=...` or `/#stitch_oauth_error=...`.
+ */
+export function consumeStitchGoogleOAuthUrlFragment(): StitchOAuthHashResult {
+  let hash: string;
+  try {
+    hash = window.location.hash || "";
+  } catch {
+    return { kind: "none" };
+  }
+  if (!hash || hash.length < 2) return { kind: "none" };
+  const raw = hash.slice(1);
+  const sessionMatch = /^stitch_oauth_session=([^&]+)/.exec(raw);
+  if (sessionMatch?.[1]) {
+    const sid = decodeURIComponent(sessionMatch[1]).trim();
+    if (sid) {
+      writeSessionId(sid);
+      try {
+        const tail = window.location.pathname + window.location.search;
+        window.history.replaceState(null, "", tail || "/");
+      } catch {
+        /* ignore */
+      }
+      return { kind: "session" };
+    }
+  }
+  const errMatch = /^stitch_oauth_error=([^&]+)/.exec(raw);
+  if (errMatch?.[1]) {
+    const message = decodeURIComponent(errMatch[1]).trim() || "OAuth failed";
+    try {
+      const tail = window.location.pathname + window.location.search;
+      window.history.replaceState(null, "", tail || "/");
+    } catch {
+      /* ignore */
+    }
+    return { kind: "error", message };
+  }
+  return { kind: "none" };
 }
 
 export function readGoogleSkipped(): boolean {

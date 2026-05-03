@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { authHeaders, readJsonFromResponse, readSessionId, stitchRagApiUrl, writeDemoMagicAuth, writeSessionId } from "../lib/stitchBridge";
+import {
+  authHeaders,
+  consumeStitchGoogleOAuthUrlFragment,
+  readJsonFromResponse,
+  readSessionId,
+  stitchRagApiUrl,
+  writeDemoMagicAuth,
+  writeSessionId,
+} from "../lib/stitchBridge";
 import { AppShell } from "./AppShell";
 import { SignInPage } from "./SignInPage";
 
@@ -56,6 +64,11 @@ export default function StitchAppRoot() {
   const [toast, setToast] = useState<string | null>(null);
 
   const refreshAuth = useCallback(async (): Promise<boolean> => {
+    const frag = consumeStitchGoogleOAuthUrlFragment();
+    if (frag.kind === "error") {
+      setToast(frag.message);
+      window.setTimeout(() => setToast((t) => (t === frag.message ? null : t)), 5000);
+    }
     const server = await checkServerSession();
     if (server.ok) {
       setAuthenticated(true);

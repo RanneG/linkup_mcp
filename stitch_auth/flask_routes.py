@@ -7,6 +7,7 @@ import logging
 import secrets
 import time
 from typing import Any
+from urllib.parse import urlparse, urlunparse
 
 from flask import Flask, jsonify, request
 
@@ -38,9 +39,34 @@ def _session_from_request() -> str | None:
     return (request.args.get("session") or "").strip() or None
 
 
+def _redirect_origin_ipv4(target_origin: str) -> str:
+    """Flask binds 127.0.0.1 only; Edge/WebView2 often resolves localhost to ::1 — connection refused.
+
+    postMessage still uses the exact client origin; this base is only for location.replace after OAuth.
+    """
+    raw = (target_origin or "").strip().rstrip("/")
+    if not raw:
+        return "http://127.0.0.1:8765"
+    if "://" not in raw:
+        raw = f"http://{raw}"
+    parsed = urlparse(raw)
+    host = (parsed.hostname or "").lower()
+    scheme = parsed.scheme or "http"
+    if host != "localhost":
+        return raw.rstrip("/")
+    port = parsed.port
+    netloc = f"127.0.0.1:{port}" if port else "127.0.0.1"
+    return urlunparse((scheme, netloc, "", "", "", "")).rstrip("/")
+
+
 def _html_callback_page(target_origin: str, payload: dict[str, Any]) -> str:
-    """Popup callback: postMessage to opener then close."""
-    origin_js = json.dumps(target_origin)
+    """OAuth callback: postMessage to popup opener when present; else redirect app with session in URL hash.
+
+    External browsers and pywebview often block popups or omit window.opener; same-window OAuth
+    completes here and must bounce the session back via hash (consumed by the SPA).
+    """
+    origin_js = json.dumps(target_origin.rstrip("/"))
+    redirect_base_js = json.dumps(_redirect_origin_ipv4(target_origin))
     payload_js = json.dumps(payload)
     return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"/><title>Stitch sign-in</title></head>
@@ -48,12 +74,30 @@ def _html_callback_page(target_origin: str, payload: dict[str, Any]) -> str:
 <script>
 (function() {{
   var origin = {origin_js};
+  var redirectBase = {redirect_base_js};
   var payload = {payload_js};
+  var delivered = false;
   try {{
     if (window.opener && !window.opener.closed) {{
       window.opener.postMessage({{ type: "stitch-google-oauth", payload: payload }}, origin);
+      delivered = true;
     }}
   }} catch (e) {{}}
+  if (delivered) {{
+    window.close();
+    return;
+  }}
+  try {{
+    if (payload && payload.ok && payload.session_id) {{
+      window.location.replace(redirectBase + "/#stitch_oauth_session=" + encodeURIComponent(String(payload.session_id)));
+      return;
+    }}
+    if (payload && !payload.ok) {{
+      var err = String((payload.error != null ? payload.error : "oauth_failed"));
+      window.location.replace(redirectBase + "/#stitch_oauth_error=" + encodeURIComponent(err));
+      return;
+    }}
+  }} catch (e2) {{}}
   window.close();
 }})();
 </script>

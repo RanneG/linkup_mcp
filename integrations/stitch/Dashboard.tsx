@@ -32,6 +32,8 @@ export type DashboardProps = {
   pendingLabel?: string | null;
   onApproveByVoice: () => void;
   onRequestGoogleConnect?: () => void;
+  /** Increment to trigger Gmail discovery (e.g. voice). */
+  gmailDiscoverSignal?: number;
 };
 
 function newSubscriptionId(): string {
@@ -160,6 +162,7 @@ export function Dashboard({
   pendingLabel,
   onApproveByVoice,
   onRequestGoogleConnect,
+  gmailDiscoverSignal = 0,
 }: DashboardProps) {
   const savedMonth = useMemo(() => savingsThisMonth(history), [history]);
   const welcomeName = displayNameFromEmail(authEmailCommitted);
@@ -231,6 +234,7 @@ export function Dashboard({
             onImported={onSubscriptionsRefresh}
             onSuccess={onGmailImportSuccess}
             onError={onGmailImportError}
+            autoDiscoverSignal={gmailDiscoverSignal}
           />
         ) : null}
 
@@ -355,6 +359,7 @@ export function Dashboard({
         listening={voiceListening}
         pendingLabel={pendingLabel}
         onApproveByVoice={onApproveByVoice}
+        hintsOn={voiceActive}
       />
     </div>
   );
@@ -403,11 +408,13 @@ function VoiceQuestPill({
   listening,
   pendingLabel,
   onApproveByVoice,
+  hintsOn,
 }: {
   active: boolean;
   listening: boolean;
   pendingLabel?: string | null;
   onApproveByVoice: () => void;
+  hintsOn?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const expanded = open || listening || Boolean(pendingLabel);
@@ -427,9 +434,22 @@ function VoiceQuestPill({
         <div className="min-w-0 flex-1">
           <p className="font-body text-xs font-semibold text-stitch-heading">{listening ? "Listening…" : "Voice ready"}</p>
           {expanded ? (
-            <p className="truncate font-body text-[10px] text-stitch-muted">
-              {pendingLabel ? `Say “approve” for ${pendingLabel}` : active ? "Say “approve” when a payment is pending." : "Enable voice in Settings → Account."}
-            </p>
+            <div className="min-w-0 font-body text-[10px] text-stitch-muted">
+              {pendingLabel ? (
+                <p className="truncate">Say “approve” for {pendingLabel}</p>
+              ) : active ? (
+                <>
+                  <p className="truncate">Say “approve” when a payment is pending.</p>
+                  {hintsOn ? (
+                    <p className="mt-1 leading-snug">
+                      Also: “open document brain”, “scan Gmail”, “open settings”, “ask my documents about …”.
+                    </p>
+                  ) : null}
+                </>
+              ) : (
+                <p className="truncate">Enable voice in Settings → Account.</p>
+              )}
+            </div>
           ) : null}
         </div>
         <button

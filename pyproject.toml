@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "cursor-linkup-mcp"
 version = "0.1.1"
@@ -27,5 +31,28 @@ dependencies = [
     "google-auth-oauthlib>=1.2.0,<2",
     "google-auth-httplib2>=0.2.0,<1",
     "google-api-python-client>=2.130.0,<3",
+]
+
+[project.optional-dependencies]
+# Single-window Stitch: Flask serves apps/desktop/dist + pywebview shell (see stitch_gui.py).
+stitch-gui = [
+    "pywebview>=5.0,<6",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["tests*"]
+
+# Root-level modules (no package dir) so `pip install -e .` can resolve imports like `from server import …`.
+[tool.setuptools]
+py-modules = [
+    "server",
+    "rag",
+    "agents",
+    "stitch_rag_bridge",
+    "stitch_gui",
+    "stitch_demo_cli",
+    "rag_regression",
+    "notes_app_pokemon",
 ]
 

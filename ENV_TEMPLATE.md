@@ -12,6 +12,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 # Optional: Stitch HTTP bridge (stitch_rag_bridge.py)
 # STITCH_RAG_BRIDGE_PORT=8765
 # STITCH_ALLOWED_ORIGINS=http://127.0.0.1:1420,http://localhost:1420
+# STITCH_DESKTOP_DIST=C:/path/to/temp_repo/stitch/apps/desktop/dist   # stitch_gui.py: serve built SPA from same process
 
 # Optional: include debug_retrieval_cards on rag_stitch / bridge fallback responses
 # STITCH_RAG_DEBUG=1
@@ -57,6 +58,7 @@ Used by `stitch_rag_bridge.py` for `/api/auth/google/*`, sessions, and `/api/sub
 1. **Google Cloud Console** — Create (or pick) a project → **APIs & Services** → **Credentials** → **Create credentials** → **OAuth client ID** → Application type **Web application**. Under **Authorized redirect URIs**, add exactly:
    - `http://127.0.0.1:8765/api/auth/google/callback`  
    Enable **Gmail API** (and Google People / userinfo if prompted) for the same project so the bridge can read subscription mail with the scopes it requests.
+   Under **OAuth consent screen**, set the user-facing **App name** (e.g. “Stitch”) so Google’s sign-in pages do not show a generic placeholder like “Test”.
 
 2. **Root `.env`** (same folder as `stitch_rag_bridge.py`, i.e. this repo root — never commit it):
 

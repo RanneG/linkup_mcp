@@ -1,6 +1,8 @@
 # Stitch integration — status & next steps
 
-_Last updated: 2026-04-30 (end of session)._
+_Last updated: 2026-05-03._
+
+**Quickest launch (no terminal):** double-click **[Stitch.bat](Stitch.bat)** at the repo root (bundled GUI: venv, npm build, pywebview + Flask). Requires `temp_repo/stitch` + Python + Node installed.
 
 ## Where things live
 
@@ -17,7 +19,9 @@ _Last updated: 2026-04-30 (end of session)._
 - **Face verification:** Guided single-frame enrollment, purchase gate wired to “Upcoming payments” approve flow (`purpose="purchase"` on `FaceVerificationPanel`), bridge enroll/verify APIs.
 - **Theme system (desktop):** Implemented under `temp_repo/stitch/…` — not in this git tree; `integrations/stitch` is the portable reference if you copy files back.
 - **Google sign-in + Gmail discovery:** Backend routes on bridge (`/api/auth/*`, `/api/subscriptions/*`), SQLite + encrypted refresh tokens, PKCE OAuth, popup callback `postMessage`, `GoogleSignInPanel` + `lib/stitchBridge.ts` in **local** Stitch app (`temp_repo`).
-- **Subscription persistence API:** Bridge now stores imported/edited subscriptions in SQLite per active authenticated email (`/api/subscriptions/list|upsert|delete` + persisted `/api/subscriptions/import`).
+- **Subscription persistence API:** Bridge stores imported/edited subscriptions in SQLite per active authenticated email (`/api/subscriptions/list|upsert|delete` + persisted `/api/subscriptions/import`).
+- **Dashboard wired to persistence:** `integrations/stitch/AppShell.tsx` loads with **`GET /api/subscriptions/list`** when a session id exists (on mount and after auth changes), and add/edit/delete/approve flows call **`POST /api/subscriptions/upsert`** / **`POST /api/subscriptions/delete`** with silent reload after mutations.
+- **Voice commands (Stitch):** With **Voice activation** on, Web Speech drives approve + navigation + Gmail discovery + document brain / RAG (see voice intents table and `voiceCommands.ts`).
 - **Health:** `GET /api/health` includes `google_oauth: true|false` when client id/secret are set.
 - **Env docs:** `ENV_TEMPLATE.md` — Google OAuth vars documented.
 
@@ -30,12 +34,42 @@ _Last updated: 2026-04-30 (end of session)._
 
 ## Next steps (priority order)
 
-1. **Wire Stitch UI to new persistence routes** — Call `/api/subscriptions/list` on load and `/api/subscriptions/upsert|delete` for dashboard edits so reload survival is fully enabled in the app.  
-2. **Tauri / production OAuth** — Today tokens live on the **bridge** machine; client holds session id. For packaged desktop, consider `safeStorage` + deep link or loopback only in the shell, or a tiny local auth service.  
-3. **Gmail parsing depth** — Currently metadata + snippet + regex; improve with selective `format=full` for low-confidence rows only (quota-aware).  
-4. **Sync `temp_repo/stitch` ↔ git** — Either stop gitignoring a slim `apps/desktop` subtree or maintain `integrations/stitch` as source of truth and document copy steps in README/AGENTS.  
-5. **`uv lock` / CI** — Run `uv lock` after `pyproject.toml` Google deps so lockfile matches (if you use uv in CI).  
-6. **Tests** — Smoke test for `/api/auth/status` unauthenticated + mock OAuth (optional).
+1. **Tauri / production OAuth** — Today tokens live on the **bridge** machine; client holds session id. For packaged desktop, consider `safeStorage` + deep link or loopback only in the shell, or a tiny local auth service.  
+2. **Gmail parsing depth** — Currently metadata + snippet + regex; improve with selective `format=full` for low-confidence rows only (quota-aware).  
+3. **Sync `temp_repo/stitch` ↔ git** — Either stop gitignoring a slim `apps/desktop` subtree or maintain `integrations/stitch` as source of truth and document copy steps in README/AGENTS.  
+4. **`uv lock` / CI** — Run `uv lock` after `pyproject.toml` Google deps so lockfile matches (if you use uv in CI).  
+5. **Tests** — Smoke test for `/api/auth/status` unauthenticated + mock OAuth (optional).  
+6. **Voice (see below)** — Extend intents in Stitch first; Cursor/MCP voice remains a separate track.
+
+---
+
+## Voice roadmap
+
+### Primary surfaces (decision)
+
+| Priority | Surface | Role |
+|----------|---------|------|
+| **1 — near-term default** | **Stitch + Chromium Web Speech API** | Matches current implementation in `integrations/stitch/AppShell.tsx` (`SpeechRecognition` / `webkitSpeechRecognition`). Best path for rapid iteration in **Vite browser dev** (`/api` proxy to the bridge). |
+| **2 — verify, do not assume** | **Stitch Tauri packaged WebView** | May or may not expose the same speech APIs depending on **WebView2** (Windows) / **WKWebView** (macOS). Treat as **compatibility QA** before relying on voice in production builds; if missing, fall back to push-to-talk UI copy or a bridge-based STT route later. |
+| **3 — separate product track** | **Cursor + `cursor_linkup_mcp` MCP** | MCP tools are **text-in** today (`server.py` stdio). Voice for “Cursor in general” means a **different client layer**: e.g. OS dictation → chat, **Cursor hooks**, or automation against the Cursor SDK — **not** the Stitch React bundle. Keep scope explicit so Stitch voice work does not block MCP releases. |
+
+**Technology note for Stitch phase 1:** Stay on **browser STT** for new intents until Tauri behavior is validated or you intentionally add **`POST /api/stt`** (or similar) on the bridge for audio uploaded from the shell.
+
+### Voice intents (3–5) mapped to actions
+
+| Intent (example utterance) | Status | Where it runs | Action / API |
+|----------------------------|--------|---------------|----------------|
+| **Approve pending payment** (“approve”) | **Shipped** | `AppShell.tsx` — Web Speech while **Voice activation** is on; prioritised when a payment is pending | `startApprovalRef` → `startApproval(..., "voice")` (may open face MFA). |
+| **Open / focus local document brain (RAG)** | **Shipped** | `AppShell.tsx` + `GamifiedSettingsView` | Phrases like “open document brain”, “open RAG” → Settings **Billing** tab, scroll `#stitch-linkup-rag`. |
+| **Run Gmail subscription discovery** | **Shipped** | `GmailSubscriptionDiscovery` via `autoDiscoverSignal` | “Scan Gmail”, “run discovery”, “find subscriptions” → Upcoming view + increment signal (same as **Run discovery** button). |
+| **Submit RAG query from speech** | **Shipped** | `LinkupRagPanel` `voiceRunRequest` | “Ask my documents about …”, “search my pdfs …” → Billing tab + **`POST /api/rag/stitch`**. |
+| **Global navigation** | **Shipped** | `AppShell` `view` state | “Open settings”, “payment history”, “dashboard”, “account settings”, etc. |
+
+**Pure intent matcher (portable):** [`integrations/stitch/voiceCommands.ts`](integrations/stitch/voiceCommands.ts) — no React imports; suitable to lift into a future **`@your-scope/voice-intents`** (or similar) package alongside a thin Web Speech hook.
+
+**Out of scope for this repo’s Stitch folder:** piping voice into **MCP tool calls inside Cursor** — document and implement under hooks/SDK when you pick that track.
+
+---
 
 ## Uncommitted / parking (from `git status`)
 
