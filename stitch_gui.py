@@ -3,25 +3,25 @@ Single-window Stitch: built Vite UI + Flask API in one process (pywebview shell)
 
 Prerequisites
 -------------
-1. Build the Stitch desktop bundle (from your clone, e.g. temp_repo/stitch):
+1. Build the Stitch desktop bundle (from your **stitch-app** clone):
 
-       cd temp_repo/stitch/apps/desktop
+       cd ../stitch-app/apps/desktop
        npm install
        npm run build
 
    This produces ``dist/`` with ``index.html`` and ``assets/``.
 
-2. Install the optional GUI dependency (repo root, venv active):
+2. Install bridge + GUI extras (repo root, venv active):
 
-       uv sync --extra stitch-gui
+       uv sync --extra stitch-bridge --extra stitch-gui
    or
-       pip install "pywebview>=5,<6"
+       pip install -e ".[stitch-bridge,stitch-gui]"
 
 3. Run (repo root):
 
-       .\\.venv\\Scripts\\python.exe stitch_gui.py --dist temp_repo\\stitch\\apps\\desktop\\dist
+       .\\.venv\\Scripts\\python.exe stitch_gui.py --dist ..\\stitch-app\\apps\\desktop\\dist
 
-   Or double-click ``Stitch-Bundled-Gui.bat`` after a successful ``npm run build``.
+   Or double-click ``Stitch.bat`` at the repo root after a successful ``npm run build``.
 
 Google OAuth redirect stays ``http://127.0.0.1:8765/api/auth/google/callback`` (same as the plain bridge).
 """
@@ -62,7 +62,7 @@ def main() -> None:
     if not os.path.isdir(dist) or not os.path.isfile(os.path.join(dist, "index.html")):
         print(
             "Missing Vite build. Run:\n"
-            "  cd temp_repo\\stitch\\apps\\desktop\n"
+            "  cd ..\\stitch-app\\apps\\desktop   (or your STITCH_APP_ROOT\\apps\\desktop)\n"
             "  npm install && npm run build\n"
             "Then pass --dist to that folder's dist path.",
             file=sys.stderr,
@@ -76,11 +76,18 @@ def main() -> None:
     try:
         import webview  # type: ignore[import-not-found]
     except ImportError:
-        print("Install pywebview:  uv sync --extra stitch-gui   or   pip install pywebview", file=sys.stderr)
+        print(
+            "Install bundled deps:  uv sync --extra stitch-bridge --extra stitch-gui   or   pip install -e \".[stitch-bridge,stitch-gui]\"",
+            file=sys.stderr,
+        )
         raise SystemExit(1) from None
 
-    # Import after env so stitch_rag_bridge registers SPA routes.
-    from stitch_rag_bridge import app  # noqa: WPS433
+    # Import after env; pin dist on app.config so GET / always serves the Vite build (env alone can be unreliable on Windows).
+    from stitch_rag_bridge import app, register_stitch_spa_routes  # noqa: WPS433
+
+    app.config["STITCH_SPA_ROOT"] = dist
+    register_stitch_spa_routes()
+
     from werkzeug.serving import make_server
 
     port = args.port
@@ -96,6 +103,24 @@ def main() -> None:
             time.sleep(0.05)
     else:
         print("Flask failed to become ready on port", port, file=sys.stderr)
+        httpd.shutdown()
+        raise SystemExit(1)
+
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=5) as resp:
+            peek = resp.read(700).decode("utf-8", errors="replace")
+    except (urllib.error.URLError, OSError) as e:
+        print("Could not fetch / from embedded server:", e, file=sys.stderr)
+        httpd.shutdown()
+        raise SystemExit(1) from e
+    if "This tab is not the Stitch app" in peek or "Stitch RAG bridge is running" in peek:
+        print(
+            "Embedded server returned the API landing page instead of the Stitch UI.\n"
+            "Usually the Vite dist path is wrong or the SPA routes did not register.\n"
+            f"dist={dist!s}\n"
+            "Check GET /api/health -> stitch_spa.serving should be true.",
+            file=sys.stderr,
+        )
         httpd.shutdown()
         raise SystemExit(1)
 

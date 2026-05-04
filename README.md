@@ -29,6 +29,8 @@ cd linkup_mcp
 uv sync
 ```
 
+**Default install** (`uv sync` / `pip install -e .`) is **Cursor MCP + RAG** only (lighter venv). For **`stitch_rag_bridge.py`**, face/OAuth/Gmail, and server-side voice STT, add **`--extra stitch-bridge`**. For **`stitch_gui.py`** / **`Stitch.bat`**, also add **`--extra stitch-gui`** (pywebview). Example: `uv sync --extra stitch-bridge --extra stitch-gui`.
+
 ### 2. Install Ollama & Model
 
 ```bash
@@ -66,12 +68,17 @@ Add to `~/.cursor/mcp.json` (or `C:\Users\<username>\.cursor\mcp.json` on Window
 
 **Replace** `YOUR_USERNAME` and path with your actual values.
 
-### 5. Restart Cursor & Use!
+### 5. Free local dev ports (optional)
+
+If **8765** (Stitch bridge / bundled UI), **1420** (Tauri), or **5173** (Vite) are stuck after a crash, run **`Close-DevPorts.bat`** at the repo root (or `.\scripts\Close-StitchDevPorts.ps1`). Use **`-DryRun`** to list listeners without killing. This stops **processes listening on those ports**, not “localhost” itself.
+
+### 6. Restart Cursor & Use!
 
 In Cursor's chat:
 - **"Use the rag tool to tell me about [topic]"**
 - **"Use the rag_stitch tool to get a UI-ready answer payload"**
 - **"Search the web for [query]"** (requires Linkup API key)
+- **Local Whisper (no Linkup):** `whisper_stt_status` then `transcribe_wav_file` with a path to a `.wav` file. Requires `pip install -e ".[stitch-whisper]"` and a Cursor MCP restart.
 
 ## 📚 Using the RAG Tool
 
@@ -103,23 +110,34 @@ The `rag_stitch` tool returns a UI-oriented JSON string:
 - `show_sources` (`false` on fallback)
 - `debug_retrieval_cards` (only when `STITCH_RAG_DEBUG=1` and fallback — raw top chunks for debugging)
 
+### Repository split (Stitch production)
+
+The **Stitch desktop app** (React + Tauri) is **migrating to** **[RanneG/stitch-app](https://github.com/RanneG/stitch-app)**; **linkup_mcp** remains the **MCP server** and **HTTP bridge** for local RAG, OAuth, subscriptions, face, and in-app help. Cutover checklist and file inventory: **[docs/stitch/MIGRATION.md](docs/stitch/MIGRATION.md)** (see **[docs/stitch/README.md](docs/stitch/README.md)**).
+
 ### Stitch HTTP bridge (for the Stitch desktop app)
 
-Run a small Flask server that exposes the same payload as `rag_stitch`, plus optional **local face verification** (`/api/face/*`, DeepFace + OpenCV liveness — see `face_verification/`):
+Run a small Flask server that exposes the same payload as `rag_stitch`, plus optional **local face verification** (`/api/face/*`, DeepFace + OpenCV liveness — see `face_verification/`). Requires **`stitch-bridge`** extras:
 
 ```bash
+uv sync --extra stitch-bridge
 .\.venv\Scripts\python.exe stitch_rag_bridge.py
 ```
 
-Then point Stitch’s Vite dev proxy at `http://127.0.0.1:8765` (see [integrations/stitch/README.md](integrations/stitch/README.md); proxy `/api` for both RAG and face routes).
+Then point the Stitch app’s Vite dev proxy at `http://127.0.0.1:8765` (see [stitch-app docs/BACKEND.md](https://github.com/RanneG/stitch-app/blob/main/docs/BACKEND.md) or [integrations/stitch/README.md](integrations/stitch/README.md); proxy `/api` for RAG, face, auth, subscriptions, and help routes).
+
+**Who needs what:** Anyone can run the **Stitch UI** from **[stitch-app](https://github.com/RanneG/stitch-app)** with Node (see [docs/RUNNING.md](https://github.com/RanneG/stitch-app/blob/main/docs/RUNNING.md)). **linkup_mcp** is only required for **`/api/*`** (auth, data, RAG, face, server-backed Help) and for the **bundled pywebview** flow below.
+
+### Develop Stitch UI from this repo (optional)
+
+Root scripts **`npm run dev:browser`**, **`npm run dev:desktop`**, **`npm run build:stitch-web`**, **`npm run build:stitch-app`** use **`scripts/run-stitch-ui.mjs`**, which resolves **`STITCH_APP_ROOT`** or sibling **`../stitch-app`** only. See **[docs/stitch/MIGRATION.md](docs/stitch/MIGRATION.md)**.
 
 ### Stitch single-window GUI (API + built UI in one process)
 
 If you want **one native window** without separate “bridge terminal” + “Vite/Tauri terminal”, use **pywebview** + Flask serving the **production Vite build** from the same port (`8765`):
 
-1. **Build** the Stitch desktop bundle: `npm run build` in `temp_repo/stitch/apps/desktop` (after `npm run sync:stitch` if you edit files under `integrations/stitch/`).
-2. **Install** `pywebview`: `uv sync --extra stitch-gui` or `pip install "pywebview>=5,<6"` into `.venv`.
-3. **Run** by double-clicking **`Stitch.bat`** at the repo root (no terminal needed). It creates `.venv` if missing, installs Python deps + **pywebview**, syncs `integrations/stitch`, runs **`npm install`** + **`npm run build`**, then opens the window. Same script as **`Stitch-Bundled-Gui.bat`**. Optional: `npm run gui:stitch` or `.\scripts\Start-StitchBundledGui.ps1 -SkipBuild` after a successful build.
+1. **Build** the Stitch desktop bundle: from linkup_mcp root run **`npm run build:stitch-web`** (delegates to **stitch-app**), or `npm run build` inside **stitch-app** `apps/desktop`.
+2. **Install** bridge + GUI deps: `uv sync --extra stitch-bridge --extra stitch-gui` (or `pip install -e ".[stitch-bridge,stitch-gui]"`).
+3. **Run** by double-clicking **`Stitch.bat`** at the repo root (no terminal needed). It creates `.venv` if missing, installs Python deps (**Flask stack + pywebview**), runs **`npm install`** + **`npm run build`** in **stitch-app** `apps/desktop`, then opens the window. Optional: `npm run gui:stitch` or `.\scripts\Start-StitchBundledGui.ps1 -SkipBuild` after a successful build.
 
 Implementation: [stitch_gui.py](stitch_gui.py) starts Flask from [stitch_rag_bridge.py](stitch_rag_bridge.py) with `STITCH_DESKTOP_DIST` pointing at `dist/` so `/` and `/assets/*` serve the SPA while `/api/*` stays the bridge. A **single `.exe`** later is possible with PyInstaller around `stitch_gui.py` (not automated here yet).
 
@@ -133,10 +151,10 @@ Stitch’s `apps/desktop` package uses **Tauri** for a real windowed app (`npm r
 | Same from a terminal | `npm run launch:stitch` |
 | Bridge already running | `npm run launch:stitch:ui-only` or `.\scripts\Start-StitchDesktop.ps1 -SkipBridge` |
 | Tauri only (you start the bridge yourself) | `npm run dev:desktop` |
-| Browser tab only (no Tauri) | `npm run dev:browser` (unchanged) |
-| Packaged `.exe` / installer | `npm run build:stitch-app` (after [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) and a `temp_repo/stitch` clone) |
+| Browser tab only (no Tauri) | `npm run dev:browser` (uses **stitch-app** via `run-stitch-ui.mjs`) |
+| Packaged `.exe` / installer | `npm run build:stitch-app` (after [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) and a **stitch-app** clone) |
 
-You still need a **`temp_repo/stitch`** clone and **Node** on `PATH`. The first Tauri dev run may compile Rust dependencies (one-time wait).
+You need **Node** on `PATH` and a local **stitch-app** clone (sibling **`../stitch-app`** or **`STITCH_APP_ROOT`**). The first Tauri dev run may compile Rust dependencies (one-time wait).
 
 ### Quick regression run
 
@@ -154,7 +172,7 @@ This prints each response payload and a small summary (sourced count, fallback c
 python -m unittest tests.test_rag_stitch_contract -v
 ```
 
-Validates `_to_stitch_view` shapes (`answered` vs `fallback`, `show_sources`, optional `debug_retrieval_cards`).
+Validates `rag_stitch_contract._to_stitch_view` shapes (`answered` vs `fallback`, `show_sources`, optional `debug_retrieval_cards`).
 
 If MCP-security prompts fall back, add the MCP landscape paper to `data/`:
 - [Model Context Protocol (MCP): Landscape, Security Threats, and Future Research Directions](https://arxiv.org/pdf/2503.23278.pdf)
@@ -178,10 +196,12 @@ This renders:
 ```
 linkup_mcp/
 ├── server.py          # Main MCP server
+├── local_whisper_stt.py  # faster-whisper helpers (MCP transcribe_wav_file)
 ├── rag.py             # RAG workflow
 ├── stitch_rag_bridge.py  # Local HTTP bridge for Stitch UI dev (RAG + /api/face)
 ├── face_verification/    # Local 1:1 face match + liveness (used by bridge)
-├── integrations/stitch/  # Tracked Stitch UI patch + instructions
+├── integrations/stitch/  # Pointer README — UI lives in stitch-app repo
+├── docs/              # e.g. stitch_user_guide.md (bridge Help / Ask Stitch)
 ├── data/              # Your documents
 ├── pyproject.toml     # Dependencies
 ├── .cursorrules       # AI context for Cursor

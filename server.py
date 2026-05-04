@@ -5,9 +5,11 @@ from typing import Optional
 from dotenv import load_dotenv
 from linkup import LinkupClient
 from llama_index.llms.ollama import Ollama
-from rag import RAGWorkflow
 from agents import AgentOrchestrator, AgentType
 from mcp.server.fastmcp import FastMCP
+
+from rag_runtime import ensure_rag_ready
+from rag_stitch_contract import _to_stitch_view
 
 load_dotenv()
 
@@ -19,44 +21,11 @@ client = None
 if linkup_api_key:
     client = LinkupClient()
 
-# RAG is heavy (HF embed download + ingest). Lazy-init so MCP stdio handshake is not blocked.
-rag_workflow: Optional[RAGWorkflow] = None
-_rag_ready_lock = asyncio.Lock()
-
 # Initialize LLM for agents (reuse the same Ollama instance)
 agent_llm = Ollama(model="llama3.2")
 
 # We'll initialize the orchestrator after defining tools
 agent_orchestrator: Optional[AgentOrchestrator] = None
-
-
-def _to_stitch_view(payload: dict) -> dict:
-    """Adapt RAG payload to Stitch-like UI contract."""
-    fallback = bool(payload.get("fallback"))
-    sources = payload.get("sources") or []
-    show_debug = os.getenv("STITCH_RAG_DEBUG", "").lower() in ("1", "true", "yes")
-    view = {
-        "state": "fallback" if fallback else "answered",
-        "answer": payload.get("answer", ""),
-        "confidence": payload.get("confidence", "unknown"),
-        "source_cards": [] if fallback else sources,
-        "show_sources": bool(sources) and not fallback,
-    }
-    if fallback and show_debug and sources:
-        view["debug_retrieval_cards"] = sources
-    return view
-
-
-async def _ensure_rag_ready() -> RAGWorkflow:
-    """Build embedding index on first use so bundled MCP clients do not time out at startup."""
-    global rag_workflow
-    if rag_workflow is not None:
-        return rag_workflow
-    async with _rag_ready_lock:
-        if rag_workflow is None:
-            rag_workflow = RAGWorkflow()
-            await rag_workflow.ingest_documents("data")
-        return rag_workflow
 
 @mcp.tool()
 def web_search(query: str) -> str:
@@ -75,7 +44,7 @@ def web_search(query: str) -> str:
 @mcp.tool()
 async def rag(query: str) -> str:
     """Use local PDF RAG and return answer with evidence sources."""
-    wf = await _ensure_rag_ready()
+    wf = await ensure_rag_ready()
     response_payload = await wf.query(query)
     return json.dumps(response_payload)
 
@@ -83,9 +52,58 @@ async def rag(query: str) -> str:
 @mcp.tool()
 async def rag_stitch(query: str) -> str:
     """Use local PDF RAG and return a Stitch-friendly UI payload."""
-    wf = await _ensure_rag_ready()
+    wf = await ensure_rag_ready()
     response_payload = await wf.query(query)
     return json.dumps(_to_stitch_view(response_payload))
+
+
+@mcp.tool()
+def whisper_stt_status() -> str:
+    """
+    Check whether local faster-whisper is available for MCP transcribe tools.
+    Does not call Linkup. Install: pip install -e ".[stitch-whisper]"
+    """
+    import local_whisper_stt as lw
+
+    ok = lw.whisper_import_ok()
+    model = (os.getenv("STITCH_WHISPER_MODEL") or "tiny.en").strip() or "tiny.en"
+    return json.dumps(
+        {
+            "faster_whisper_import_ok": ok,
+            "configured_model": model,
+            "hint": "Use transcribe_wav_file with a path to a .wav file (RIFF WAVE). First run downloads model weights.",
+        }
+    )
+
+
+@mcp.tool()
+def transcribe_wav_file(wav_path: str, language: str = "en") -> str:
+    """
+    Transcribe a local WAV file with faster-whisper (CPU/GPU on your machine). Not Linkup.
+
+    Args:
+        wav_path: Absolute or user-relative path to a RIFF WAVE file (e.g. 16-bit mono from a recorder).
+        language: Whisper language code (default en).
+
+    Returns:
+        Plain transcribed text, or a short error line if faster-whisper is missing or the file is invalid.
+    """
+    import local_whisper_stt as lw
+
+    if not lw.whisper_import_ok():
+        return (
+            "Error: faster-whisper is not installed in this Python environment. "
+            'From the repo root run: pip install -e ".[stitch-whisper]" then restart the MCP server.'
+        )
+    try:
+        text = lw.transcribe_wav_path(wav_path, language=language)
+        return text if text else "(no speech detected)"
+    except FileNotFoundError as e:
+        return f"Error: {e}"
+    except ValueError as e:
+        return f"Error: {e}"
+    except Exception as e:
+        return f"Error: {type(e).__name__}: {e}"
 
 
 @mcp.tool()
@@ -156,7 +174,7 @@ def _setup_agent_orchestrator():
         return str(search_response)
     
     async def rag_tool(query: str) -> str:
-        wf = await _ensure_rag_ready()
+        wf = await ensure_rag_ready()
         response_payload = await wf.query(query)
         return json.dumps(response_payload)
     

@@ -1,15 +1,16 @@
 {
   "name": "cursor-linkup-mcp",
   "private": true,
-  "description": "Root scripts only. Stitch UI lives under temp_repo/stitch/apps/desktop (Tauri + Vite).",
+  "description": "Root npm helpers for Stitch dev. UI runs from stitch-app (see docs/stitch/MIGRATION.md). Optional STITCH_APP_ROOT=path/to/stitch-app. Bundled GUI still uses Python in this repo.",
   "scripts": {
-    "sync:stitch": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/sync-integrations-stitch-to-desktop.ps1",
-    "dev:browser": "npm run sync:stitch && npm --prefix temp_repo/stitch/apps/desktop run dev:browser",
-    "dev:desktop": "npm run sync:stitch && npm --prefix temp_repo/stitch/apps/desktop run dev",
+    "dev:browser": "node scripts/run-stitch-ui.mjs dev:browser",
+    "dev:desktop": "node scripts/run-stitch-ui.mjs dev",
     "launch:stitch": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/Start-StitchDesktop.ps1",
     "launch:stitch:ui-only": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/Start-StitchDesktop.ps1 -SkipBridge",
-    "build:stitch-app": "npm run sync:stitch && npm --prefix temp_repo/stitch/apps/desktop run tauri -- build",
-    "build:stitch-web": "npm run sync:stitch && npm --prefix temp_repo/stitch/apps/desktop run build",
-    "gui:stitch": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/Start-StitchBundledGui.ps1"
+    "build:stitch-app": "node scripts/run-stitch-ui.mjs tauri build",
+    "build:stitch-web": "node scripts/run-stitch-ui.mjs build",
+    "gui:stitch": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/Start-Stitch.ps1 -Mode Bundled",
+    "stitch": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/Start-Stitch.ps1 -Mode Bundled",
+    "stitch:dev": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/Start-Stitch.ps1 -Mode TauriDev"
   }
 }

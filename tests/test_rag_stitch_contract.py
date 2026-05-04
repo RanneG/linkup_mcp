@@ -4,7 +4,7 @@ import json
 import os
 import unittest
 
-from server import _to_stitch_view
+from rag_stitch_contract import _to_stitch_view
 
 
 class RagStitchContractTests(unittest.TestCase):

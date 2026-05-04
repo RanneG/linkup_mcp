@@ -17,20 +17,25 @@ The **Jarvis / Iron Man** framing is about partnership and execution quality—n
 
 ## Stitch (hackathon UI) + local RAG
 
-- **Stitch app:** [kylabuildsthings-oss/stitch](https://github.com/kylabuildsthings-oss/stitch) — subscription UX; optional **Local document brain** panel talks to this repo over HTTP, not MCP stdio.
+- **Production split (in progress):** Stitch **desktop UI and root npm/bat launchers** are moving to **[RanneG/stitch-app](https://github.com/RanneG/stitch-app)**; **linkup_mcp** keeps **MCP + `stitch_rag_bridge` + auth/face/RAG**. Checklist and file inventory: **[docs/stitch/MIGRATION.md](docs/stitch/MIGRATION.md)**.
+- **Stitch app (upstream reference):** [kylabuildsthings-oss/stitch](https://github.com/kylabuildsthings-oss/stitch) — original subscription UX monorepo; **Ranne’s product fork / home** is **[stitch-app](https://github.com/RanneG/stitch-app)**. The **Local document brain** panel talks to this repo over HTTP, not MCP stdio.
 - **Bridge:** `stitch_rag_bridge.py` (Flask, default `127.0.0.1:8765`) proxies the desktop **`/api`** prefix from Vite. Same-process routes include:
   - **RAG:** `POST /api/rag/stitch` (same JSON shape as MCP `rag_stitch`).
+  - **Help:** `GET /api/stitch-user-guide` (markdown JSON), `POST /api/rag/stitch-help` (guide-grounded support; Ollama + `docs/stitch_user_guide.md`).
   - **Face (local):** `POST /api/face/enroll`, `POST /api/face/verify`, `GET /api/face/status`, `POST /api/face/delete`.
   - **Google OAuth + session:** `POST /api/auth/google/url` (and legacy `POST /api/auth/google`), `GET /api/auth/google/callback`, `GET /api/auth/status`, `POST /api/auth/logout`, `POST /api/auth/active-email`.
   - **Subscriptions (SQLite, per signed-in owner email):** `GET /api/subscriptions/list`, `POST /api/subscriptions/upsert`, `POST /api/subscriptions/delete`, `POST /api/subscriptions/import`, `GET /api/subscriptions/from-gmail` (live Gmail scan on the bridge).
-- **Desktop work layout:** A full clone often lives under **`temp_repo/stitch/`** (gitignored here) for local dev. **Portable / PR-ready copies** of the main integration files live under **`integrations/stitch/`** — refresh them with **`scripts/copy-stitch-desktop-to-integrations.ps1`**, then follow **`integrations/stitch/README.md`** to paste into the upstream Stitch repo (`apps/desktop/src/...`) and open a PR.
-- **Native desktop (Tauri):** Double-click **`Stitch-Desktop.bat`** at the repo root (starts the Flask bridge minimized, syncs `integrations/stitch` into the clone, runs `npm run dev` = `tauri dev`). Or from a shell: **`npm run launch:stitch`** (full) / **`npm run dev:desktop`** (Tauri only if the bridge is already running). Requires **Rust + Tauri prerequisites** ([Tauri docs](https://v2.tauri.app/start/prerequisites/)).
-- **Single-window (no terminal commands for routine use):** double-click **`Stitch.bat`** at the repo root — creates `.venv` if needed, `pip install`s the project + **pywebview**, syncs UI files, **`npm install` + `npm run build`**, then opens **pywebview** + Flask ([README.md](README.md) “Stitch single-window GUI”). Needs **Python** + **Node** installed once; **`temp_repo/stitch`** clone must exist.
-- **Handoff docs:** **[CHANGELOG.md](CHANGELOG.md)** — file-level Stitch + bridge history; **[STITCH_STATUS.md](STITCH_STATUS.md)** — current next steps, subscription/UI truth, and **voice roadmap** (surfaces + intents).
+- **Desktop work layout:** Clone **[stitch-app](https://github.com/RanneG/stitch-app)** beside this repo (**`../stitch-app`**) or set **`STITCH_APP_ROOT`**. UI source is not duplicated under `integrations/` — **`integrations/stitch/README.md`** is a pointer only.
+- **One-click launcher script:** **`scripts/Start-Stitch.ps1`** — `-Mode Bundled` (default via **`Stitch.bat`**) = **one process**: `stitch_gui.py` serves the built Vite UI and Flask on `8765`. `-Mode TauriDev` (via **`Stitch-Desktop.bat`**) = **Tauri dev + minimized bridge** (two processes; best when hacking the Rust shell).
+- **Native desktop (Tauri dev):** Double-click **`Stitch-Desktop.bat`** (or `npm run stitch:dev` / `npm run launch:stitch`) — starts the Flask bridge first (waits for `/api/health`), then **`npm run dev`** in **stitch-app** `apps/desktop`. Requires **Rust + Tauri prerequisites** ([Tauri docs](https://v2.tauri.app/start/prerequisites/)).
+- **Single-window (recommended daily driver):** double-click **`Stitch.bat`** (or `npm run stitch` / `npm run gui:stitch`) — creates `.venv` if needed, `pip install`s the project with **`stitch-bridge`** + **`stitch-gui`** extras (Flask stack + pywebview), **`npm install` + `npm run build`** in **stitch-app** `apps/desktop`, then **`stitch_gui.py`** ([README.md](README.md) “Stitch single-window GUI”). Needs **Python** + **Node** + **stitch-app**. Closing the window stops UI **and** API (true one-click).
+- **Python install profiles:** **`uv sync`** (or `pip install -e .`) = MCP + RAG only. **`uv sync --extra stitch-bridge`** = HTTP bridge, face, Google APIs, server-side STT. Add **`--extra stitch-gui`** for **`stitch_gui.py`**. CI runs contract tests on the default profile and imports + face storage tests with **`stitch-bridge`**.
+- **Handoff docs:** **[docs/stitch/MIGRATION.md](docs/stitch/MIGRATION.md)** — split Stitch product vs this repo; **[CHANGELOG.md](CHANGELOG.md)** — file-level Stitch + bridge history; **[docs/stitch/STATUS.md](docs/stitch/STATUS.md)** — current next steps, subscription/UI truth, and **voice roadmap** (surfaces + intents).
 - **Env:** Google client id/secret and redirect URI — see **`ENV_TEMPLATE.md`** (`GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `STITCH_GOOGLE_REDIRECT_URI` / default callback on `8765`).
 
 ## Where else to look
 
+- **`docs/stitch/`** — Stitch handoff (**MIGRATION.md**, **STATUS.md**); keeps the repo root MCP-focused.
 - **`.cursorrules`** — detailed setup, MCP tool list, Cursor `mcp.json` snippet, related repos.
 - **`.cursor/rules/*.mdc`** — short rules Cursor loads automatically (identity, defaults).
 - **`ENV_TEMPLATE.md`** — env vars if present.
@@ -41,6 +46,7 @@ The **Jarvis / Iron Man** framing is about partnership and execution quality—n
 2. Prefer **repo truth** over guessing (read files, run commands).
 3. **`user-linkup-server`** MCP may be available in this workspace—check tool schemas before calling.
 4. When Ranne asks to **remember something across sessions**, persist it here or in `.cursor/rules/` (concise, actionable), not only in chat.
+5. For **Stitch app vs bridge ownership**, follow **[docs/stitch/MIGRATION.md](docs/stitch/MIGRATION.md)** so UI work targets the future Stitch repo and MCP/bridge work stays here.
 
 ## OpenClaw (separate from this repo)
 

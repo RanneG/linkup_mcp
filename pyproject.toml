@@ -17,26 +17,32 @@ dependencies = [
     "mcp[cli]>=1.5.0,<2.0",
     "python-dotenv>=1.0.0,<2.0",
     "nest-asyncio>=1.6.0,<2.0",
+]
+
+[project.optional-dependencies]
+# Stitch HTTP bridge (`stitch_rag_bridge.py`), face stack, Google OAuth/Gmail, server-side voice STT.
+stitch-bridge = [
     "flask>=3.0.0,<4.0",
-    # Local face verification (Stitch bridge) — CPU inference; first DeepFace run may download model weights.
     "deepface>=0.0.79",
     "opencv-python>=4.8.0",
     "cryptography>=41.0.0",
     "numpy>=1.24.0,<3",
     "tensorflow>=2.16.0,<2.22",
-    # Keras 3 (from deepface/keras) breaks transformers' TF paths unless tf_keras is installed.
     "tf-keras>=2.16.0",
     "requests>=2.31.0,<3",
     "google-auth>=2.29.0,<3",
     "google-auth-oauthlib>=1.2.0,<2",
     "google-auth-httplib2>=0.2.0,<1",
     "google-api-python-client>=2.130.0,<3",
+    "SpeechRecognition>=3.10.4,<4",
 ]
-
-[project.optional-dependencies]
 # Single-window Stitch: Flask serves apps/desktop/dist + pywebview shell (see stitch_gui.py).
 stitch-gui = [
     "pywebview>=5.0,<6",
+]
+# Local Whisper STT for POST /api/voice/transcribe (offline; auto-picked when installed).
+stitch-whisper = [
+    "faster-whisper>=1.0.3,<2.0",
 ]
 
 [tool.setuptools.packages.find]
@@ -48,8 +54,11 @@ exclude = ["tests*"]
 py-modules = [
     "server",
     "rag",
+    "rag_runtime",
+    "rag_stitch_contract",
     "agents",
     "stitch_rag_bridge",
+    "local_whisper_stt",
     "stitch_gui",
     "stitch_demo_cli",
     "rag_regression",

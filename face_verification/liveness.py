@@ -1,8 +1,7 @@
 """
 Liveness heuristics for hackathon demos: blink (primary) or subtle head turn (fallback).
 
-Uses OpenCV Haar cascades only (no cloud). Glasses / lighting can reduce blink reliability —
-the UI should offer the confirmation-code fallback.
+Uses OpenCV Haar cascades only (no cloud). Glasses / lighting can reduce blink reliability.
 """
 from __future__ import annotations
 

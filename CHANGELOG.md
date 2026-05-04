@@ -1,11 +1,27 @@
 # Changelog — Stitch desktop + linkup_mcp bridge
 
-This document summarizes **Stitch desktop** work done against a local clone under `temp_repo/stitch/`, plus the **HTTP bridge** changes in this repo that power Google auth and subscription APIs. It is meant for **cold-start handoff** (developers or hackathon judges).
+This document summarizes **Stitch desktop** work (now canonical in **[stitch-app](https://github.com/RanneG/stitch-app)**) plus the **HTTP bridge** changes in this repo that power Google auth and subscription APIs. It is meant for **cold-start handoff** (developers or hackathon judges).
+
+## 2026-05-05 — linkup_mcp Stitch cleanup
+
+- **Removed** duplicated UI from **`integrations/stitch/`** (and **`integrations/lib/`**, **`integrations/fixtures/`**); **`integrations/stitch/README.md`** is a **pointer** to **stitch-app** only.
+- **Deleted** **`scripts/sync-integrations-stitch-to-desktop.ps1`** and **`scripts/copy-stitch-desktop-to-integrations.ps1`**; removed **`sync:stitch`** npm script.
+- **`run-stitch-ui.mjs`** now resolves **`STITCH_APP_ROOT`** or sibling **`../stitch-app`** only (no `temp_repo` fallback). **`StitchPaths.ps1`** matches. **Start-StitchBundledGui** / **Start-StitchDesktop** no longer run a sync step.
+- **Docs/code:** **AGENTS.md**, **README.md**, **STITCH_STATUS.md**, **STITCH_MIGRATION.md**, **stitch_gui.py**, **stitch_rag_bridge.py** root HTML hint, **ENV_TEMPLATE.md** — references updated for **stitch-app** paths.
+- **Docs layout:** Stitch handoff lives under **[docs/stitch/](docs/stitch/)** (**MIGRATION.md**, **STATUS.md**); root **`STITCH_*.md`** removed; duplicate **`Stitch-Bundled-Gui.bat`** removed (use **`Stitch.bat`**).
+
+## 2026-05-04 — Migration prep
+
+- Added **STITCH_MIGRATION.md** (now **[docs/stitch/MIGRATION.md](docs/stitch/MIGRATION.md)**) as the canonical **Stitch product vs linkup_mcp** split playbook (what moves, what stays, phased checklist).
+- Tightened **[integrations/stitch/README.md](integrations/stitch/README.md)** (migration banner, help API routes, clearer face MFA vs verification section numbering).
+- **STITCH_STATUS.md** (now **[docs/stitch/STATUS.md](docs/stitch/STATUS.md)**) / **[AGENTS.md](AGENTS.md)** / **[README.md](README.md)** now point at the migration doc; **STITCH_STATUS** “parking” blurb removed as stale.
+- Canonical product remote: **[github.com/RanneG/stitch-app](https://github.com/RanneG/stitch-app)** — **initial `main` push** from local `temp_repo/stitch` (post-`sync-integrations-stitch-to-desktop`); repo includes `docs/BACKEND.md` and Actions CI for typecheck. Migration doc updated for completed Phase 1 import.
+- **stitch-app** [docs/RUNNING.md](https://github.com/RanneG/stitch-app/blob/main/docs/RUNNING.md) explains UI-only vs **linkup_mcp** bridge. **linkup_mcp:** `scripts/run-stitch-ui.mjs` + **`STITCH_APP_ROOT`** / sibling **`stitch-app`** for `npm run dev:browser` etc.; **`scripts/StitchPaths.ps1`** for bundled/Tauri launchers; **Start-StitchBundledGui** / **Start-StitchDesktop** resolve desktop path the same way.
 
 ## Scope
 
-- **Desktop UI:** `temp_repo/stitch/apps/desktop/` (local clone; often **gitignored**).
-- **Portable copies / PR prep:** `integrations/stitch/` in **this** repo — run `scripts/copy-stitch-desktop-to-integrations.ps1` to sync selected files upstream.
+- **Desktop UI:** **[stitch-app](https://github.com/RanneG/stitch-app)** `apps/desktop/` (separate clone; optional local **`temp_repo/stitch`** is **gitignored** legacy only).
+- **Portable copies / PR prep (historical):** UI snapshots once lived under `integrations/stitch/`; **2026-05-05** removed them in favor of **[stitch-app](https://github.com/RanneG/stitch-app)**.
 - **Backend:** `stitch_rag_bridge.py`, `stitch_auth/` (Flask routes + SQLite).
 
 ---
@@ -90,11 +106,10 @@ See **`ENV_TEMPLATE.md`** for `GOOGLE_OAUTH_CLIENT_*`, redirect URI, optional `S
 
 ---
 
-## PR workflow (portable patch)
+## UI PR workflow (current)
 
-1. Run **`scripts/copy-stitch-desktop-to-integrations.ps1`** from the **linkup_mcp** repo root (PowerShell). It copies: `AppShell.tsx`, `AppearanceSection.tsx`, `GoogleSignInPanel.tsx`, `GmailSubscriptionDiscovery.tsx`, `FaceVerificationPanel.tsx`, `LinkupRagPanel.tsx`, `stitchBridge.ts` into **`integrations/stitch/`** (flat names).
-2. Open **`integrations/stitch/README.md`** — copy those files into the **upstream Stitch** repo paths (`apps/desktop/src/components/`, `apps/desktop/src/lib/`) and merge `vite` proxy / `App.tsx` / **`context/`** (theme) wiring as needed; the clone may have extra files not in the script—diff before PR.
-3. Open a PR on [kylabuildsthings-oss/stitch](https://github.com/kylabuildsthings-oss/stitch) with the same changes.
+1. Clone **[RanneG/stitch-app](https://github.com/RanneG/stitch-app)** and work under `apps/desktop/`.
+2. Open PRs **on stitch-app** for UI changes. **linkup_mcp** PRs are for **bridge / MCP / Python** only.
 
 ---
 

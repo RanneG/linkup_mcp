@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  mcp-default:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install (MCP + RAG only)
+        run: |
+          python -m pip install -U pip setuptools wheel
+          python -m pip install -e .
+      - name: Contract tests
+        run: python -m unittest tests.test_rag_stitch_contract -v
+
+  stitch-bridge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install with stitch-bridge extra
+        run: |
+          python -m pip install -U pip setuptools wheel
+          python -m pip install -e ".[stitch-bridge]"
+      - name: Import bridge module
+        run: python -c "import stitch_rag_bridge; print('stitch_rag_bridge ok')"
+      - name: Face storage tests
+        run: python -m unittest tests.test_face_storage -v

@@ -9,7 +9,7 @@
 
   Double-click: use Stitch-Desktop.bat in the repo root (calls this script).
 
-  Requires: temp_repo/stitch clone, Python venv or python on PATH, Node/npm, Rust + Tauri prerequisites.
+  Requires: **stitch-app** (sibling `../stitch-app` or **STITCH_APP_ROOT**); Python venv or python on PATH; Node/npm; Rust + Tauri prerequisites.
 #>
 
 param(
@@ -58,12 +58,13 @@ function Get-BridgePythonExe {
 
 $repoRoot = Resolve-RepoRoot
 if ([string]::IsNullOrWhiteSpace($repoRoot)) {
-  throw "Could not find repo root (pyproject.toml). Run from cursor_linkup_mcp clone; PSScriptRoot=$PSScriptRoot"
+  throw "Could not find repo root (pyproject.toml). Run from linkup_mcp clone; PSScriptRoot=$PSScriptRoot"
 }
 
-$desktopPkg = Join-Path $repoRoot "temp_repo\stitch\apps\desktop\package.json"
-if (-not (Test-Path -LiteralPath $desktopPkg)) {
-  throw "Stitch desktop not found: $desktopPkg - clone Stitch under temp_repo\stitch (see AGENTS.md)."
+. (Join-Path $PSScriptRoot "StitchPaths.ps1")
+$desktop = Get-StitchAppsDesktopDir -RepoRoot $repoRoot
+if ([string]::IsNullOrWhiteSpace($desktop)) {
+  throw "Stitch apps/desktop not found. Clone https://github.com/RanneG/stitch-app next to linkup_mcp (sibling folder) or set STITCH_APP_ROOT (see docs/stitch/MIGRATION.md)."
 }
 
 $venvPy = Get-BridgePythonExe -Root $repoRoot
@@ -75,19 +76,34 @@ if (-not $SkipBridge) {
   Write-Host "Starting stitch_rag_bridge.py (minimized window)..."
   Write-Host "  Python: $venvPy"
   Start-Process -FilePath $venvPy -ArgumentList @("stitch_rag_bridge.py") -WorkingDirectory $repoRoot -WindowStyle Minimized
-  Start-Sleep -Seconds 2
-}
 
-Write-Host "Syncing integrations/stitch -> temp_repo desktop..."
-Push-Location $repoRoot
-try {
-  & (Join-Path $repoRoot "scripts\sync-integrations-stitch-to-desktop.ps1")
-} finally {
-  Pop-Location
+  $deadline = (Get-Date).AddSeconds(45)
+  $ready = $false
+  while ((Get-Date) -lt $deadline) {
+    try {
+      $h = Invoke-RestMethod -Uri "http://127.0.0.1:8765/api/health" -TimeoutSec 2
+      if ($h.ok) {
+        $ready = $true
+        $vs = $h.voice_stt
+        if ($vs) {
+          Write-Host "  Bridge OK (voice_stt: $($vs | ConvertTo-Json -Compress))" -ForegroundColor Green
+        } else {
+          Write-Host "  Bridge OK" -ForegroundColor Green
+        }
+        break
+      }
+    } catch {
+      # still starting
+    }
+    Start-Sleep -Milliseconds 400
+  }
+  if (-not $ready) {
+    Write-Warning "Bridge did not answer on http://127.0.0.1:8765/api/health in time. Check the minimized Python window for errors; Tauri may show API failures until the bridge is up."
+  }
 }
 
 Write-Host "Starting Tauri desktop (npm run dev in apps/desktop)..."
-Push-Location (Join-Path $repoRoot "temp_repo\stitch\apps\desktop")
+Push-Location $desktop
 try {
   & npm run dev
 } finally {

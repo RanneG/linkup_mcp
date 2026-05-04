@@ -64,6 +64,7 @@ response = await chatbot.chat("Your question here")
    ```bash
    uv sync
    ```
+   Cursor MCP + RAG only. For **`stitch_rag_bridge.py`** / face / OAuth, use **`uv sync --extra stitch-bridge`**. For **`stitch_gui.py`**, add **`--extra stitch-gui`** as well.
 
 2. **Set up environment variables**:
    Create a `.env` file with:

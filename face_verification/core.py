@@ -33,7 +33,7 @@ def _deepface():
         return DeepFace
     except ImportError as e:  # pragma: no cover
         raise RuntimeError(
-            "deepface is not installed. Install project deps: uv sync (includes deepface + tensorflow)."
+            'deepface is not installed. Install bridge deps: uv sync --extra stitch-bridge   or   pip install -e ".[stitch-bridge]"'
         ) from e
 
 

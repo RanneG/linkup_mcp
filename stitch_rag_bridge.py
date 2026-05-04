@@ -6,10 +6,14 @@ Run from repo root (use the project venv so deps resolve):
 
     .\\.venv\\Scripts\\python.exe stitch_rag_bridge.py
 
+Loads **``.env``** from the same directory as this file (repo root) so ``GOOGLE_OAUTH_*`` and other bridge vars apply without exporting them in the shell.
+
 Defaults: http://127.0.0.1:8765
-  GET  /                 (HTML hint, JSON, or built SPA when STITCH_DESKTOP_DIST is set — see stitch_gui.py)
+  GET  /                 (HTML hint, JSON, or built SPA when STITCH_DESKTOP_DIST or app STITCH_SPA_ROOT is set — stitch_gui.py sets both)
   GET  /api/health       (same payload as GET /health — use under Vite `/api` proxy)
   POST /api/rag/stitch  JSON {"query":"..."}
+  POST /api/rag/stitch-help  JSON {"query":"..."}  (answers from docs/stitch_user_guide.md via Ollama)
+  GET  /api/stitch-user-guide  JSON {"markdown":"..."}  (same file for the Help tab)
   POST /api/face/enroll  JSON single-frame (default): {"email","image","quality_check":"lenient"|"strict","enroll_mode":"simple"}
                               multi-angle: {"email","images":[...],"enroll_mode":"multi","quality_check":...}
   POST /api/face/verify JSON {"email":"...","image":"base64","liveness_frames":["base64",...]}
@@ -25,6 +29,9 @@ Defaults: http://127.0.0.1:8765
   GET  /api/subscriptions/list      (session) persisted subscriptions for active account
   POST /api/subscriptions/upsert    JSON {"subscriptions":[{id?, name, amountUsd, dueDateIso, category, status}]}
   POST /api/subscriptions/delete    JSON {"id":"sub-..."}
+  POST /api/voice/transcribe  raw PCM WAV (16-bit mono), Content-Type: audio/wav - JSON {"text":"...","engine":"google"|"whisper"}
+                              Env: STITCH_VOICE_STT_ENGINE=auto|google|whisper (auto prefers local Whisper if installed).
+                              Optional: pip install -e ".[stitch-whisper]"  (faster-whisper; models download on first use).
 """
 from __future__ import annotations
 
@@ -32,9 +39,22 @@ import asyncio
 import logging
 import os
 import threading
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Repo-root `.env` (same folder as this file); must run before any `os.getenv` used by routes or helpers.
+load_dotenv(Path(__file__).resolve().parent / ".env")
+
+try:
+    from flask import Flask, Response, abort, has_request_context, jsonify, request, send_file
+except ImportError as exc:  # pragma: no cover - exercised when stitch-bridge extra not installed
+    raise ImportError(
+        'Stitch HTTP bridge requires optional dependencies. Install: '
+        'uv sync --extra stitch-bridge   or   pip install -e ".[stitch-bridge]"'
+    ) from exc
 
 import numpy as np
-from flask import Flask, Response, abort, has_request_context, jsonify, request, send_file
 from werkzeug.exceptions import HTTPException, InternalServerError
 
 logger = logging.getLogger(__name__)
@@ -55,9 +75,26 @@ def _parse_allowed_origins(raw: str) -> set[str]:
 _ALLOWED_ORIGINS = _parse_allowed_origins(os.getenv("STITCH_ALLOWED_ORIGINS", _DEFAULT_ALLOWED_ORIGINS))
 
 
+from rag_runtime import ensure_rag_ready
+from rag_stitch_contract import _to_stitch_view, rag_stitch_help_query, read_stitch_user_guide_text
+
+app = Flask(__name__)
+# Large enroll POSTs (multiple base64 JPEGs); explicit cap avoids silent proxy/Werkzeug oddities on huge bodies.
+app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("STITCH_RAG_BRIDGE_MAX_BODY_BYTES", str(64 * 1024 * 1024)))
+_query_lock = threading.Lock()
+_help_lock = threading.Lock()
+_face_lock = threading.Lock()
+_voice_stt_lock = threading.Lock()
+_whisper_model = None
+_whisper_model_key: str | None = None
+_whisper_model_init_lock = threading.Lock()
+
+_spa_extra_routes_registered = False
+
+
 def _get_stitch_spa_dist() -> str | None:
     """When set to a Vite `dist` folder (index.html + assets/), Flask also serves the Stitch SPA from this process."""
-    raw = (os.environ.get("STITCH_DESKTOP_DIST") or "").strip()
+    raw = (str(app.config.get("STITCH_SPA_ROOT") or "").strip() or (os.environ.get("STITCH_DESKTOP_DIST") or "").strip())
     if not raw:
         return None
     try:
@@ -69,13 +106,43 @@ def _get_stitch_spa_dist() -> str | None:
     return root
 
 
-from server import _ensure_rag_ready, _to_stitch_view
+def register_stitch_spa_routes() -> None:
+    """Register /assets/* and SPA fallback when a dist path is configured (see stitch_gui.py). Safe to call twice."""
+    global _spa_extra_routes_registered
+    if _spa_extra_routes_registered:
+        return
+    if not _get_stitch_spa_dist():
+        return
 
-app = Flask(__name__)
-# Large enroll POSTs (multiple base64 JPEGs); explicit cap avoids silent proxy/Werkzeug oddities on huge bodies.
-app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("STITCH_RAG_BRIDGE_MAX_BODY_BYTES", str(64 * 1024 * 1024)))
-_query_lock = threading.Lock()
-_face_lock = threading.Lock()
+    @app.route("/assets/<path:rel>", methods=["GET"])
+    def stitch_spa_assets(rel: str):
+        root = _get_stitch_spa_dist()
+        if not root:
+            abort(404)
+        base = os.path.normpath(os.path.join(root, "assets"))
+        if not os.path.isdir(base):
+            abort(404)
+        candidate = os.path.normpath(os.path.join(base, rel))
+        if not candidate.startswith(base) or not os.path.isfile(candidate):
+            abort(404)
+        return send_file(candidate)
+
+    @app.route("/<path:path>", methods=["GET"])
+    def stitch_spa_history(path: str):
+        root = _get_stitch_spa_dist()
+        if not root:
+            abort(404)
+        if path.startswith("api/"):
+            abort(404)
+        candidate = os.path.normpath(os.path.join(root, path))
+        rootn = os.path.normpath(root)
+        if not candidate.startswith(rootn):
+            abort(404)
+        if os.path.isfile(candidate):
+            return send_file(candidate)
+        return send_file(os.path.join(root, "index.html"))
+
+    _spa_extra_routes_registered = True
 
 
 @app.after_request
@@ -102,7 +169,7 @@ def rag_stitch_http():
         return jsonify({"error": "missing query"}), 400
 
     async def _run_query() -> dict:
-        wf = await _ensure_rag_ready()
+        wf = await ensure_rag_ready()
         return await wf.query(query)
 
     with _query_lock:
@@ -114,6 +181,128 @@ def rag_stitch_http():
     return jsonify(_to_stitch_view(payload))
 
 
+@app.route("/api/stitch-user-guide", methods=["GET", "OPTIONS"])
+def stitch_user_guide_http():
+    if request.method == "OPTIONS":
+        return "", 204
+    text = read_stitch_user_guide_text().strip()
+    if not text:
+        return jsonify({"markdown": "", "error": "missing_guide"}), 404
+    return jsonify({"markdown": text})
+
+
+@app.route("/api/rag/stitch-help", methods=["POST", "OPTIONS"])
+def rag_stitch_help_http():
+    if request.method == "OPTIONS":
+        return "", 204
+    body = request.get_json(silent=True) or {}
+    query = (body.get("query") or "").strip()
+    if not query:
+        return jsonify({"error": "missing query"}), 400
+
+    with _help_lock:
+        payload = asyncio.run(rag_stitch_help_query(query))
+
+    if not isinstance(payload, dict):
+        return jsonify({"error": "unexpected payload", "raw": str(payload)}), 500
+
+    return jsonify(_to_stitch_view(payload))
+
+
+def _voice_stt_capabilities() -> dict[str, bool]:
+    google_ok = False
+    try:
+        import speech_recognition  # noqa: F401
+
+        google_ok = True
+    except Exception:
+        pass
+    whisper_ok = False
+    try:
+        import faster_whisper  # noqa: F401
+
+        whisper_ok = True
+    except Exception:
+        pass
+    return {"google": google_ok, "whisper": whisper_ok}
+
+
+def _voice_stt_engine_choice() -> str | None:
+    """Which backend to use for /api/voice/transcribe, or None if unavailable."""
+    if os.getenv("STITCH_VOICE_TRANSCRIBE", "1").strip().lower() in ("0", "false", "off", "no"):
+        return None
+    caps = _voice_stt_capabilities()
+    raw = (os.getenv("STITCH_VOICE_STT_ENGINE") or "auto").strip().lower()
+    if raw in ("", "auto"):
+        if caps["whisper"]:
+            return "whisper"
+        if caps["google"]:
+            return "google"
+        return None
+    if raw == "whisper":
+        return "whisper" if caps["whisper"] else None
+    if raw == "google":
+        return "google" if caps["google"] else None
+    logger.warning("Unknown STITCH_VOICE_STT_ENGINE=%r; falling back to auto", raw)
+    if caps["whisper"]:
+        return "whisper"
+    if caps["google"]:
+        return "google"
+    return None
+
+
+def _voice_stt_status() -> dict:
+    """Whether POST /api/voice/transcribe is available (Google and/or local Whisper)."""
+    caps = _voice_stt_capabilities()
+    if os.getenv("STITCH_VOICE_TRANSCRIBE", "1").strip().lower() in ("0", "false", "off", "no"):
+        return {"ok": False, "engine": None, "engines": caps, "reason": "disabled_by_env"}
+    choice = _voice_stt_engine_choice()
+    if choice is None:
+        return {"ok": False, "engine": None, "engines": caps, "reason": "no_stt_backend"}
+    return {"ok": True, "engine": choice, "engines": caps}
+
+
+def _get_whisper_model():
+    global _whisper_model, _whisper_model_key
+    model_name = (os.getenv("STITCH_WHISPER_MODEL") or "tiny.en").strip() or "tiny.en"
+    device = (os.getenv("STITCH_WHISPER_DEVICE") or "cpu").strip() or "cpu"
+    compute = (os.getenv("STITCH_WHISPER_COMPUTE_TYPE") or "int8").strip() or "int8"
+    key = f"{model_name}|{device}|{compute}"
+    with _whisper_model_init_lock:
+        if _whisper_model is not None and _whisper_model_key == key:
+            return _whisper_model
+        from faster_whisper import WhisperModel
+
+        logger.info("Loading Whisper model %s (device=%s compute_type=%s)", model_name, device, compute)
+        _whisper_model = WhisperModel(model_name, device=device, compute_type=compute)
+        _whisper_model_key = key
+        return _whisper_model
+
+
+def _transcribe_whisper_wav(raw: bytes) -> str:
+    import tempfile
+
+    model = _get_whisper_model()
+    path: str | None = None
+    try:
+        fd, path = tempfile.mkstemp(suffix=".wav")
+        with os.fdopen(fd, "wb") as wf:
+            wf.write(raw)
+        segments, _info = model.transcribe(path, language="en", beam_size=1)
+        parts: list[str] = []
+        for seg in segments:
+            t = (seg.text or "").strip()
+            if t:
+                parts.append(t)
+        return " ".join(parts).strip()
+    finally:
+        if path:
+            try:
+                os.unlink(path)
+            except OSError:
+                pass
+
+
 @app.route("/health", methods=["GET"])
 def health():
     try:
@@ -122,7 +311,16 @@ def health():
         google_oauth = _gc.oauth_configured()
     except Exception:
         google_oauth = False
-    return jsonify({"ok": True, "service": "stitch-rag-bridge", "google_oauth": google_oauth})
+    spa = _get_stitch_spa_dist()
+    return jsonify(
+        {
+            "ok": True,
+            "service": "stitch-rag-bridge",
+            "google_oauth": google_oauth,
+            "voice_stt": _voice_stt_status(),
+            "stitch_spa": {"serving": bool(spa)},
+        }
+    )
 
 
 @app.route("/api/health", methods=["GET"])
@@ -134,7 +332,71 @@ def api_health():
         google_oauth = _gc.oauth_configured()
     except Exception:
         google_oauth = False
-    return jsonify({"ok": True, "service": "stitch-rag-bridge", "google_oauth": google_oauth})
+    spa = _get_stitch_spa_dist()
+    return jsonify(
+        {
+            "ok": True,
+            "service": "stitch-rag-bridge",
+            "google_oauth": google_oauth,
+            "voice_stt": _voice_stt_status(),
+            "stitch_spa": {"serving": bool(spa)},
+        }
+    )
+
+
+@app.route("/api/voice/transcribe", methods=["OPTIONS"])
+def voice_transcribe_options():
+    return "", 204
+
+
+@app.route("/api/voice/transcribe", methods=["POST"])
+def voice_transcribe():
+    """Transcribe short WAV clips from the Stitch UI (mic) — works in WebView where Web Speech is blocked."""
+    st = _voice_stt_status()
+    if not st.get("ok"):
+        return jsonify({"error": "voice transcribe unavailable", "voice_stt": st}), 503
+    engine = st.get("engine")
+    raw = request.get_data(cache=False, as_text=False)
+    if not raw or len(raw) < 200:
+        return jsonify({"error": "body too small for wav"}), 400
+    if len(raw) > 2 * 1024 * 1024:
+        return jsonify({"error": "audio too large"}), 413
+    if raw[:4] != b"RIFF" or raw[8:12] != b"WAVE":
+        return jsonify({"error": "expected audio/wav (RIFF WAVE)"}), 415
+
+    if engine == "whisper":
+        try:
+            with _voice_stt_lock:
+                text = _transcribe_whisper_wav(raw)
+            return jsonify({"text": (text or "").strip(), "engine": "whisper"})
+        except Exception as e:
+            logger.exception("whisper transcribe failed")
+            return jsonify({"error": str(e)}), 500
+
+    try:
+        import io
+
+        import speech_recognition as sr
+    except ImportError as e:
+        return jsonify({"error": str(e)}), 503
+
+    r = sr.Recognizer()
+    r.dynamic_energy_threshold = True
+    try:
+        with _voice_stt_lock:
+            with sr.AudioFile(io.BytesIO(raw)) as source:
+                audio = r.record(source)
+            try:
+                text = r.recognize_google(audio, language="en-US")
+            except sr.UnknownValueError:
+                return jsonify({"text": "", "engine": "google", "note": "unintelligible"})
+            except sr.RequestError as e:
+                return jsonify({"error": f"google_stt: {e}"}), 502
+    except Exception as e:
+        logger.exception("voice transcribe failed")
+        return jsonify({"error": str(e)}), 500
+
+    return jsonify({"text": (text or "").strip(), "engine": "google"})
 
 
 _BRIDGE_ROOT_HTML = """<!doctype html>
@@ -147,8 +409,8 @@ code{background:#eee;padding:.1rem .35rem;border-radius:4px}a{color:#06c}</style
 <h2>Open the real Stitch UI</h2>
 <ul>
   <li><strong>One bundled window (UI + API):</strong> double-click <code>Stitch.bat</code> at the
-    <code>cursor_linkup_mcp</code> repo root (builds and installs automatically; needs Python + Node + <code>temp_repo/stitch</code>).</li>
-  <li><strong>Tauri desktop:</strong> from the <code>cursor_linkup_mcp</code> repo run
+    <code>linkup_mcp</code> repo root (needs Python + Node + a <strong>stitch-app</strong> clone beside the repo; see <code>STITCH_APP_ROOT</code> / <code>../stitch-app</code>).</li>
+  <li><strong>Tauri desktop:</strong> from the <code>linkup_mcp</code> repo run
     <code>Stitch-Desktop.bat</code> or <code>npm run launch:stitch</code> (native window).</li>
   <li><strong>Browser dev:</strong> after <code>npm run dev:browser</code>, open
     <a href="http://localhost:5173/">http://localhost:5173/</a> (Vite default) or the URL printed in the terminal.</li>
@@ -163,7 +425,9 @@ def bridge_root():
     """With STITCH_DESKTOP_DIST, serve the built Stitch SPA; else explainer HTML or JSON."""
     spa = _get_stitch_spa_dist()
     if spa:
-        return send_file(os.path.join(spa, "index.html"))
+        resp = send_file(os.path.join(spa, "index.html"))
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
     accept = (request.headers.get("Accept") or "").lower()
     if "text/html" in accept:
         return Response(_BRIDGE_ROOT_HTML, mimetype="text/html; charset=utf-8")
@@ -172,7 +436,12 @@ def bridge_root():
             "ok": True,
             "service": "stitch-rag-bridge",
             "hint": "This process is an API bridge for Stitch, not the Stitch UI. Open Tauri/Vite (see repo README).",
-            "try": ["GET /api/health", "POST /api/rag/stitch with JSON {\"query\":\"...\"}"],
+            "try": [
+                "GET /api/health",
+                "POST /api/rag/stitch with JSON {\"query\":\"...\"}",
+                "GET /api/stitch-user-guide",
+                "POST /api/rag/stitch-help with JSON {\"query\":\"...\"}",
+            ],
         }
     )
 
@@ -557,41 +826,7 @@ except Exception as _auth_exc:  # noqa: BLE001
     logger.warning("Stitch Google auth routes not registered: %s", _auth_exc)
 
 
-def _maybe_register_stitch_spa_extra_routes() -> None:
-    """Register /assets/* and SPA fallback when STITCH_DESKTOP_DIST is set (see stitch_gui.py)."""
-    if not _get_stitch_spa_dist():
-        return
-
-    @app.route("/assets/<path:rel>", methods=["GET"])
-    def stitch_spa_assets(rel: str):
-        root = _get_stitch_spa_dist()
-        if not root:
-            abort(404)
-        base = os.path.normpath(os.path.join(root, "assets"))
-        if not os.path.isdir(base):
-            abort(404)
-        candidate = os.path.normpath(os.path.join(base, rel))
-        if not candidate.startswith(base) or not os.path.isfile(candidate):
-            abort(404)
-        return send_file(candidate)
-
-    @app.route("/<path:path>", methods=["GET"])
-    def stitch_spa_history(path: str):
-        root = _get_stitch_spa_dist()
-        if not root:
-            abort(404)
-        if path.startswith("api/"):
-            abort(404)
-        candidate = os.path.normpath(os.path.join(root, path))
-        rootn = os.path.normpath(root)
-        if not candidate.startswith(rootn):
-            abort(404)
-        if os.path.isfile(candidate):
-            return send_file(candidate)
-        return send_file(os.path.join(root, "index.html"))
-
-
-_maybe_register_stitch_spa_extra_routes()
+register_stitch_spa_routes()
 
 
 if __name__ == "__main__":

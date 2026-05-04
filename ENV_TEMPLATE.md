@@ -2,6 +2,8 @@
 
 Create a `.env` file in the project root with the following variables:
 
+Python install profiles (see **README** Quick Start): default **`uv sync`** is MCP + RAG only. For **`stitch_rag_bridge.py`** / face / OAuth / server STT use **`uv sync --extra stitch-bridge`**; for **`stitch_gui.py`** add **`--extra stitch-gui`**.
+
 ```bash
 # Linkup API Key — get your key from https://www.linkup.so/
 LINKUP_API_KEY=your_linkup_api_key_here
@@ -11,8 +13,13 @@ OPENAI_API_KEY=your_openai_api_key_here
 
 # Optional: Stitch HTTP bridge (stitch_rag_bridge.py)
 # STITCH_RAG_BRIDGE_PORT=8765
+# STITCH_VOICE_TRANSCRIBE=0   # set to 0 to disable POST /api/voice/transcribe (server-side STT for desktop WebView)
+# STITCH_VOICE_STT_ENGINE=auto   # auto | google | whisper  (auto prefers local Whisper if `pip install -e ".[stitch-whisper]"`)
+# STITCH_WHISPER_MODEL=tiny.en   # faster-whisper model id (e.g. base.en, small.en); first run downloads weights
+# STITCH_WHISPER_DEVICE=cpu      # cpu or cuda
+# STITCH_WHISPER_COMPUTE_TYPE=int8
 # STITCH_ALLOWED_ORIGINS=http://127.0.0.1:1420,http://localhost:1420
-# STITCH_DESKTOP_DIST=C:/path/to/temp_repo/stitch/apps/desktop/dist   # stitch_gui.py: serve built SPA from same process
+# STITCH_DESKTOP_DIST=C:/path/to/stitch-app/apps/desktop/dist   # stitch_gui.py: serve built SPA from same process
 
 # Optional: include debug_retrieval_cards on rag_stitch / bridge fallback responses
 # STITCH_RAG_DEBUG=1
