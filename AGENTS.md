@@ -40,6 +40,17 @@ The **Jarvis / Iron Man** framing is about partnership and execution quality—n
 - **`.cursor/rules/*.mdc`** — short rules Cursor loads automatically (identity, defaults).
 - **`ENV_TEMPLATE.md`** — env vars if present.
 
+## Reusable packages (roadmap — not created yet)
+
+Small **GitHub** repos to spin up when you want a shared “feature library” (names are suggestions under **RanneG**):
+
+| Working name | Stack | Role |
+|--------------|-------|------|
+| **stitch-api-types** | npm | TypeScript types (or OpenAPI-derived types) for the **`/api/*`** bridge contract so **stitch-app**, demos, and future clients stay aligned with **linkup_mcp** without copying shapes by hand. |
+| **voice-intents** | TS | Pure **phrase → intent** map (no React), portable from **stitch-app** `voiceCommands.ts` for other Vite/React or Web Speech projects. |
+| **local-oauth-playbook** | docs / template | Redirect URIs, `.env` layout, popup **`postMessage`** flow — copy-paste playbook for the next **desktop + Google** loopback app (not Stitch-specific). |
+| **ui-bits** | optional | Shared **Tailwind / 8-bit** primitives if the same UI patterns repeat across **pixel-portfolio** and product UIs. |
+
 ## Continuity checklist (for Nami in a new thread)
 
 1. Read this file first when Ranne says “handoff”, “cold start”, or scope is unclear.
