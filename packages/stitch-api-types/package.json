@@ -1,0 +1,25 @@
+{
+  "name": "stitch-api-types",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "TypeScript types for the Stitch HTTP bridge (/api/*) and rag_stitch JSON shapes — keep stitch-app and other clients aligned with linkup_mcp.",
+  "license": "MIT",
+  "author": "Ranne Gerodias",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RanneG/linkup_mcp.git",
+    "directory": "packages/stitch-api-types"
+  },
+  "keywords": ["stitch", "linkup_mcp", "rag", "types"],
+  "sideEffects": false,
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "prepare": "npm run build"
+  },
+  "devDependencies": {
+    "typescript": "~5.7.2"
+  }
+}

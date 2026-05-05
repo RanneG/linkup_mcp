@@ -2,6 +2,9 @@
   "name": "cursor-linkup-mcp",
   "private": true,
   "description": "Root npm helpers for Stitch dev. UI runs from stitch-app (see docs/stitch/MIGRATION.md). Optional STITCH_APP_ROOT=path/to/stitch-app. Bundled GUI still uses Python in this repo.",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev:browser": "node scripts/run-stitch-ui.mjs dev:browser",
     "dev:desktop": "node scripts/run-stitch-ui.mjs dev",
@@ -11,6 +14,7 @@
     "build:stitch-web": "node scripts/run-stitch-ui.mjs build",
     "gui:stitch": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/Start-Stitch.ps1 -Mode Bundled",
     "stitch": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/Start-Stitch.ps1 -Mode Bundled",
-    "stitch:dev": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/Start-Stitch.ps1 -Mode TauriDev"
+    "stitch:dev": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/Start-Stitch.ps1 -Mode TauriDev",
+    "build:stitch-api-types": "npm run build -w stitch-api-types"
   }
 }

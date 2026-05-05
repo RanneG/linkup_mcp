@@ -21,6 +21,20 @@ jobs:
       - name: Contract tests
         run: python -m unittest tests.test_rag_stitch_contract -v
 
+  stitch-api-types:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: npm ci + build stitch-api-types
+        run: |
+          npm ci
+          npm run build:stitch-api-types
+
   stitch-bridge:
     runs-on: ubuntu-latest
     steps:

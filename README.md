@@ -114,6 +114,10 @@ The `rag_stitch` tool returns a UI-oriented JSON string:
 
 The **Stitch desktop app** (React + Tauri) is **migrating to** **[RanneG/stitch-app](https://github.com/RanneG/stitch-app)**; **linkup_mcp** remains the **MCP server** and **HTTP bridge** for local RAG, OAuth, subscriptions, face, and in-app help. Cutover checklist and file inventory: **[docs/stitch/MIGRATION.md](docs/stitch/MIGRATION.md)** (see **[docs/stitch/README.md](docs/stitch/README.md)**).
 
+### `stitch-api-types` (TypeScript)
+
+NPM workspace **`packages/stitch-api-types`** publishes `.d.ts` for **`POST /api/rag/stitch`**, **`POST /api/rag/stitch-help`**, **`GET /api/health`**, and related payloads. Build from repo root: **`npm run build:stitch-api-types`**. **stitch-app** can depend on it with a `file:` path (see **stitch-app** `docs/BACKEND.md`).
+
 ### Stitch HTTP bridge (for the Stitch desktop app)
 
 Run a small Flask server that exposes the same payload as `rag_stitch`, plus optional **local face verification** (`/api/face/*`, DeepFace + OpenCV liveness — see `face_verification/`). Requires **`stitch-bridge`** extras:

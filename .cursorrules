@@ -31,7 +31,7 @@ response = await chatbot.chat("Your question here")
 
 | Repository | Description | Tech |
 |------------|-------------|------|
-| **[linkup_mcp](https://github.com/RanneG/linkup_mcp)** | This repo - Cursor IDE MCP integration | Python |
+| **[linkup_mcp](https://github.com/RanneG/linkup_mcp)** | This repo - Cursor IDE MCP integration + `packages/stitch-api-types` for Stitch `/api` TS types | Python / TS |
 | **standup-bot-backend** | Privacy-preserving standup aggregation (private) | Python |
 | **standup-bot-frontend** | Standup bot demo UI (public) | — |
 | **[MineSentry](https://github.com/RanneG/MineSentry)** | Mining/monitoring project | Python |

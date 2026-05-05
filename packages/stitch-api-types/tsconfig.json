@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2022",
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noEmit": false
+  },
+  "include": ["src/**/*.ts"]
+}
