@@ -26,7 +26,6 @@ The **HTTP contract** (paths under `/api/*`) stays stable. Vite proxy notes live
 | `stitch_auth/` | Google OAuth, sessions, subscription SQLite on the bridge |
 | `face_verification/` | Local enroll/verify + storage |
 | `stitch_gui.py` | Bundled window (built SPA + bridge) |
-| `stitch_demo_cli.py` | CLI demo of Stitch-shaped JSON |
 | `docs/stitch_user_guide.md` | `GET /api/stitch-user-guide`, `POST /api/rag/stitch-help` grounding |
 | `docs/stitch/` (this folder) | Handoff docs so the repo root stays MCP-focused |
 | `scripts/StitchPaths.ps1`, `scripts/run-stitch-ui.mjs`, `Start-Stitch*.ps1`, `Stitch.bat`, `Stitch-Desktop.bat` | Resolve **`../stitch-app`** or **`STITCH_APP_ROOT`** and run/build UI from linkup_mcp root |

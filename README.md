@@ -181,20 +181,6 @@ Validates `rag_stitch_contract._to_stitch_view` shapes (`answered` vs `fallback`
 If MCP-security prompts fall back, add the MCP landscape paper to `data/`:
 - [Model Context Protocol (MCP): Landscape, Security Threats, and Future Research Directions](https://arxiv.org/pdf/2503.23278.pdf)
 
-### Stitch CLI demo
-
-To preview Stitch-oriented output states in a local terminal:
-
-```bash
-python stitch_demo_cli.py
-```
-
-This renders:
-- `state` (`answered` or `fallback`)
-- `confidence`
-- `answer`
-- source cards when `show_sources` is true; optional `debug_retrieval_cards` when `STITCH_RAG_DEBUG=1`
-
 ## 🛠️ Project Structure
 
 ```

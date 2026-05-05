@@ -60,7 +60,6 @@ py-modules = [
     "stitch_rag_bridge",
     "local_whisper_stt",
     "stitch_gui",
-    "stitch_demo_cli",
     "rag_regression",
     "notes_app_pokemon",
 ]
