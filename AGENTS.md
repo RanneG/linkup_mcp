@@ -48,7 +48,7 @@ Small **GitHub** repos to spin up when you want a shared “feature library” (
 |--------------|-------|------|
 | **stitch-api-types** | npm | **Scaffolded:** `packages/stitch-api-types` — TypeScript types for **`/api/*`** RAG + health + user guide; run **`npm run build:stitch-api-types`** from repo root (or `npm install` in that package). Wire **stitch-app** via `file:…/packages/stitch-api-types` until published. |
 | **voice-intents** | TS | Pure **phrase → intent** map (no React), portable from **stitch-app** `voiceCommands.ts` for other Vite/React or Web Speech projects. |
-| **local-oauth-playbook** | docs / template | Redirect URIs, `.env` layout, popup **`postMessage`** flow — copy-paste playbook for the next **desktop + Google** loopback app (not Stitch-specific). |
+| **local-oauth-playbook** | docs / template | **In repo:** **[docs/local-oauth-playbook/](docs/local-oauth-playbook/)** — loopback Google OAuth checklist + env example; optional **tiny standalone GH repo** (see **SPLITTING-TO-OWN-REPO.md** there) to save cloning **linkup_mcp** when you only need the doc. |
 | **ui-bits** | optional | Shared **Tailwind / 8-bit** primitives if the same UI patterns repeat across **pixel-portfolio** and product UIs. |
 
 ## Continuity checklist (for Nami in a new thread)

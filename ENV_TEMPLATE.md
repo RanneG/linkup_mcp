@@ -60,7 +60,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 
 ### Google OAuth (Stitch sign-in + Gmail discovery)
 
-Used by `stitch_rag_bridge.py` for `/api/auth/google/*`, sessions, and `/api/subscriptions/from-gmail`.
+Used by `stitch_rag_bridge.py` for `/api/auth/google/*`, sessions, and `/api/subscriptions/from-gmail`. Generic loopback checklist: **[docs/local-oauth-playbook/](docs/local-oauth-playbook/)**.
 
 1. **Google Cloud Console** — Create (or pick) a project → **APIs & Services** → **Credentials** → **Create credentials** → **OAuth client ID** → Application type **Web application**. Under **Authorized redirect URIs**, add exactly:
    - `http://127.0.0.1:8765/api/auth/google/callback`  
