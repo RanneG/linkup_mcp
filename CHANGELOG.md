@@ -7,8 +7,12 @@ This document summarizes **Stitch desktop** work (now canonical in **[stitch-app
 - **Removed** duplicated UI from **`integrations/stitch/`** (and **`integrations/lib/`**, **`integrations/fixtures/`**); **`integrations/stitch/README.md`** is a **pointer** to **stitch-app** only.
 - **Deleted** **`scripts/sync-integrations-stitch-to-desktop.ps1`** and **`scripts/copy-stitch-desktop-to-integrations.ps1`**; removed **`sync:stitch`** npm script.
 - **`run-stitch-ui.mjs`** now resolves **`STITCH_APP_ROOT`** or sibling **`../stitch-app`** only (no `temp_repo` fallback). **`StitchPaths.ps1`** matches. **Start-StitchBundledGui** / **Start-StitchDesktop** no longer run a sync step.
-- **Docs/code:** **AGENTS.md**, **README.md**, **STITCH_STATUS.md**, **STITCH_MIGRATION.md**, **stitch_gui.py**, **stitch_rag_bridge.py** root HTML hint, **ENV_TEMPLATE.md** — references updated for **stitch-app** paths.
+- **Docs/code:** **AGENTS.md**, **README.md**, **docs/stitch/** (**MIGRATION.md**, **STATUS.md**), **stitch_gui.py**, **stitch_rag_bridge.py** root HTML hint, **ENV_TEMPLATE.md** — references updated for **stitch-app** paths.
 - **Docs layout:** Stitch handoff lives under **[docs/stitch/](docs/stitch/)** (**MIGRATION.md**, **STATUS.md**); root **`STITCH_*.md`** removed; duplicate **`Stitch-Bundled-Gui.bat`** removed (use **`Stitch.bat`**).
+
+## 2026-05-04 — local-oauth-playbook (canonical GitHub)
+
+- Loopback Google OAuth checklist and **`examples/oauth.env.example`** live in **[github.com/RanneG/local-oauth-playbook](https://github.com/RanneG/local-oauth-playbook)**. **linkup_mcp** keeps **[docs/local-oauth-playbook/README.md](docs/local-oauth-playbook/README.md)** as a pointer only (**AGENTS.md** table + **ENV_TEMPLATE.md** still link the folder for discoverability).
 
 ## 2026-05-04 — Migration prep
 
