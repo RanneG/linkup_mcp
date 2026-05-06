@@ -80,6 +80,29 @@ In Cursor's chat:
 - **"Search the web for [query]"** (requires Linkup API key)
 - **Local Whisper (no Linkup):** `whisper_stt_status` then `transcribe_wav_file` with a path to a `.wav` file. Requires `pip install -e ".[stitch-whisper]"` and a Cursor MCP restart.
 
+### 7. Voice-to-prompt hotkey tool (offline)
+
+Use `voice_prompt_tool.py` for one-shot dictation directly into your coding flow:
+
+```bash
+uv sync --extra stitch-whisper --extra voice-prompt
+python voice_prompt_tool.py --hotkey ctrl+shift+v
+```
+
+What it does:
+- global start/stop hotkey for microphone capture
+- local faster-whisper transcription (offline)
+- file reference extraction (`auth.ts` -> `@auth.ts`)
+- prompt envelope copied to clipboard:
+  - `[FILE REFERENCE: ...]`
+  - `[TASK: ...]`
+
+Optional direct paste after copy:
+
+```bash
+python voice_prompt_tool.py --autopaste
+```
+
 ## 📚 Using the RAG Tool
 
 Add documents to the `data/` folder:

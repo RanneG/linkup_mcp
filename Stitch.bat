@@ -1,7 +1,12 @@
 @echo off
-REM RECOMMENDED one-click: one native window = built Stitch UI + Flask API + voice (same process).
-REM (Tauri dev + separate bridge = Stitch-Desktop.bat)
+REM Stitch app launchers moved to stitch-app repo.
 cd /d "%~dp0"
-title Stitch
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\Start-Stitch.ps1" -Mode Bundled %*
-if errorlevel 1 pause
+set "STITCH_APP=%~dp0..\stitch-app\Stitch.bat"
+if exist "%STITCH_APP%" (
+  echo [deprecated] Launching Stitch from stitch-app repo...
+  call "%STITCH_APP%" %*
+  exit /b %errorlevel%
+)
+echo Stitch launchers now live in the stitch-app repo.
+echo Clone https://github.com/RanneG/stitch-app beside this repo, then run ..\stitch-app\Stitch.bat
+pause

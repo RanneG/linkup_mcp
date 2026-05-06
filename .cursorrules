@@ -117,6 +117,51 @@ response = await chatbot.chat("Your question here")
 - The server communicates via stdio protocol with Cursor
 - Web search requires Linkup API key, but RAG works without any API keys
 
+---
+
+## Voice Prompt Workflow (for `voice_prompt_tool.py`)
+
+```yaml
+[enabled]
+voice_mode = true
+
+[context]
+You are receiving prompts from a voice dictation system. The user is speaking naturally, not typing.
+Assume the user wants clean, working code on the first response.
+Prioritize conciseness and correctness over verbose explanations.
+
+[input_format_detection]
+If clipboard/input contains:
+  "[FILE REFERENCE: {files}]" -> extract @file references first
+  "[TASK: {description}]" -> this is the main instruction
+  "[FUNCTIONS: {functions}]" -> preserve function names exactly as spoken
+
+When you see this structure, treat it as a high-signal prompt that needs minimal back-and-forth.
+
+[voice_specific_handling]
+- Spoken typos: "dot ts" = ".ts", "dot jsx" = ".jsx"
+- Ambiguous file paths: if user says "offche dot ts", assume they meant "auth.ts" or nearby filename
+- Run-on sentences: split into bullet points or numbered steps when the task has multiple actions
+- Implicit fixes: "fix the bug in X" -> assume user wants direct action and fix obvious issues
+
+[output_preferences]
+- Return complete, runnable code blocks with file paths as comments or @file annotations
+- If multiple files are referenced, output each file's changes separately
+- Do not ask clarifying questions for missing context unless absolutely required
+- Assume "in-browser" means HTML/CSS/JS or React unless specified otherwise
+- "retro feeling" -> prefer monospace fonts, CRT glow, terminal aesthetics, or synthwave palette
+
+[error_handling]
+If the voice prompt includes garbled text (for example "offche" instead of "auth"), suggest correction but proceed.
+If no file reference is provided, ask "Which file should I modify?" only if the change is destructive.
+Otherwise, create a new file with a sensible name.
+
+[performance]
+- Do not output thinking/planning steps unless requested
+- Start with code or a direct answer, not a planning preface
+- Keep response under 150 lines for a single prompt where practical
+```
+
 
 
 
