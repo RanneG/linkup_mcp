@@ -29,7 +29,7 @@ cd linkup_mcp
 uv sync
 ```
 
-**Default install** (`uv sync` / `pip install -e .`) is **Cursor MCP + RAG** only (lighter venv). For **`stitch_rag_bridge.py`**, face/OAuth/Gmail, and server-side voice STT, add **`--extra stitch-bridge`**. For **`stitch_gui.py`** / **`Stitch.bat`**, also add **`--extra stitch-gui`** (pywebview). Example: `uv sync --extra stitch-bridge --extra stitch-gui`.
+**Default install** (`uv sync` / `pip install -e .`) is **Cursor MCP + RAG** only (lighter venv). For **`stitch_rag_bridge.py`**, face/OAuth/Gmail, and server-side voice STT, add **`--extra stitch-bridge`**.
 
 ### 2. Install Ollama & Model
 
@@ -152,31 +152,29 @@ uv sync --extra stitch-bridge
 
 Then point the Stitch app’s Vite dev proxy at `http://127.0.0.1:8765` (see [stitch-app docs/BACKEND.md](https://github.com/RanneG/stitch-app/blob/main/docs/BACKEND.md) or [integrations/stitch/README.md](integrations/stitch/README.md); proxy `/api` for RAG, face, auth, subscriptions, and help routes).
 
-**Who needs what:** Anyone can run the **Stitch UI** from **[stitch-app](https://github.com/RanneG/stitch-app)** with Node (see [docs/RUNNING.md](https://github.com/RanneG/stitch-app/blob/main/docs/RUNNING.md)). **linkup_mcp** is only required for **`/api/*`** (auth, data, RAG, face, server-backed Help) and for the **bundled pywebview** flow below.
+**Who needs what:** Anyone can run the **Stitch UI** from **[stitch-app](https://github.com/RanneG/stitch-app)** with Node (see [docs/RUNNING.md](https://github.com/RanneG/stitch-app/blob/main/docs/RUNNING.md)). **linkup_mcp** is required for **`/api/*`** backend capabilities (auth, data, RAG, face, server-backed Help).
 
 ### Develop Stitch UI from this repo (optional)
 
 Root scripts **`npm run dev:browser`**, **`npm run dev:desktop`**, **`npm run build:stitch-web`**, **`npm run build:stitch-app`** use **`scripts/run-stitch-ui.mjs`**, which resolves **`STITCH_APP_ROOT`** or sibling **`../stitch-app`** only. See **[docs/stitch/MIGRATION.md](docs/stitch/MIGRATION.md)**.
 
-### Stitch single-window GUI (API + built UI in one process)
+### Stitch single-window GUI
 
-If you want **one native window** without separate “bridge terminal” + “Vite/Tauri terminal”, use **pywebview** + Flask serving the **production Vite build** from the same port (`8765`):
+The canonical bundled flow now starts from **stitch-app** (`Stitch.bat` there). It uses this repo for backend bridge capabilities when needed.
 
-1. **Build** the Stitch desktop bundle: from linkup_mcp root run **`npm run build:stitch-web`** (delegates to **stitch-app**), or `npm run build` inside **stitch-app** `apps/desktop`.
-2. **Install** bridge + GUI deps: `uv sync --extra stitch-bridge --extra stitch-gui` (or `pip install -e ".[stitch-bridge,stitch-gui]"`).
-3. **Run** by double-clicking **`Stitch.bat`** at the repo root (no terminal needed). It creates `.venv` if missing, installs Python deps (**Flask stack + pywebview**), runs **`npm install`** + **`npm run build`** in **stitch-app** `apps/desktop`, then opens the window. Optional: `npm run gui:stitch` or `.\scripts\Start-StitchBundledGui.ps1 -SkipBuild` after a successful build.
-
-Implementation: [stitch_gui.py](stitch_gui.py) starts Flask from [stitch_rag_bridge.py](stitch_rag_bridge.py) with `STITCH_DESKTOP_DIST` pointing at `dist/` so `/` and `/assets/*` serve the SPA while `/api/*` stays the bridge. A **single `.exe`** later is possible with PyInstaller around `stitch_gui.py` (not automated here yet).
+1. **Build** the Stitch desktop bundle inside **stitch-app** (`npm run build`).
+2. **Run** `Stitch.bat` from **stitch-app** root.
+3. Keep this repo available for the bridge runtime (`stitch_rag_bridge.py`) on `127.0.0.1:8765`.
 
 ### Stitch as a native desktop app (no long manual command chain)
 
-Stitch’s `apps/desktop` package uses **Tauri** for a real windowed app (`npm run dev` there = `tauri dev`). In this repo:
+Stitch’s `apps/desktop` package uses **Tauri** for a real windowed app (`npm run dev` there = `tauri dev`). Run these from **stitch-app**:
 
 | Goal | What to do |
 |------|----------------|
-| **One double-click** (bridge + sync + Tauri) | Run **`Stitch-Desktop.bat`** at the repository root. |
-| Same from a terminal | `npm run launch:stitch` |
-| Bridge already running | `npm run launch:stitch:ui-only` or `.\scripts\Start-StitchDesktop.ps1 -SkipBridge` |
+| **One double-click** (bridge + sync + Tauri) | Run **`Stitch-Desktop.bat`** in the **stitch-app** repo root. |
+| Same from a terminal | `npm run dev` (stitch-app) |
+| Bridge already running | Start Stitch from stitch-app and keep this repo bridge on `127.0.0.1:8765` |
 | Tauri only (you start the bridge yourself) | `npm run dev:desktop` |
 | Browser tab only (no Tauri) | `npm run dev:browser` (uses **stitch-app** via `run-stitch-ui.mjs`) |
 | Packaged `.exe` / installer | `npm run build:stitch-app` (after [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) and a **stitch-app** clone) |
