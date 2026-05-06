@@ -36,10 +36,6 @@ stitch-bridge = [
     "google-api-python-client>=2.130.0,<3",
     "SpeechRecognition>=3.10.4,<4",
 ]
-# Single-window Stitch: Flask serves apps/desktop/dist + pywebview shell (see stitch_gui.py).
-stitch-gui = [
-    "pywebview>=5.0,<6",
-]
 # Local Whisper STT for POST /api/voice/transcribe (offline; auto-picked when installed).
 stitch-whisper = [
     "faster-whisper>=1.0.3,<2.0",
@@ -68,7 +64,6 @@ py-modules = [
     "agents",
     "stitch_rag_bridge",
     "local_whisper_stt",
-    "stitch_gui",
     "rag_regression",
     "notes_app_pokemon",
     "voice_prompt_tool",
