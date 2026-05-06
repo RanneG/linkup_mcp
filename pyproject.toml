@@ -44,6 +44,15 @@ stitch-gui = [
 stitch-whisper = [
     "faster-whisper>=1.0.3,<2.0",
 ]
+voice-prompt = [
+    "numpy>=1.24.0,<3",
+    "pynput>=1.7.7,<2.0",
+    "sounddevice>=0.4.6,<1.0",
+    "pyperclip>=1.9.0,<2.0",
+    "pyautogui>=0.9.54,<0.10",
+    "pystray>=0.19.5,<0.20",
+    "pillow>=10.0.0,<12",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -62,5 +71,6 @@ py-modules = [
     "stitch_gui",
     "rag_regression",
     "notes_app_pokemon",
+    "voice_prompt_tool",
 ]
 

@@ -1,6 +1,6 @@
 # Stitch → dedicated repository (production split)
 
-_Last updated: 2026-05-04._
+_Last updated: 2026-05-06._
 
 **Canonical Stitch app repo:** [github.com/RanneG/stitch-app](https://github.com/RanneG/stitch-app) — `git clone https://github.com/RanneG/stitch-app.git`. Initial **`main`** import landed 2026-05-04.
 
@@ -28,7 +28,7 @@ The **HTTP contract** (paths under `/api/*`) stays stable. Vite proxy notes live
 | `stitch_gui.py` | Bundled window (built SPA + bridge) |
 | `docs/stitch_user_guide.md` | `GET /api/stitch-user-guide`, `POST /api/rag/stitch-help` grounding |
 | `docs/stitch/` (this folder) | Handoff docs so the repo root stays MCP-focused |
-| `scripts/StitchPaths.ps1`, `scripts/run-stitch-ui.mjs`, `Start-Stitch*.ps1`, `Stitch.bat`, `Stitch-Desktop.bat` | Resolve **`../stitch-app`** or **`STITCH_APP_ROOT`** and run/build UI from linkup_mcp root |
+| `scripts/StitchPaths.ps1`, `scripts/run-stitch-ui.mjs`, `scripts/Start-Stitch*.ps1` | Compatibility helpers used by stitch-app launchers and local bridge workflows |
 
 ## Python dependency profiles (same repo)
 
@@ -55,7 +55,7 @@ Run **linkup_mcp** `stitch_rag_bridge.py` and **stitch-app** `npm run dev:browse
 
 Done: **integrations/** UI snapshot removed; **sync/copy scripts** removed; **`run-stitch-ui.mjs`** uses **stitch-app** only (`STITCH_APP_ROOT` or **`../stitch-app`**).
 
-Optional later: move root **`Stitch*.bat`** into **`scripts/`** only if you add tiny forwarding stubs at the repo root (double-click ergonomics).
+Done: root **`Stitch*.bat`** are now forwarding stubs that hand off to **stitch-app** launchers.
 
 ### Phase 4 — Production bridge (optional)
 
@@ -66,6 +66,7 @@ Package **`stitch_rag_bridge`** as a service or container; optional **`STITCH_US
 - [x] [stitch-app](https://github.com/RanneG/stitch-app) on `main` with CI.
 - [x] UI sources removed from linkup_mcp `integrations/` (pointer README kept).
 - [x] `run-stitch-ui.mjs` + `StitchPaths.ps1` + launchers use **stitch-app** path resolution.
+- [x] Canonical double-click launchers now live in **stitch-app**; linkup_mcp launchers forward to them.
 - [ ] Vite proxy / bridge smoke test when changing ports or CORS.
 - [ ] Optional: hosted bridge URL + client env for non-local Stitch builds.
 

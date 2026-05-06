@@ -6,6 +6,6 @@ This repo (**linkup_mcp**) keeps only the **HTTP bridge** (`stitch_rag_bridge.py
 
 - **Run the UI:** clone [stitch-app](https://github.com/RanneG/stitch-app), then see [docs/RUNNING.md](https://github.com/RanneG/stitch-app/blob/main/docs/RUNNING.md) and [docs/BACKEND.md](https://github.com/RanneG/stitch-app/blob/main/docs/BACKEND.md).
 - **Run the API:** from linkup_mcp root, `python stitch_rag_bridge.py` (default `http://127.0.0.1:8765`).
-- **One-click from linkup_mcp:** `Stitch.bat` / `Stitch-Desktop.bat` resolve **`../stitch-app`** or **`STITCH_APP_ROOT`** (see **`scripts/StitchPaths.ps1`**).
+- **One-click from stitch-app (canonical):** run `Stitch.bat` / `Stitch-Desktop.bat` in the **stitch-app** repo root. `linkup_mcp` root launchers are forwarding stubs only.
 
 Split checklist: **[docs/stitch/MIGRATION.md](../../docs/stitch/MIGRATION.md)**.
