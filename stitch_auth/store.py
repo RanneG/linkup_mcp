@@ -257,11 +257,12 @@ def subscriptions_list(owner_email: str) -> list[dict]:
 def subscriptions_upsert_many(owner_email: str, items: list[dict]) -> list[dict]:
     c = _get_conn()
     now = time.time()
+    rows: list[dict] = []
     out: list[dict] = []
-    with _lock:
-        for item in items:
-            sub_id = str(item.get("id") or uuid.uuid4().hex)
-            row = {
+    for item in items:
+        sub_id = str(item.get("id") or uuid.uuid4().hex)
+        rows.append(
+            {
                 "id": sub_id,
                 "owner_email": owner_email,
                 "name": str(item.get("name") or "").strip(),
@@ -273,6 +274,13 @@ def subscriptions_upsert_many(owner_email: str, items: list[dict]) -> list[dict]
                 "created_at": now,
                 "updated_at": now,
             }
+        )
+    with _lock:
+        for row in rows:
+            existing = c.execute("SELECT owner_email FROM subscriptions WHERE id = ?", (row["id"],)).fetchone()
+            if existing is not None and str(existing["owner_email"]) != owner_email:
+                raise PermissionError("subscription_id_not_owned")
+        for row in rows:
             c.execute(
                 """
                 INSERT INTO subscriptions
@@ -280,7 +288,6 @@ def subscriptions_upsert_many(owner_email: str, items: list[dict]) -> list[dict]
                 VALUES
                     (:id, :owner_email, :name, :category, :amount_usd, :due_date_iso, :status, :source_email, :created_at, :updated_at)
                 ON CONFLICT(id) DO UPDATE SET
-                    owner_email=excluded.owner_email,
                     name=excluded.name,
                     category=excluded.category,
                     amount_usd=excluded.amount_usd,

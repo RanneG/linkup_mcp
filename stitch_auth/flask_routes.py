@@ -363,7 +363,10 @@ def register_stitch_auth_routes(app: Flask) -> None:
                     "sourceEmail": item.get("sourceEmail"),
                 }
             )
-        imported = subscriptions_upsert_many(owner_email or "", imported_input)
+        try:
+            imported = subscriptions_upsert_many(owner_email or "", imported_input)
+        except PermissionError:
+            return jsonify({"ok": False, "error": "subscription_id_not_owned"}), 403
         all_subscriptions = subscriptions_list(owner_email or "")
         return jsonify(
             {
@@ -416,7 +419,10 @@ def register_stitch_auth_routes(app: Flask) -> None:
                     "sourceEmail": item.get("sourceEmail"),
                 }
             )
-        upserted = subscriptions_upsert_many(owner_email or "", normalized)
+        try:
+            upserted = subscriptions_upsert_many(owner_email or "", normalized)
+        except PermissionError:
+            return jsonify({"ok": False, "error": "subscription_id_not_owned"}), 403
         rows = subscriptions_list(owner_email or "")
         return jsonify({"ok": True, "ownerEmail": owner_email, "upserted": upserted, "count": len(upserted), "subscriptions": rows})
 
