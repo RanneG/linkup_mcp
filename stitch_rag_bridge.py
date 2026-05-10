@@ -106,6 +106,13 @@ def _get_stitch_spa_dist() -> str | None:
     return root
 
 
+def _is_path_within(base: str, candidate: str) -> bool:
+    try:
+        return os.path.commonpath([os.path.abspath(base), os.path.abspath(candidate)]) == os.path.abspath(base)
+    except ValueError:
+        return False
+
+
 def register_stitch_spa_routes() -> None:
     """Register /assets/* and SPA fallback when a dist path is configured (see stitch_gui.py). Safe to call twice."""
     global _spa_extra_routes_registered
@@ -119,11 +126,11 @@ def register_stitch_spa_routes() -> None:
         root = _get_stitch_spa_dist()
         if not root:
             abort(404)
-        base = os.path.normpath(os.path.join(root, "assets"))
+        base = os.path.abspath(os.path.join(root, "assets"))
         if not os.path.isdir(base):
             abort(404)
-        candidate = os.path.normpath(os.path.join(base, rel))
-        if not candidate.startswith(base) or not os.path.isfile(candidate):
+        candidate = os.path.abspath(os.path.join(base, rel))
+        if not _is_path_within(base, candidate) or not os.path.isfile(candidate):
             abort(404)
         return send_file(candidate)
 
@@ -134,9 +141,9 @@ def register_stitch_spa_routes() -> None:
             abort(404)
         if path.startswith("api/"):
             abort(404)
-        candidate = os.path.normpath(os.path.join(root, path))
-        rootn = os.path.normpath(root)
-        if not candidate.startswith(rootn):
+        rootn = os.path.abspath(root)
+        candidate = os.path.abspath(os.path.join(rootn, path))
+        if not _is_path_within(rootn, candidate):
             abort(404)
         if os.path.isfile(candidate):
             return send_file(candidate)

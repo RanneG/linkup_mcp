@@ -50,3 +50,5 @@ jobs:
         run: python -c "import stitch_rag_bridge; print('stitch_rag_bridge ok')"
       - name: Face storage tests
         run: python -m unittest tests.test_face_storage -v
+      - name: Bridge SPA static-file tests
+        run: python -m unittest tests.test_stitch_bridge_static -v
