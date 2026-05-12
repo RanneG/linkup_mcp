@@ -79,6 +79,7 @@ from rag_runtime import ensure_rag_ready
 from rag_stitch_contract import _to_stitch_view, rag_stitch_help_query, read_stitch_user_guide_text
 
 app = Flask(__name__)
+app.config["STITCH_ALLOWED_ORIGINS"] = _ALLOWED_ORIGINS
 # Large enroll POSTs (multiple base64 JPEGs); explicit cap avoids silent proxy/Werkzeug oddities on huge bodies.
 app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("STITCH_RAG_BRIDGE_MAX_BODY_BYTES", str(64 * 1024 * 1024)))
 _query_lock = threading.Lock()
@@ -106,6 +107,15 @@ def _get_stitch_spa_dist() -> str | None:
     return root
 
 
+def _path_is_within(candidate: str, root: str) -> bool:
+    try:
+        candidate_abs = os.path.abspath(candidate)
+        root_abs = os.path.abspath(root)
+        return os.path.commonpath([candidate_abs, root_abs]) == root_abs
+    except (OSError, ValueError):
+        return False
+
+
 def register_stitch_spa_routes() -> None:
     """Register /assets/* and SPA fallback when a dist path is configured (see stitch_gui.py). Safe to call twice."""
     global _spa_extra_routes_registered
@@ -119,11 +129,11 @@ def register_stitch_spa_routes() -> None:
         root = _get_stitch_spa_dist()
         if not root:
             abort(404)
-        base = os.path.normpath(os.path.join(root, "assets"))
+        base = os.path.abspath(os.path.join(root, "assets"))
         if not os.path.isdir(base):
             abort(404)
-        candidate = os.path.normpath(os.path.join(base, rel))
-        if not candidate.startswith(base) or not os.path.isfile(candidate):
+        candidate = os.path.abspath(os.path.join(base, rel))
+        if not _path_is_within(candidate, base) or not os.path.isfile(candidate):
             abort(404)
         return send_file(candidate)
 
@@ -134,9 +144,9 @@ def register_stitch_spa_routes() -> None:
             abort(404)
         if path.startswith("api/"):
             abort(404)
-        candidate = os.path.normpath(os.path.join(root, path))
-        rootn = os.path.normpath(root)
-        if not candidate.startswith(rootn):
+        rootn = os.path.abspath(root)
+        candidate = os.path.abspath(os.path.join(rootn, path))
+        if not _path_is_within(candidate, rootn):
             abort(404)
         if os.path.isfile(candidate):
             return send_file(candidate)
