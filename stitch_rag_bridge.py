@@ -14,6 +14,7 @@ Defaults: http://127.0.0.1:8765
   POST /api/rag/stitch  JSON {"query":"..."}
   POST /api/rag/stitch-help  JSON {"query":"..."}  (answers from docs/stitch_user_guide.md via Ollama)
   GET  /api/stitch-user-guide  JSON {"markdown":"..."}  (same file for the Help tab)
+  Face routes require Header Authorization: Bearer <session_id>; email must match the active session account.
   POST /api/face/enroll  JSON single-frame (default): {"email","image","quality_check":"lenient"|"strict","enroll_mode":"simple"}
                               multi-angle: {"email","images":[...],"enroll_mode":"multi","quality_check":...}
   POST /api/face/verify JSON {"email":"...","image":"base64","liveness_frames":["base64",...]}
@@ -454,6 +455,77 @@ def favicon():
 # --- Face verification (local DeepFace + OpenCV liveness) ---
 
 
+def _face_bearer_session_id() -> str | None:
+    auth = (request.headers.get("Authorization") or "").strip()
+    if auth.lower().startswith("bearer "):
+        return auth[7:].strip() or None
+    return None
+
+
+def _face_auth_error(error: str, status: int, *, verify: bool = False):
+    if verify:
+        return (
+            jsonify(
+                {
+                    "verified": False,
+                    "match": False,
+                    "confidence": 0.0,
+                    "liveness_passed": False,
+                    "error": error,
+                }
+            ),
+            status,
+        )
+    return jsonify({"ok": False, "error": error}), status
+
+
+def _active_face_email(*, verify: bool = False):
+    sid = _face_bearer_session_id()
+    if not sid:
+        return None, _face_auth_error("not_authenticated", 401, verify=verify)
+    try:
+        from stitch_auth.store import google_account_by_id, session_load
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("face auth store unavailable")
+        return None, _face_auth_error(str(exc) or "auth_unavailable", 503, verify=verify)
+
+    sess = session_load(sid)
+    if not sess:
+        return None, _face_auth_error("invalid_session", 401, verify=verify)
+
+    ids: list[int] = []
+    for raw_id in sess.get("account_ids") or []:
+        try:
+            ids.append(int(raw_id))
+        except (TypeError, ValueError):
+            continue
+    accounts = [row for account_id in ids if (row := google_account_by_id(account_id))]
+    if not accounts:
+        return None, _face_auth_error("no_accounts", 400, verify=verify)
+
+    active = (sess.get("active_email") or "").strip().lower()
+    if active:
+        for row in accounts:
+            email = str(row.get("email") or "").strip()
+            if email.lower() == active:
+                return email, None
+        return None, _face_auth_error("email_not_in_session", 403, verify=verify)
+
+    return str(accounts[0]["email"]).strip(), None
+
+
+def _require_face_session_email(requested_email: str, *, verify: bool = False):
+    requested = (requested_email or "").strip()
+    if not requested:
+        return None, _face_auth_error("missing email", 400, verify=verify)
+    active_email, err = _active_face_email(verify=verify)
+    if err:
+        return None, err
+    if requested.lower() != str(active_email).lower():
+        return None, _face_auth_error("email_not_in_session", 403, verify=verify)
+    return active_email, None
+
+
 def _face_imports():
     from face_verification.camera import decode_image_base64
     from face_verification.core import (
@@ -491,6 +563,11 @@ def face_enroll_options():
 
 @app.route("/api/face/enroll", methods=["POST"])
 def face_enroll():
+    body = request.get_json(silent=True) or {}
+    email, auth_err = _require_face_session_email(str(body.get("email") or ""))
+    if auth_err:
+        return auth_err
+
     try:
         (
             decode_image_base64,
@@ -510,11 +587,6 @@ def face_enroll():
         return jsonify({"ok": False, "error": str(e)}), 503
 
     try:
-        body = request.get_json(silent=True) or {}
-        email = (body.get("email") or "").strip()
-        if not email:
-            return jsonify({"ok": False, "error": "missing email"}), 400
-
         quality_check = (body.get("quality_check") or "lenient").strip().lower()
         if quality_check not in ("lenient", "strict"):
             quality_check = "lenient"
@@ -615,6 +687,11 @@ def face_verify_options():
 
 @app.route("/api/face/verify", methods=["POST"])
 def face_verify():
+    body = request.get_json(silent=True) or {}
+    email, auth_err = _require_face_session_email(str(body.get("email") or ""), verify=True)
+    if auth_err:
+        return auth_err
+
     try:
         (
             decode_image_base64,
@@ -633,22 +710,10 @@ def face_verify():
         logger.exception("face_verify: face modules failed to import")
         return jsonify({"verified": False, "confidence": 0.0, "liveness_passed": False, "error": str(e)}), 503
 
-    body = request.get_json(silent=True) or {}
-    email = (body.get("email") or "").strip()
     threshold = float(body.get("threshold") or DEFAULT_MATCH_THRESHOLD)
     liveness_frames_b64 = body.get("liveness_frames") or []
     main_b64 = body.get("image") or body.get("frame")
 
-    if not email:
-        return jsonify(
-            {
-                "verified": False,
-                "match": False,
-                "confidence": 0.0,
-                "liveness_passed": False,
-                "error": "missing email",
-            }
-        ), 400
     if not isinstance(main_b64, str) or not main_b64.strip():
         return jsonify(
             {
@@ -748,14 +813,14 @@ def face_status_options():
 
 @app.route("/api/face/status", methods=["GET"])
 def face_status():
+    email, auth_err = _require_face_session_email(str(request.args.get("email") or ""))
+    if auth_err:
+        return auth_err
     try:
         *_, storage = _face_imports()
     except Exception as e:
         logger.exception("face_status: face modules failed to import")
         return jsonify({"ok": False, "enrolled": False, "error": str(e)}), 503
-    email = (request.args.get("email") or "").strip()
-    if not email:
-        return jsonify({"ok": False, "error": "missing email query param"}), 400
     enrolled = storage.is_enrolled(email)
     return jsonify({"ok": True, "enrolled": enrolled})
 
@@ -767,15 +832,15 @@ def face_delete_options():
 
 @app.route("/api/face/delete", methods=["POST"])
 def face_delete():
+    body = request.get_json(silent=True) or {}
+    email, auth_err = _require_face_session_email(str(body.get("email") or ""))
+    if auth_err:
+        return auth_err
     try:
         *_, storage = _face_imports()
     except Exception as e:
         logger.exception("face_delete: face modules failed to import")
         return jsonify({"ok": False, "error": str(e)}), 503
-    body = request.get_json(silent=True) or {}
-    email = (body.get("email") or "").strip()
-    if not email:
-        return jsonify({"ok": False, "error": "missing email"}), 400
     with _face_lock:
         removed = storage.delete_enrollment(email)
     return jsonify({"ok": True, "removed": removed})
