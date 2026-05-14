@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import importlib
 import os
+import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -59,6 +61,7 @@ class TestFaceRouteAuth(unittest.TestCase):
         import stitch_auth.store as store
 
         self.store = importlib.reload(store)
+        self._stub_rag_bridge_dependencies()
 
         import stitch_rag_bridge as bridge
 
@@ -106,6 +109,36 @@ class TestFaceRouteAuth(unittest.TestCase):
 
         self.bridge._face_imports = fake_face_imports
         self.client = self.bridge.app.test_client()
+
+    def _stub_rag_bridge_dependencies(self) -> None:
+        previous: dict[str, object | None] = {}
+
+        def install(name: str, module) -> None:
+            previous[name] = sys.modules.get(name)
+            sys.modules[name] = module
+
+        rag_runtime = types.ModuleType("rag_runtime")
+
+        async def ensure_rag_ready():
+            raise AssertionError("RAG runtime should not be used by face route auth tests")
+
+        rag_runtime.ensure_rag_ready = ensure_rag_ready
+        install("rag_runtime", rag_runtime)
+
+        rag_contract = types.ModuleType("rag_stitch_contract")
+        rag_contract._to_stitch_view = lambda payload: payload
+        rag_contract.rag_stitch_help_query = lambda query: {"answer": query}
+        rag_contract.read_stitch_user_guide_text = lambda: ""
+        install("rag_stitch_contract", rag_contract)
+
+        def restore() -> None:
+            for name, module in previous.items():
+                if module is None:
+                    sys.modules.pop(name, None)
+                else:
+                    sys.modules[name] = module
+
+        self.addCleanup(restore)
 
     def _session_for(self, email: str) -> str:
         account_id = self.store.google_account_upsert(email, "google-sub", "refresh-token", None)
