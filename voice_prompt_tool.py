@@ -27,9 +27,9 @@ import platform
 import queue
 import re
 import signal
+import stat
 import subprocess
 import sys
-import tempfile
 import threading
 import time
 import wave
@@ -68,7 +68,23 @@ from local_whisper_stt import transcribe_wav_bytes
 
 logger = logging.getLogger("voice_prompt_tool")
 TEMPLATES_PATH = Path(__file__).resolve().parent / "config" / "templates.json"
-INSTANCE_LOCK_PATH = Path(tempfile.gettempdir()) / "voice_prompt_tool.lock"
+LOCK_FILE_NAME = "voice_prompt_tool.lock"
+
+
+def _default_instance_lock_path() -> Path:
+    if platform.system() == "Windows":
+        base = os.getenv("LOCALAPPDATA") or os.getenv("APPDATA")
+        if base:
+            return Path(base) / "voice_prompt_tool" / LOCK_FILE_NAME
+    if platform.system() == "Darwin":
+        return Path.home() / "Library" / "Caches" / "voice_prompt_tool" / LOCK_FILE_NAME
+    base = os.getenv("XDG_STATE_HOME")
+    if base:
+        return Path(base) / "voice_prompt_tool" / LOCK_FILE_NAME
+    return Path.home() / ".local" / "state" / "voice_prompt_tool" / LOCK_FILE_NAME
+
+
+INSTANCE_LOCK_PATH = _default_instance_lock_path()
 
 
 FILE_REF_RE = re.compile(
@@ -154,15 +170,25 @@ class InstanceLock:
         self._acquired = False
 
     def acquire(self, replace_existing: bool = True) -> bool:
+        try:
+            _ensure_private_lock_dir(self.path.parent)
+        except Exception as exc:
+            logger.error("Failed preparing instance lock directory: %s", exc)
+            return False
+
         for _ in range(2):
             try:
-                fd = os.open(str(self.path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                fd = os.open(str(self.path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
                 with os.fdopen(fd, "w", encoding="utf-8") as f:
                     f.write(str(os.getpid()))
                 self._acquired = True
                 atexit.register(self.release)
                 return True
             except FileExistsError:
+                if not self._lock_file_is_trusted():
+                    logger.warning("Ignoring untrusted voice prompt lock file at %s.", self.path)
+                    self._safe_unlink()
+                    continue
                 existing_pid = self._read_pid()
                 if existing_pid is None:
                     self._safe_unlink()
@@ -195,11 +221,41 @@ class InstanceLock:
         except Exception:
             return None
 
+    def _lock_file_is_trusted(self) -> bool:
+        if os.name == "nt":
+            return True
+        try:
+            st = self.path.lstat()
+        except OSError:
+            return False
+        if stat.S_ISLNK(st.st_mode):
+            return False
+        if hasattr(os, "getuid") and st.st_uid != os.getuid():
+            return False
+        return (stat.S_IMODE(st.st_mode) & 0o077) == 0
+
     def _safe_unlink(self) -> None:
         try:
             self.path.unlink(missing_ok=True)
         except Exception:
             pass
+
+
+def _ensure_private_lock_dir(path: Path) -> None:
+    path.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if os.name == "nt":
+        return
+    if path.is_symlink():
+        raise PermissionError(f"lock directory must not be a symlink: {path}")
+    st = path.stat()
+    if hasattr(os, "getuid") and st.st_uid != os.getuid():
+        raise PermissionError(f"lock directory is not owned by the current user: {path}")
+    mode = stat.S_IMODE(st.st_mode)
+    if mode & 0o077:
+        path.chmod(mode & ~0o077)
+        mode = stat.S_IMODE(path.stat().st_mode)
+        if mode & 0o077:
+            raise PermissionError(f"lock directory is accessible by other users: {path}")
 
 
 def _process_exists(pid: int) -> bool:
