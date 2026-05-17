@@ -4,9 +4,24 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from types import ModuleType
+from unittest.mock import patch
 
 try:
-    from stitch_rag_bridge import app, register_stitch_spa_routes
+    rag_runtime_stub = ModuleType("rag_runtime")
+    rag_runtime_stub.ensure_rag_ready = lambda: None  # type: ignore[attr-defined]
+    rag_contract_stub = ModuleType("rag_stitch_contract")
+    rag_contract_stub._to_stitch_view = lambda payload: payload  # type: ignore[attr-defined]
+    rag_contract_stub.rag_stitch_help_query = lambda query: {}  # type: ignore[attr-defined]
+    rag_contract_stub.read_stitch_user_guide_text = lambda: ""  # type: ignore[attr-defined]
+    with patch.dict(
+        "sys.modules",
+        {
+            "rag_runtime": rag_runtime_stub,
+            "rag_stitch_contract": rag_contract_stub,
+        },
+    ):
+        from stitch_rag_bridge import app, register_stitch_spa_routes
 except ImportError as exc:  # pragma: no cover - default install may omit stitch-bridge extras
     app = None
     register_stitch_spa_routes = None
