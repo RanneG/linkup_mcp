@@ -14,7 +14,10 @@ from pathlib import Path
 
 from cryptography.fernet import Fernet
 
-_lock = threading.Lock()
+# The bridge runs Flask with threaded=True and uses one module-global SQLite
+# connection. Serialize every connection use to avoid cross-thread sqlite3
+# races such as "recursive use of cursors" during auth polling plus writes.
+_lock = threading.RLock()
 _conn: sqlite3.Connection | None = None
 
 
@@ -147,14 +150,16 @@ def google_account_upsert(email: str, google_sub: str | None, refresh_token: str
 
 def google_account_by_id(account_id: int) -> dict | None:
     c = _get_conn()
-    row = c.execute("SELECT * FROM google_accounts WHERE id = ?", (account_id,)).fetchone()
-    return dict(row) if row else None
+    with _lock:
+        row = c.execute("SELECT * FROM google_accounts WHERE id = ?", (account_id,)).fetchone()
+        return dict(row) if row else None
 
 
 def google_account_by_email(email: str) -> dict | None:
     c = _get_conn()
-    row = c.execute("SELECT * FROM google_accounts WHERE email = ?", (email,)).fetchone()
-    return dict(row) if row else None
+    with _lock:
+        row = c.execute("SELECT * FROM google_accounts WHERE email = ?", (email,)).fetchone()
+        return dict(row) if row else None
 
 
 def decrypt_refresh(row: dict) -> str:
@@ -178,16 +183,16 @@ def session_create(account_ids: list[int], active_email: str) -> str:
 
 def session_load(session_id: str) -> dict | None:
     c = _get_conn()
-    row = c.execute("SELECT * FROM sessions WHERE id = ?", (session_id,)).fetchone()
-    if row is None:
-        return None
-    if time.time() > float(row["expires_at"]):
-        with _lock:
+    with _lock:
+        row = c.execute("SELECT * FROM sessions WHERE id = ?", (session_id,)).fetchone()
+        if row is None:
+            return None
+        if time.time() > float(row["expires_at"]):
             c.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
             c.commit()
-        return None
-    payload = json.loads(row["payload_json"])
-    return {"id": row["id"], "active_email": row["active_email"], **payload}
+            return None
+        payload = json.loads(row["payload_json"])
+        return {"id": row["id"], "active_email": row["active_email"], **payload}
 
 
 def session_update(session_id: str, account_ids: list[int], active_email: str) -> None:
@@ -228,15 +233,16 @@ def session_accounts_detail(session_id: str) -> list[dict]:
 
 def subscriptions_list(owner_email: str) -> list[dict]:
     c = _get_conn()
-    rows = c.execute(
-        """
-        SELECT id, owner_email, name, category, amount_usd, due_date_iso, status, source_email, created_at, updated_at
-        FROM subscriptions
-        WHERE owner_email = ?
-        ORDER BY due_date_iso ASC, name COLLATE NOCASE ASC
-        """,
-        (owner_email,),
-    ).fetchall()
+    with _lock:
+        rows = c.execute(
+            """
+            SELECT id, owner_email, name, category, amount_usd, due_date_iso, status, source_email, created_at, updated_at
+            FROM subscriptions
+            WHERE owner_email = ?
+            ORDER BY due_date_iso ASC, name COLLATE NOCASE ASC
+            """,
+            (owner_email,),
+        ).fetchall()
     return [
         {
             "id": str(r["id"]),
