@@ -349,6 +349,8 @@ class VoicePromptTool:
         self.is_recording = False
         self._recording_frames: list[np.ndarray] = []
         self._stream: sd.InputStream | None = None
+        self._recording_sample_rate = sample_rate
+        self._recording_channels = channels
         self._recording_lock = threading.Lock()
         self.hotkey = hotkey
         hotkey_spec = _to_pynput_hotkey_spec(hotkey)
@@ -412,6 +414,8 @@ class VoicePromptTool:
                     callback=self._audio_callback,
                 )
                 self._stream.start()
+                self._recording_sample_rate = stream_rate
+                self._recording_channels = stream_channels
             except Exception as exc:
                 logger.error("Microphone access failed: %s", exc)
                 if "PaError" in str(exc):
@@ -476,30 +480,44 @@ class VoicePromptTool:
             self.osd.set_status("TRANSCRIBING", "#1f6feb")
             self.tray.set_state("processing")
             logger.info("Recording stopped. Processing transcription...")
+            frames = self._recording_frames.copy()
+            sample_rate = self._recording_sample_rate
+            channels = self._recording_channels
 
-        threading.Thread(target=self._transcribe_and_emit, daemon=True).start()
+        threading.Thread(
+            target=self._transcribe_and_emit,
+            args=(frames, sample_rate, channels),
+            daemon=True,
+        ).start()
 
-    def _wav_bytes_from_frames(self, frames: list[np.ndarray]) -> bytes:
+    def _wav_bytes_from_frames(
+        self,
+        frames: list[np.ndarray],
+        *,
+        sample_rate: int | None = None,
+        channels: int | None = None,
+    ) -> bytes:
         if not frames:
             return b""
+        wav_sample_rate = int(sample_rate or self.sample_rate)
+        wav_channels = int(channels or self.channels)
         audio = np.concatenate(frames, axis=0)
         audio = np.clip(audio, -1.0, 1.0)
         pcm = (audio * 32767).astype(np.int16)
         buffer = io.BytesIO()
         with wave.open(buffer, "wb") as wf:
-            wf.setnchannels(self.channels)
+            wf.setnchannels(wav_channels)
             wf.setsampwidth(2)
-            wf.setframerate(self.sample_rate)
+            wf.setframerate(wav_sample_rate)
             wf.writeframes(pcm.tobytes())
         return buffer.getvalue()
 
-    def _transcribe_and_emit(self) -> None:
-        frames = self._recording_frames.copy()
+    def _transcribe_and_emit(self, frames: list[np.ndarray], sample_rate: int, channels: int) -> None:
         if not frames:
             self.osd.set_status("NO AUDIO", "#d29922")
             self.tray.set_state("idle")
             return
-        wav_bytes = self._wav_bytes_from_frames(frames)
+        wav_bytes = self._wav_bytes_from_frames(frames, sample_rate=sample_rate, channels=channels)
         if not wav_bytes:
             self.osd.set_status("AUDIO ERROR", "#da3633")
             self.tray.set_state("idle")
