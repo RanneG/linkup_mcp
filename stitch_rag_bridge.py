@@ -635,7 +635,7 @@ def face_verify():
 
     body = request.get_json(silent=True) or {}
     email = (body.get("email") or "").strip()
-    threshold = float(body.get("threshold") or DEFAULT_MATCH_THRESHOLD)
+    threshold = DEFAULT_MATCH_THRESHOLD
     liveness_frames_b64 = body.get("liveness_frames") or []
     main_b64 = body.get("image") or body.get("frame")
 
