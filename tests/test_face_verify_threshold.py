@@ -3,9 +3,10 @@ from __future__ import annotations
 
 import importlib
 import os
+import sys
 import tempfile
 import unittest
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from unittest.mock import patch
 
 import numpy as np
@@ -24,6 +25,21 @@ class _FakeFaceStorage:
         self.touched.append(email)
 
 
+def _rag_import_stubs() -> dict[str, ModuleType]:
+    rag_runtime = ModuleType("rag_runtime")
+
+    async def ensure_rag_ready():
+        raise AssertionError("RAG runtime is not used by face verification tests")
+
+    rag_runtime.ensure_rag_ready = ensure_rag_ready  # type: ignore[attr-defined]
+
+    rag_contract = ModuleType("rag_stitch_contract")
+    rag_contract._to_stitch_view = lambda payload: payload  # type: ignore[attr-defined]
+    rag_contract.rag_stitch_help_query = ensure_rag_ready  # type: ignore[attr-defined]
+    rag_contract.read_stitch_user_guide_text = lambda: ""  # type: ignore[attr-defined]
+    return {"rag_runtime": rag_runtime, "rag_stitch_contract": rag_contract}
+
+
 class TestFaceVerifyThreshold(unittest.TestCase):
     def test_verify_ignores_client_supplied_threshold(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -38,7 +54,9 @@ class TestFaceVerifyThreshold(unittest.TestCase):
                 account_id = store.google_account_upsert("user@example.com", "sub", "refresh", None)
                 session_id = store.session_create([account_id], "user@example.com")
 
-                import stitch_rag_bridge
+                sys.modules.pop("stitch_rag_bridge", None)
+                with patch.dict(sys.modules, _rag_import_stubs()):
+                    import stitch_rag_bridge
 
                 storage = _FakeFaceStorage()
                 thresholds: list[float] = []
