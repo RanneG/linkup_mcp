@@ -4,7 +4,7 @@ _Last updated: 2026-05-05._
 
 **Production split:** Stitch UI lives in **[RanneG/stitch-app](https://github.com/RanneG/stitch-app)** (`main` has first import + CI). **linkup_mcp** remains **bridge + MCP**. **Inventory and remaining cutover steps:** **[MIGRATION.md](MIGRATION.md)**.
 
-**Quickest launch (no terminal):** double-click **[Stitch.bat](../../Stitch.bat)** at the repo root (bundled GUI: venv, npm build in **stitch-app**, pywebview + Flask). Requires a **[stitch-app](https://github.com/RanneG/stitch-app)** clone (`../stitch-app` or `STITCH_APP_ROOT`) + Python + Node.
+**Quickest launch (no terminal):** double-click **`Stitch.bat`** in the **[stitch-app](https://github.com/RanneG/stitch-app)** repo root. Keep this repo available for bridge/backend capabilities (`stitch_rag_bridge.py` on `127.0.0.1:8765`) and set `STITCH_APP_ROOT` if stitch-app is not cloned beside linkup_mcp.
 
 ## Where things live
 

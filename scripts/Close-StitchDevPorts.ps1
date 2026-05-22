@@ -6,7 +6,7 @@
   Targets loopback dev servers for this repo only (defaults below). Does not "close localhost"
   itself; it ends the processes holding those TCP listen sockets.
 
-  Default ports: 8765 (stitch_rag_bridge / stitch_gui), 1420 (Tauri dev), 5173 (Vite).
+  Default ports: 8765 (stitch_rag_bridge), 1420 (Tauri dev), 5173 (Vite).
 
   If STITCH_RAG_BRIDGE_PORT is set to a number, that port is included even if not in -Ports.
 

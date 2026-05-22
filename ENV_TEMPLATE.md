@@ -2,7 +2,7 @@
 
 Create a `.env` file in the project root with the following variables:
 
-Python install profiles (see **README** Quick Start): default **`uv sync`** is MCP + RAG only. For **`stitch_rag_bridge.py`** / face / OAuth / server STT use **`uv sync --extra stitch-bridge`**; for **`stitch_gui.py`** add **`--extra stitch-gui`**.
+Python install profiles (see **README** Quick Start): default **`uv sync`** is MCP + RAG only. For **`stitch_rag_bridge.py`** / face / OAuth / server STT use **`uv sync --extra stitch-bridge`**. Stitch GUI launchers live in **stitch-app**.
 
 ```bash
 # Linkup API Key — get your key from https://www.linkup.so/
@@ -19,7 +19,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 # STITCH_WHISPER_DEVICE=cpu      # cpu or cuda
 # STITCH_WHISPER_COMPUTE_TYPE=int8
 # STITCH_ALLOWED_ORIGINS=http://127.0.0.1:1420,http://localhost:1420
-# STITCH_DESKTOP_DIST=C:/path/to/stitch-app/apps/desktop/dist   # stitch_gui.py: serve built SPA from same process
+# STITCH_DESKTOP_DIST=C:/path/to/stitch-app/apps/desktop/dist   # optional: serve a built Stitch SPA from this bridge process
 
 # Optional: include debug_retrieval_cards on rag_stitch / bridge fallback responses
 # STITCH_RAG_DEBUG=1

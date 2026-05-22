@@ -9,7 +9,7 @@ Run from repo root (use the project venv so deps resolve):
 Loads **``.env``** from the same directory as this file (repo root) so ``GOOGLE_OAUTH_*`` and other bridge vars apply without exporting them in the shell.
 
 Defaults: http://127.0.0.1:8765
-  GET  /                 (HTML hint, JSON, or built SPA when STITCH_DESKTOP_DIST or app STITCH_SPA_ROOT is set — stitch_gui.py sets both)
+  GET  /                 (HTML hint, JSON, or built SPA when STITCH_DESKTOP_DIST or app STITCH_SPA_ROOT is set)
   GET  /api/health       (same payload as GET /health — use under Vite `/api` proxy)
   POST /api/rag/stitch  JSON {"query":"..."}
   POST /api/rag/stitch-help  JSON {"query":"..."}  (answers from docs/stitch_user_guide.md via Ollama)
@@ -107,7 +107,7 @@ def _get_stitch_spa_dist() -> str | None:
 
 
 def register_stitch_spa_routes() -> None:
-    """Register /assets/* and SPA fallback when a dist path is configured (see stitch_gui.py). Safe to call twice."""
+    """Register /assets/* and SPA fallback when a dist path is configured. Safe to call twice."""
     global _spa_extra_routes_registered
     if _spa_extra_routes_registered:
         return
@@ -408,12 +408,12 @@ code{background:#eee;padding:.1rem .35rem;border-radius:4px}a{color:#06c}</style
 (RAG, Google auth, subscriptions, face). The UI runs elsewhere.</p>
 <h2>Open the real Stitch UI</h2>
 <ul>
-  <li><strong>One bundled window (UI + API):</strong> double-click <code>Stitch.bat</code> at the
-    <code>linkup_mcp</code> repo root (needs Python + Node + a <strong>stitch-app</strong> clone beside the repo; see <code>STITCH_APP_ROOT</code> / <code>../stitch-app</code>).</li>
-  <li><strong>Tauri desktop:</strong> from the <code>linkup_mcp</code> repo run
-    <code>Stitch-Desktop.bat</code> or <code>npm run launch:stitch</code> (native window).</li>
+  <li><strong>One bundled window (UI + API):</strong> double-click <code>Stitch.bat</code> in the
+    <strong>stitch-app</strong> repo root (needs Python + Node and this <code>linkup_mcp</code> clone available for bridge capabilities).</li>
+  <li><strong>Tauri desktop:</strong> from the <strong>stitch-app</strong> repo run
+    <code>Stitch-Desktop.bat</code> or <code>npm run dev</code> (native window).</li>
   <li><strong>Browser dev:</strong> after <code>npm run dev:browser</code>, open
-    <a href="http://localhost:5173/">http://localhost:5173/</a> (Vite default) or the URL printed in the terminal.</li>
+    <a href="http://localhost:5173/">http://localhost:5173/</a> (Vite default) or the URL printed in the terminal. This repo's root helper delegates to <code>STITCH_APP_ROOT</code> / <code>../stitch-app</code>.</li>
   <li><strong>Tauri dev</strong> often uses <a href="http://localhost:1420/">http://localhost:1420/</a> for the webview — use the window Tauri opens.</li>
 </ul>
 <p>API check: <a href="/api/health">GET /api/health</a> (JSON)</p>

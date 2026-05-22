@@ -13,7 +13,7 @@ This document remains the **checklist** for packaging, CI, and optional bridge d
 | Repository | Owns | Consumers |
 |------------|------|-----------|
 | **[stitch-app](https://github.com/RanneG/stitch-app)** | Tauri app, React components, Vite config, Stitch `package.json`, release CI, app branding | End users; developers run `npm run dev` with `/api` → bridge. |
-| **linkup_mcp** (this repo) | `server.py` (MCP), `rag.py`, `data/`, `stitch_rag_bridge.py`, `stitch_auth/`, `face_verification/`, `stitch_gui.py`, `docs/stitch_user_guide.md`, contract tests | Cursor (MCP); Stitch desktop (HTTP to `8765` or deployed bridge URL). |
+| **linkup_mcp** (this repo) | `server.py` (MCP), `rag.py`, `data/`, `stitch_rag_bridge.py`, `stitch_auth/`, `face_verification/`, `docs/stitch_user_guide.md`, contract tests | Cursor (MCP); Stitch desktop (HTTP to `8765` or deployed bridge URL). |
 
 The **HTTP contract** (paths under `/api/*`) stays stable. Vite proxy notes live in **stitch-app** and in **`integrations/stitch/README.md`** (pointer).
 
@@ -25,16 +25,15 @@ The **HTTP contract** (paths under `/api/*`) stays stable. Vite proxy notes live
 | `stitch_rag_bridge.py` | Flask `/api` surface for Stitch |
 | `stitch_auth/` | Google OAuth, sessions, subscription SQLite on the bridge |
 | `face_verification/` | Local enroll/verify + storage |
-| `stitch_gui.py` | Bundled window (built SPA + bridge) |
 | `docs/stitch_user_guide.md` | `GET /api/stitch-user-guide`, `POST /api/rag/stitch-help` grounding |
 | `docs/stitch/` (this folder) | Handoff docs so the repo root stays MCP-focused |
-| `scripts/StitchPaths.ps1`, `scripts/run-stitch-ui.mjs`, `scripts/Start-Stitch*.ps1` | Compatibility helpers used by stitch-app launchers and local bridge workflows |
+| `scripts/StitchPaths.ps1`, `scripts/run-stitch-ui.mjs` | Compatibility helpers that resolve **stitch-app** for local bridge/UI workflows |
 
 ## Python dependency profiles (same repo)
 
 - **Default (`uv sync` / `pip install -e .`):** MCP stdio + LlamaIndex RAG — no Flask, DeepFace, TensorFlow, Google client libs, or SpeechRecognition.
 - **`stitch-bridge` extra:** everything needed for **`stitch_rag_bridge.py`** (Flask, face stack, OAuth/Gmail, `SpeechRecognition` for `/api/voice/transcribe`).
-- **`stitch-gui` extra:** pywebview for **`stitch_gui.py`**. Bundled single-window flow needs **both** `stitch-bridge` and `stitch-gui`.
+- **Bundled desktop UI:** owned by **stitch-app**. This repo no longer ships `stitch_gui.py` or a `stitch-gui` extra.
 
 ## RAG coupling: B2 (current) vs B1 (optional later)
 
@@ -55,7 +54,7 @@ Run **linkup_mcp** `stitch_rag_bridge.py` and **stitch-app** `npm run dev:browse
 
 Done: **integrations/** UI snapshot removed; **sync/copy scripts** removed; **`run-stitch-ui.mjs`** uses **stitch-app** only (`STITCH_APP_ROOT` or **`../stitch-app`**).
 
-Done: root **`Stitch*.bat`** are now forwarding stubs that hand off to **stitch-app** launchers.
+Done: root **`Stitch*.bat`**, `stitch_gui.py`, and `scripts/Start-Stitch*.ps1` were removed from **linkup_mcp**. Use **stitch-app** `Stitch.bat` / `Stitch-Desktop.bat` as the canonical double-click launchers.
 
 ### Phase 4 — Production bridge (optional)
 
@@ -65,8 +64,8 @@ Package **`stitch_rag_bridge`** as a service or container; optional **`STITCH_US
 
 - [x] [stitch-app](https://github.com/RanneG/stitch-app) on `main` with CI.
 - [x] UI sources removed from linkup_mcp `integrations/` (pointer README kept).
-- [x] `run-stitch-ui.mjs` + `StitchPaths.ps1` + launchers use **stitch-app** path resolution.
-- [x] Canonical double-click launchers now live in **stitch-app**; linkup_mcp launchers forward to them.
+- [x] `run-stitch-ui.mjs` + `StitchPaths.ps1` use **stitch-app** path resolution.
+- [x] Canonical double-click launchers now live in **stitch-app**; linkup_mcp no longer ships root launcher stubs.
 - [ ] Vite proxy / bridge smoke test when changing ports or CORS.
 - [ ] Optional: hosted bridge URL + client env for non-local Stitch builds.
 

@@ -7,4 +7,4 @@ The **Stitch desktop app** lives in **[RanneG/stitch-app](https://github.com/Ran
 | [MIGRATION.md](MIGRATION.md) | Checklist: what stays in linkup_mcp vs stitch-app, dependency profiles, phases. |
 | [STATUS.md](STATUS.md) | Roadmap, voice intents, Google sign-in env notes. |
 
-Python entrypoints remain at the repo root (`stitch_rag_bridge.py`, `stitch_gui.py`, …) so `pip install -e .` and Cursor MCP keep working without a package-layout migration.
+Python entrypoints remain at the repo root (`server.py`, `rag.py`, `stitch_rag_bridge.py`, …) so `pip install -e .` and Cursor MCP keep working without a package-layout migration. The Stitch GUI launchers now live in **stitch-app**.

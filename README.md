@@ -70,7 +70,7 @@ Add to `~/.cursor/mcp.json` (or `C:\Users\<username>\.cursor\mcp.json` on Window
 
 ### 5. Free local dev ports (optional)
 
-If **8765** (Stitch bridge / bundled UI), **1420** (Tauri), or **5173** (Vite) are stuck after a crash, run **`Close-DevPorts.bat`** at the repo root (or `.\scripts\Close-StitchDevPorts.ps1`). Use **`-DryRun`** to list listeners without killing. This stops **processes listening on those ports**, not “localhost” itself.
+If **8765** (Stitch bridge), **1420** (Tauri), or **5173** (Vite) are stuck after a crash, run **`Close-DevPorts.bat`** at the repo root (or `.\scripts\Close-StitchDevPorts.ps1`). Use **`-DryRun`** to list listeners without killing. This stops **processes listening on those ports**, not “localhost” itself.
 
 ### 6. Restart Cursor & Use!
 
