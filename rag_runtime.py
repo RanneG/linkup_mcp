@@ -6,10 +6,12 @@ Keeps a single process-global index so MCP and bridge do not duplicate ingest wh
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 from typing import Optional
 
 from rag import RAGWorkflow
 
+_DEFAULT_DATA_DIR = Path(__file__).resolve().parent / "data"
 _rag_workflow: Optional[RAGWorkflow] = None
 _rag_ready_lock = asyncio.Lock()
 
@@ -22,5 +24,5 @@ async def ensure_rag_ready() -> RAGWorkflow:
     async with _rag_ready_lock:
         if _rag_workflow is None:
             _rag_workflow = RAGWorkflow()
-            await _rag_workflow.ingest_documents("data")
+            await _rag_workflow.ingest_documents(str(_DEFAULT_DATA_DIR))
         return _rag_workflow
