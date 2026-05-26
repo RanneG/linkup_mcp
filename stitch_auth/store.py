@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import sqlite3
+import stat
 import threading
 import time
 import uuid
@@ -16,13 +17,31 @@ from cryptography.fernet import Fernet
 
 _lock = threading.Lock()
 _conn: sqlite3.Connection | None = None
+_OWNER_ONLY_DIR = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR
+_OWNER_READ_WRITE = stat.S_IRUSR | stat.S_IWUSR
+
+
+def _chmod_owner_only(path: Path, mode: int) -> None:
+    if os.name == "nt":
+        return
+    try:
+        os.chmod(path, mode)
+    except OSError:
+        pass
+
+
+def _default_auth_dir() -> Path:
+    path = Path.home() / ".stitch"
+    path.mkdir(parents=True, exist_ok=True)
+    _chmod_owner_only(path, _OWNER_ONLY_DIR)
+    return path
 
 
 def _db_path() -> Path:
     raw = os.getenv("STITCH_AUTH_DB", "").strip()
     if raw:
         return Path(raw)
-    return Path.home() / ".stitch" / "stitch_auth.db"
+    return _default_auth_dir() / "stitch_auth.db"
 
 
 def _fernet() -> Fernet:
@@ -32,10 +51,16 @@ def _fernet() -> Fernet:
         if len(key) != 44:
             key = base64.urlsafe_b64encode(hashlib.sha256(key).digest())
         return Fernet(key)
-    path = Path.home() / ".stitch" / ".google_fernet_key"
-    path.parent.mkdir(parents=True, exist_ok=True)
+    path = _default_auth_dir() / ".google_fernet_key"
     if not path.exists():
-        path.write_bytes(Fernet.generate_key())
+        try:
+            fd = os.open(str(path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, _OWNER_READ_WRITE)
+        except FileExistsError:
+            pass
+        else:
+            with os.fdopen(fd, "wb") as f:
+                f.write(Fernet.generate_key())
+    _chmod_owner_only(path, _OWNER_READ_WRITE)
     return Fernet(path.read_bytes())
 
 
@@ -47,6 +72,7 @@ def _get_conn() -> sqlite3.Connection:
             p.parent.mkdir(parents=True, exist_ok=True)
             _conn = sqlite3.connect(str(p), check_same_thread=False)
             _conn.row_factory = sqlite3.Row
+            _chmod_owner_only(p, _OWNER_READ_WRITE)
             _migrate(_conn)
         return _conn
 
