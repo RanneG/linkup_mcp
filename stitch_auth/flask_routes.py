@@ -200,18 +200,19 @@ def register_stitch_auth_routes(app: Flask) -> None:
         picture = info.get("picture")
         aid = google_account_upsert(email, sub, refresh, picture)
         linking_sid = pending.get("linking_session_id") or None
+        sid = session_create([aid], email)
         if linking_sid:
             sess = session_load(linking_sid)
             if sess:
-                ids = list(sess.get("account_ids") or [])
-                if aid not in ids:
-                    ids.append(aid)
-                session_update(linking_sid, ids, email)
-                sid = linking_sid
-            else:
-                sid = session_create([aid], email)
-        else:
-            sid = session_create([aid], email)
+                ids = [int(x) for x in sess.get("account_ids") or []]
+                # The OAuth callback has no browser-bound proof that the account owner
+                # initiated the existing session's link flow. Only reuse that session
+                # for accounts it already owns; otherwise keep the new account isolated.
+                if aid in ids:
+                    session_update(linking_sid, ids, email)
+                    sid = linking_sid
+                else:
+                    logger.warning("Ignoring OAuth link of new account %s into existing session", email)
         payload = {"ok": True, "session_id": sid, "email": email, "pictureUrl": picture}
         return _html_callback_page(origin, payload), 200, {"Content-Type": "text/html; charset=utf-8"}
 
