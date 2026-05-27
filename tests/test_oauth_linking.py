@@ -10,9 +10,13 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from flask import Flask
+try:
+    from flask import Flask
+except ImportError:  # pragma: no cover - exercised in the default MCP-only install profile
+    Flask = None
 
 
+@unittest.skipIf(Flask is None, "Flask is only installed with the stitch-bridge extra")
 class OAuthLinkingTests(unittest.TestCase):
     def _load_auth_modules(self, tmp: str):
         env = {
