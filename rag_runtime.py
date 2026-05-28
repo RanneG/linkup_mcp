@@ -21,6 +21,7 @@ async def ensure_rag_ready() -> RAGWorkflow:
         return _rag_workflow
     async with _rag_ready_lock:
         if _rag_workflow is None:
-            _rag_workflow = RAGWorkflow()
-            await _rag_workflow.ingest_documents("data")
+            workflow = RAGWorkflow()
+            await workflow.ingest_documents("data")
+            _rag_workflow = workflow
         return _rag_workflow
