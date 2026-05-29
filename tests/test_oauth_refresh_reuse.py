@@ -89,7 +89,7 @@ class OAuthRefreshReuseTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         body = response.get_data(as_text=True)
         self.assertIn("no_refresh_token", body)
-        self.assertNotIn("stitch_oauth_session", body)
+        self.assertIsNone(self.store.google_account_by_email("new@example.com"))
 
 
 if __name__ == "__main__":
