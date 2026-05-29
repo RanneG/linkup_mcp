@@ -19,7 +19,7 @@ jobs:
           python -m pip install -U pip setuptools wheel
           python -m pip install -e .
       - name: Contract tests
-        run: python -m unittest tests.test_rag_stitch_contract -v
+        run: python -m unittest tests.test_rag_stitch_contract tests.test_local_whisper_stt -v
 
   stitch-api-types:
     runs-on: ubuntu-latest
@@ -49,4 +49,4 @@ jobs:
       - name: Import bridge module
         run: python -c "import stitch_rag_bridge; print('stitch_rag_bridge ok')"
       - name: Face storage tests
-        run: python -m unittest tests.test_face_storage -v
+        run: python -m unittest tests.test_face_storage tests.test_oauth_refresh_reuse -v
