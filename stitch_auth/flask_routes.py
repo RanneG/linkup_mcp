@@ -183,9 +183,8 @@ def register_stitch_auth_routes(app: Flask) -> None:
             payload = {"ok": False, "error": "token_exchange_failed", "detail": str(e)}
             return _html_callback_page(origin, payload), 200, {"Content-Type": "text/html; charset=utf-8"}
         access = token.get("access_token") or ""
-        refresh = token.get("refresh_token") or ""
-        if not access or not refresh:
-            payload = {"ok": False, "error": "no_refresh_token", "detail": "Try again and ensure consent is granted."}
+        if not access:
+            payload = {"ok": False, "error": "missing_access_token", "detail": "Google did not return an access token."}
             return _html_callback_page(origin, payload), 200, {"Content-Type": "text/html; charset=utf-8"}
         try:
             info = google_client.userinfo_from_token_response(token)
@@ -198,6 +197,19 @@ def register_stitch_auth_routes(app: Flask) -> None:
             return _html_callback_page(origin, payload), 200, {"Content-Type": "text/html; charset=utf-8"}
         sub = info.get("sub")
         picture = info.get("picture")
+        refresh = token.get("refresh_token") or ""
+        if not refresh:
+            existing = google_account_by_email(email)
+            if existing:
+                try:
+                    refresh = decrypt_refresh(existing)
+                except Exception as e:  # noqa: BLE001
+                    logger.exception("failed to decrypt stored refresh token for %s", email)
+                    payload = {"ok": False, "error": "refresh_token_unavailable", "detail": str(e)}
+                    return _html_callback_page(origin, payload), 200, {"Content-Type": "text/html; charset=utf-8"}
+            else:
+                payload = {"ok": False, "error": "no_refresh_token", "detail": "Try again and ensure consent is granted."}
+                return _html_callback_page(origin, payload), 200, {"Content-Type": "text/html; charset=utf-8"}
         aid = google_account_upsert(email, sub, refresh, picture)
         linking_sid = pending.get("linking_session_id") or None
         if linking_sid:
