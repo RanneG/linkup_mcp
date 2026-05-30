@@ -69,7 +69,8 @@ class VoicePromptToolTests(unittest.TestCase):
                 "pyperclip",
                 SimpleNamespace(copy=mock.Mock(side_effect=RuntimeError("clipboard unavailable"))),
             ):
-                tool._transcribe_and_emit()
+                with mock.patch.object(voice_prompt_tool, "logger"):
+                    tool._transcribe_and_emit()
 
         self.assertIn(("CLIPBOARD ERROR", "#da3633"), tool.osd.calls)
         self.assertEqual(tool.tray.states[-1], "idle")
