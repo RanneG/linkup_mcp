@@ -71,6 +71,16 @@ TEMPLATES_PATH = Path(__file__).resolve().parent / "config" / "templates.json"
 INSTANCE_LOCK_PATH = Path(tempfile.gettempdir()) / "voice_prompt_tool.lock"
 
 
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(os.getenv(name, str(default)))
+    except (TypeError, ValueError):
+        return default
+
+
+DEFAULT_MAX_RECORDING_SECONDS = _env_int("VOICE_PROMPT_MAX_RECORDING_SECONDS", 300)
+
+
 FILE_REF_RE = re.compile(
     r"\b([A-Za-z0-9_\-./]+(?:\.[A-Za-z0-9]{1,6}))\b"
 )
@@ -332,6 +342,7 @@ class VoicePromptTool:
         system_instruction: str | None = None,
         continuation_mode: bool = False,
         continuation_window_seconds: int = 30,
+        max_recording_seconds: int = DEFAULT_MAX_RECORDING_SECONDS,
     ) -> None:
         if keyboard is None or sd is None or pyperclip is None:
             raise RuntimeError(
@@ -344,10 +355,17 @@ class VoicePromptTool:
         self.system_instruction = system_instruction.strip() if system_instruction else None
         self.continuation_mode = continuation_mode
         self.continuation_window_seconds = max(1, continuation_window_seconds)
+        self.max_recording_seconds = max(0, int(max_recording_seconds))
+        self._max_recording_samples = (
+            int(self.sample_rate * self.max_recording_seconds) if self.max_recording_seconds else 0
+        )
         self._last_prompt_copied_at: float | None = None
         self._clipboard_buffer: str | None = None
         self.is_recording = False
         self._recording_frames: list[np.ndarray] = []
+        self._recording_sample_count = 0
+        self._recording_limit_reached = False
+        self._recording_limit_stop_requested = False
         self._stream: sd.InputStream | None = None
         self._recording_lock = threading.Lock()
         self.hotkey = hotkey
@@ -402,6 +420,9 @@ class VoicePromptTool:
             if self.is_recording:
                 return
             self._recording_frames.clear()
+            self._recording_sample_count = 0
+            self._recording_limit_reached = False
+            self._recording_limit_stop_requested = False
             try:
                 stream_device, stream_channels, stream_rate = self._resolve_stream_settings()
                 self._stream = sd.InputStream(
@@ -459,7 +480,36 @@ class VoicePromptTool:
     def _audio_callback(self, indata, frames, time_info, status) -> None:
         if status:
             logger.warning("Input stream status: %s", status)
-        self._recording_frames.append(indata.copy())
+        if not self.is_recording:
+            return
+
+        chunk = indata
+        if self._max_recording_samples:
+            remaining = self._max_recording_samples - self._recording_sample_count
+            if remaining <= 0:
+                self._handle_recording_limit_reached()
+                return
+            if len(chunk) > remaining:
+                chunk = chunk[:remaining]
+
+        self._recording_frames.append(chunk.copy())
+        self._recording_sample_count += len(chunk)
+
+        if self._max_recording_samples and self._recording_sample_count >= self._max_recording_samples:
+            self._handle_recording_limit_reached()
+
+    def _handle_recording_limit_reached(self) -> None:
+        if self._recording_limit_reached:
+            return
+        self._recording_limit_reached = True
+        logger.warning(
+            "Recording reached max length of %s seconds; stopping automatically.",
+            self.max_recording_seconds,
+        )
+        self.osd.set_status("MAX LENGTH", "#d29922")
+        if not self._recording_limit_stop_requested:
+            self._recording_limit_stop_requested = True
+            threading.Thread(target=self.stop_recording, daemon=True).start()
 
     def stop_recording(self) -> None:
         with self._recording_lock:
@@ -531,7 +581,14 @@ class VoicePromptTool:
             return
 
         clipboard_text = self._build_clipboard_output(result.formatted_prompt)
-        pyperclip.copy(clipboard_text)
+        try:
+            pyperclip.copy(clipboard_text)
+        except Exception as exc:
+            logger.exception("Clipboard copy failed")
+            self.osd.set_status("CLIPBOARD ERROR", "#da3633")
+            logger.error("Clipboard copy failed: %s", exc)
+            self.tray.set_state("idle")
+            return
 
         if self.autopaste:
             self._attempt_autopaste()
@@ -715,6 +772,12 @@ def parse_args() -> argparse.Namespace:
         help="Continuation append window in seconds (default: 30)",
     )
     parser.add_argument(
+        "--max-recording-seconds",
+        type=int,
+        default=DEFAULT_MAX_RECORDING_SECONDS,
+        help="Maximum capture length before auto-stopping (default: 300, 0 disables)",
+    )
+    parser.add_argument(
         "--log-file",
         default=None,
         help="Optional path to log file for timestamped diagnostics",
@@ -883,6 +946,7 @@ def main() -> int:
             system_instruction=selected_instruction,
             continuation_mode=args.continuation_mode,
             continuation_window_seconds=args.continuation_window_seconds,
+            max_recording_seconds=args.max_recording_seconds,
         )
     except RuntimeError as exc:
         logger.error(str(exc))
