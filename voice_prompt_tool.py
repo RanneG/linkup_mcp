@@ -538,7 +538,12 @@ class VoicePromptTool:
 
         self.osd.set_status("COPIED", "#238636")
         self.tray.set_state("idle")
-        logger.info("Prompt copied to clipboard:\n%s", clipboard_text)
+        _log_prompt_copied(
+            clipboard_text,
+            result,
+            continuation_mode=self.continuation_mode,
+            autopaste=self.autopaste,
+        )
 
     def _build_clipboard_output(self, new_prompt: str) -> str:
         if not self.continuation_mode:
@@ -598,6 +603,23 @@ def normalize_technical_text(text: str) -> tuple[str, list[str]]:
     normalized = _ensure_terminal_punctuation(normalized)
     normalized = _promote_file_refs(normalized, files)
     return normalized, files
+
+
+def _log_prompt_copied(
+    clipboard_text: str,
+    result: PromptResult,
+    *,
+    continuation_mode: bool,
+    autopaste: bool,
+) -> None:
+    """Log prompt-copy success without persisting dictated prompt contents."""
+    logger.info(
+        "Prompt copied to clipboard (chars=%s, file_refs=%s, continuation=%s, autopaste=%s)",
+        len(clipboard_text),
+        len(result.file_refs),
+        continuation_mode,
+        autopaste,
+    )
 
 
 def _extract_file_refs(text: str) -> list[str]:
