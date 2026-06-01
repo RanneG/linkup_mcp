@@ -476,8 +476,9 @@ class VoicePromptTool:
             self.osd.set_status("TRANSCRIBING", "#1f6feb")
             self.tray.set_state("processing")
             logger.info("Recording stopped. Processing transcription...")
+            frames = self._recording_frames.copy()
 
-        threading.Thread(target=self._transcribe_and_emit, daemon=True).start()
+        threading.Thread(target=self._transcribe_and_emit, args=(frames,), daemon=True).start()
 
     def _wav_bytes_from_frames(self, frames: list[np.ndarray]) -> bytes:
         if not frames:
@@ -493,8 +494,7 @@ class VoicePromptTool:
             wf.writeframes(pcm.tobytes())
         return buffer.getvalue()
 
-    def _transcribe_and_emit(self) -> None:
-        frames = self._recording_frames.copy()
+    def _transcribe_and_emit(self, frames: list[np.ndarray]) -> None:
         if not frames:
             self.osd.set_status("NO AUDIO", "#d29922")
             self.tray.set_state("idle")
