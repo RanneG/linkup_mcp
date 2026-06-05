@@ -18,6 +18,7 @@ Run:
 from __future__ import annotations
 
 import argparse
+import asyncio
 import atexit
 import io
 import json
@@ -26,6 +27,7 @@ import os
 import platform
 import queue
 import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -63,6 +65,16 @@ try:
     import pystray  # type: ignore[reportMissingImports]
 except Exception:  # pragma: no cover - runtime dependency check
     pystray = None  # type: ignore[assignment]
+
+try:
+    import winsound
+except Exception:  # pragma: no cover - runtime dependency check
+    winsound = None  # type: ignore[assignment]
+
+try:
+    import edge_tts  # type: ignore[reportMissingImports]
+except Exception:  # pragma: no cover - runtime dependency check
+    edge_tts = None  # type: ignore[assignment]
 
 from local_whisper_stt import transcribe_wav_bytes
 
@@ -284,12 +296,18 @@ class TrayController:
         if pystray is None:
             return None
         items = []
+        def make_select_action(device_idx: int):
+            return lambda _icon, _item: self._handle_device_select(device_idx)
+
+        def make_checked(device_idx: int):
+            return lambda _item: self._get_input_device() == device_idx
+
         for idx, name in self._list_input_devices():
             items.append(
                 pystray.MenuItem(
                     f"{idx}: {name}",
-                    lambda _icon, _item, device_idx=idx: self._handle_device_select(device_idx),
-                    checked=lambda _item, device_idx=idx: self._get_input_device() == device_idx,
+                    make_select_action(idx),
+                    checked=make_checked(idx),
                     radio=True,
                 )
             )
@@ -325,9 +343,23 @@ class VoicePromptTool:
     def __init__(
         self,
         hotkey: str,
+        speak_hotkey: str = "alt+b",
+        toggle_speak_hotkey: str = "alt+n",
+        stop_speak_hotkey: str = "alt+m",
         sample_rate: int = 16000,
         channels: int = 1,
         autopaste: bool = False,
+        autopaste_delay_ms: int = 0,
+        autopaste_beep: bool = False,
+        autopaste_one_line: bool = False,
+        intent_cleanup: bool = False,
+        speak_output: bool = False,
+        speak_selected_first: bool = True,
+        speak_rate: int = 0,
+        speak_voice_index: int | None = None,
+        speak_voice_name: str | None = None,
+        tts_engine: str = "auto",
+        speak_skip_prompt_envelopes: bool = True,
         input_device: str | int | None = None,
         system_instruction: str | None = None,
         continuation_mode: bool = False,
@@ -339,13 +371,30 @@ class VoicePromptTool:
             )
         self.sample_rate = sample_rate
         self.channels = channels
+        self.speak_hotkey = speak_hotkey
+        self.toggle_speak_hotkey = toggle_speak_hotkey
+        self.stop_speak_hotkey = stop_speak_hotkey
         self.autopaste = autopaste
+        self.autopaste_delay_ms = max(0, int(autopaste_delay_ms))
+        self.autopaste_beep = autopaste_beep
+        self.autopaste_one_line = autopaste_one_line
+        self.intent_cleanup = intent_cleanup
+        self.speak_output = speak_output
+        self.speak_selected_first = speak_selected_first
+        self.speak_rate = max(-10, min(10, int(speak_rate)))
+        self.speak_voice_index = speak_voice_index
+        self.speak_voice_name = speak_voice_name.strip() if speak_voice_name else None
+        self.tts_engine = (tts_engine or "auto").strip().lower()
+        self.speak_skip_prompt_envelopes = speak_skip_prompt_envelopes
         self.input_device = input_device
         self.system_instruction = system_instruction.strip() if system_instruction else None
         self.continuation_mode = continuation_mode
         self.continuation_window_seconds = max(1, continuation_window_seconds)
         self._last_prompt_copied_at: float | None = None
         self._clipboard_buffer: str | None = None
+        self.speak_enabled = True
+        self._speak_process: subprocess.Popen[str] | None = None
+        self._speak_process_lock = threading.Lock()
         self.is_recording = False
         self._recording_frames: list[np.ndarray] = []
         self._stream: sd.InputStream | None = None
@@ -355,6 +404,21 @@ class VoicePromptTool:
         self._hotkey = keyboard.HotKey(
             keyboard.HotKey.parse(hotkey_spec),
             self._on_hotkey,
+        )
+        speak_hotkey_spec = _to_pynput_hotkey_spec(speak_hotkey)
+        self._speak_hotkey = keyboard.HotKey(
+            keyboard.HotKey.parse(speak_hotkey_spec),
+            self._on_speak_hotkey,
+        )
+        toggle_hotkey_spec = _to_pynput_hotkey_spec(toggle_speak_hotkey)
+        self._toggle_speak_hotkey = keyboard.HotKey(
+            keyboard.HotKey.parse(toggle_hotkey_spec),
+            self._on_toggle_speak_hotkey,
+        )
+        stop_hotkey_spec = _to_pynput_hotkey_spec(stop_speak_hotkey)
+        self._stop_speak_hotkey = keyboard.HotKey(
+            keyboard.HotKey.parse(stop_hotkey_spec),
+            self._on_stop_speak_hotkey,
         )
         self._listener: keyboard.Listener | None = None
         self._stop_event = threading.Event()
@@ -391,11 +455,35 @@ class VoicePromptTool:
         # debounce repeated toggles while held down
         time.sleep(0.2)
 
+    def _on_speak_hotkey(self) -> None:
+        threading.Thread(target=self._speak_from_selection_or_clipboard, daemon=True).start()
+        time.sleep(0.2)
+
+    def _on_toggle_speak_hotkey(self) -> None:
+        self.speak_enabled = not self.speak_enabled
+        status = "ON" if self.speak_enabled else "OFF"
+        logger.info("Speech playback toggled: %s", status)
+        self.osd.set_status(f"SPEAK {status}", "#2ea043" if self.speak_enabled else "#d29922")
+        time.sleep(0.2)
+
+    def _on_stop_speak_hotkey(self) -> None:
+        self._stop_speaking()
+        self.osd.set_status("SPEAK STOP", "#da3633")
+        time.sleep(0.2)
+
     def _on_press(self, key: keyboard.Key | keyboard.KeyCode) -> None:
-        self._hotkey.press(self._canonical(key))
+        canonical = self._canonical(key)
+        self._hotkey.press(canonical)
+        self._speak_hotkey.press(canonical)
+        self._toggle_speak_hotkey.press(canonical)
+        self._stop_speak_hotkey.press(canonical)
 
     def _on_release(self, key: keyboard.Key | keyboard.KeyCode) -> None:
-        self._hotkey.release(self._canonical(key))
+        canonical = self._canonical(key)
+        self._hotkey.release(canonical)
+        self._speak_hotkey.release(canonical)
+        self._toggle_speak_hotkey.release(canonical)
+        self._stop_speak_hotkey.release(canonical)
 
     def start_recording(self) -> None:
         with self._recording_lock:
@@ -523,7 +611,11 @@ class VoicePromptTool:
             self.tray.set_state("idle")
             return
 
-        result = format_prompt(raw_text, system_instruction=self.system_instruction)
+        result = format_prompt(
+            raw_text,
+            system_instruction=self.system_instruction,
+            intent_cleanup=self.intent_cleanup,
+        )
         if not result.normalized_text.strip():
             self.osd.set_status("NO SPEECH", "#d29922")
             logger.info("No usable text after normalization; clipboard not updated.")
@@ -533,10 +625,12 @@ class VoicePromptTool:
         clipboard_text = self._build_clipboard_output(result.formatted_prompt)
         pyperclip.copy(clipboard_text)
 
-        if self.autopaste:
-            self._attempt_autopaste()
+        if self.speak_output:
+            self._attempt_speak_output(result.normalized_text)
 
-        self.osd.set_status("COPIED", "#238636")
+        if self.autopaste:
+            self._attempt_autopaste(clipboard_text)
+
         self.tray.set_state("idle")
         logger.info("Prompt copied to clipboard:\n%s", clipboard_text)
 
@@ -562,17 +656,257 @@ class VoicePromptTool:
         self._last_prompt_copied_at = now
         return new_prompt
 
-    def _attempt_autopaste(self) -> None:
+    def _attempt_autopaste(self, clipboard_text: str) -> None:
         try:
             import pyautogui
 
+            if self.autopaste_delay_ms > 0:
+                time.sleep(self.autopaste_delay_ms / 1000.0)
+
+            if self.autopaste_beep:
+                if winsound is not None and platform.system() == "Windows":
+                    winsound.MessageBeep()  # type: ignore[attr-defined]
+                else:
+                    # Fallback terminal bell for non-Windows environments.
+                    print("\a", end="", flush=True)
+
             modifier = "command" if platform.system() == "Darwin" else "ctrl"
+            if self.autopaste_one_line:
+                one_line_text = re.sub(r"\s*\r?\n\s*", " ", clipboard_text).strip()
+                if pyperclip is not None:
+                    pyperclip.copy(one_line_text)
             pyautogui.hotkey(modifier, "v")
+            if self.autopaste_one_line and pyperclip is not None:
+                time.sleep(0.05)
+                pyperclip.copy(clipboard_text)
+            logger.info(
+                "Auto-paste sent (%s+v, delay_ms=%s, one_line=%s).",
+                modifier,
+                self.autopaste_delay_ms,
+                self.autopaste_one_line,
+            )
         except Exception as exc:
             logger.warning("Auto-paste failed: %s", exc)
 
+    def _attempt_speak_output(self, text: str) -> None:
+        if not self.speak_enabled:
+            logger.info("Transcript speech skipped: speech playback is OFF.")
+            return
+        message = text.strip()
+        if not message:
+            return
+        threading.Thread(
+            target=self._speak_worker,
+            args=(message,),
+            daemon=True,
+        ).start()
+
+    def _speak_from_selection_or_clipboard(self) -> None:
+        try:
+            if not self.speak_enabled:
+                logger.info("Speak hotkey ignored: speech playback is OFF.")
+                return
+            if self.speak_selected_first:
+                import pyautogui
+
+                modifier = "command" if platform.system() == "Darwin" else "ctrl"
+                pyautogui.hotkey(modifier, "c")
+                time.sleep(0.12)
+            text = pyperclip.paste() if pyperclip is not None else ""
+            if not text or not text.strip():
+                logger.info("Speak hotkey pressed but clipboard was empty.")
+                return
+            spoken_text = self._prepare_spoken_text(text)
+            if not spoken_text:
+                logger.info("Speak hotkey text reduced to empty after cleanup.")
+                self.osd.set_status("NO SPEAKABLE TEXT", "#d29922")
+                return
+            if self.speak_skip_prompt_envelopes and self._looks_like_prompt_envelope(text):
+                logger.info("Prompt envelope detected; speaking cleaned conversational text.")
+            logger.info(
+                "Speaking text from %s (chars=%s).",
+                "selection" if self.speak_selected_first else "clipboard",
+                len(spoken_text),
+            )
+            self._speak_worker(spoken_text)
+        except Exception as exc:
+            logger.warning("Speak hotkey failed: %s", exc)
+
+    def _looks_like_prompt_envelope(self, text: str) -> bool:
+        lowered = text.lower()
+        markers = ("[file reference:", "[task:", "intent brief", "[functions:")
+        return any(marker in lowered for marker in markers)
+
+    def _prepare_spoken_text(self, text: str) -> str:
+        cleaned = text.replace("\r", "\n").strip()
+        if not cleaned:
+            return ""
+
+        # If this is an intent brief, speak only the Goal line to keep it conversational.
+        goal_match = re.search(r"(?im)^\s*-\s*Goal:\s*(.+)$", cleaned)
+        if goal_match:
+            cleaned = goal_match.group(1).strip()
+
+        lines = []
+        for line in cleaned.split("\n"):
+            stripped = line.strip()
+            if not stripped:
+                continue
+            lower = stripped.lower()
+            if lower.startswith("python voice_prompt_tool.py"):
+                continue
+            if lower.startswith("ps c:\\"):
+                continue
+            if lower.startswith("[file reference:") or lower.startswith("[functions:"):
+                continue
+            if lower.startswith("[task:"):
+                stripped = stripped[6:].strip()
+            if lower.startswith("intent brief"):
+                continue
+            if stripped.startswith("- Constraints:") or stripped.startswith("- Assumptions:"):
+                continue
+            if stripped.startswith("- First Increment:") or stripped.startswith("- Test Plan:"):
+                continue
+            lines.append(stripped)
+
+        cleaned = " ".join(lines).strip()
+        cleaned = re.sub(r"\s+", " ", cleaned)
+        cleaned = re.sub(r"\[[^\]]*\]", "", cleaned).strip()
+        if cleaned and cleaned[-1] not in ".!?":
+            cleaned += "."
+        return cleaned
+
+    def _speak_worker(self, text: str) -> None:
+        try:
+            if self.tts_engine in ("auto", "edge"):
+                played = self._speak_with_edge_tts(text)
+                if played:
+                    return
+                if self.tts_engine == "edge":
+                    logger.warning(
+                        "Edge TTS failed or edge-tts is not installed; no fallback because "
+                        "--tts-engine edge was set. Try: pip install edge-tts, or use --tts-engine auto."
+                    )
+                    return
+
+            system = platform.system()
+            if system == "Windows":
+                voice_index_setter = ""
+                if self.speak_voice_name:
+                    escaped_voice_name = self.speak_voice_name.replace("'", "''")
+                    voice_index_setter = (
+                        "$voices = $voice.GetVoices(); "
+                        f"$name = '{escaped_voice_name}'; "
+                        "$matched = $null; "
+                        "for ($i = 0; $i -lt $voices.Count; $i++) { "
+                        "$desc = $voices.Item($i).GetDescription(); "
+                        "if ($desc -like ('*' + $name + '*')) { $matched = $voices.Item($i); break } "
+                        "} "
+                        "if ($matched -ne $null) { $voice.Voice = $matched; } "
+                    )
+                elif self.speak_voice_index is not None:
+                    voice_index_setter = (
+                        f"$voices = $voice.GetVoices(); "
+                        f"if ({self.speak_voice_index} -ge 0 -and {self.speak_voice_index} -lt $voices.Count) "
+                        "{ $voice.Voice = $voices.Item("
+                        f"{self.speak_voice_index}"
+                        "); } "
+                    )
+                script = (
+                    "$voice = New-Object -ComObject SAPI.SpVoice; "
+                    f"$voice.Rate = {self.speak_rate}; "
+                    f"{voice_index_setter}"
+                    "$text = [Console]::In.ReadToEnd(); "
+                    "$voice.Speak($text) | Out-Null"
+                )
+                with self._speak_process_lock:
+                    if self._speak_process is not None and self._speak_process.poll() is None:
+                        self._speak_process.terminate()
+                    self._speak_process = subprocess.Popen(
+                        ["powershell", "-NoProfile", "-Command", script],
+                        stdin=subprocess.PIPE,
+                        text=True,
+                    )
+                    process = self._speak_process
+                if process.stdin is not None:
+                    process.stdin.write(text)
+                    process.stdin.close()
+                process.wait(timeout=30)
+                if process.returncode == 0:
+                    logger.info("Voice output played (Windows SAPI).")
+                else:
+                    logger.warning("Voice output failed (Windows SAPI exit=%s).", process.returncode)
+                return
+
+            if system == "Darwin":
+                subprocess.run(["say", text], check=False)
+                logger.info("Voice output played (macOS say).")
+                return
+
+            spd_say = shutil.which("spd-say")
+            if spd_say:
+                subprocess.run([spd_say, text], check=False)
+                logger.info("Voice output played (spd-say).")
+                return
+
+            logger.warning("Voice output unavailable on this OS (no supported TTS command found).")
+        except Exception as exc:
+            logger.warning("Voice output failed: %s", exc)
+
+    def _speak_with_edge_tts(self, text: str) -> bool:
+        if edge_tts is None:
+            logger.warning(
+                "Edge TTS not installed. Run: pip install edge-tts "
+                "(or: pip install -e \".[voice-prompt,stitch-whisper]\")"
+            )
+            return False
+        voice = self.speak_voice_name or "en-US-AriaNeural"
+        output_path = Path(tempfile.gettempdir()) / "voice_prompt_tool_tts.wav"
+        try:
+            # Edge rate is a string like "+0%" .. "+100%" / "-100%"; map SAPI-style -10..10 roughly.
+            edge_pct = int(max(-100, min(100, self.speak_rate * 10)))
+            rate_str = f"{edge_pct:+d}%"
+
+            async def _generate_wav() -> None:
+                communicate = edge_tts.Communicate(
+                    text=text,
+                    voice=voice,
+                    rate=rate_str,
+                )
+                # edge_tts.Communicate.save only accepts (audio_path, metadata_path=None).
+                await communicate.save(str(output_path))
+
+            asyncio.run(_generate_wav())
+            if winsound is None:
+                logger.warning("winsound unavailable; cannot play Edge TTS output.")
+                return False
+            winsound.PlaySound(str(output_path), winsound.SND_FILENAME)  # type: ignore[attr-defined]
+            logger.info("Voice output played (Edge TTS voice=%s).", voice)
+            return True
+        except Exception as exc:
+            logger.warning("Edge TTS failed: %s", exc)
+            return False
+
+    def _stop_speaking(self) -> None:
+        with self._speak_process_lock:
+            if self._speak_process is None:
+                return
+            if self._speak_process.poll() is None:
+                try:
+                    self._speak_process.terminate()
+                    logger.info("Active speech playback stopped.")
+                except Exception as exc:
+                    logger.warning("Failed stopping speech playback: %s", exc)
+            self._speak_process = None
+
     def run(self) -> None:
-        logger.info("Hotkey active. Press %s to start/stop recording.", self.hotkey)
+        logger.info(
+            "Hotkeys active: record=%s speak=%s toggle_speak=%s stop_speak=%s.",
+            self.hotkey,
+            self.speak_hotkey,
+            self.toggle_speak_hotkey,
+            self.stop_speak_hotkey,
+        )
         self._listener = keyboard.Listener(on_press=self._on_press, on_release=self._on_release)
         self._listener.start()
 
@@ -585,6 +919,7 @@ class VoicePromptTool:
             self._listener.stop()
         if self.is_recording:
             self.stop_recording()
+        self._stop_speaking()
         self.osd.set_status("STOPPED", "#57606a")
         self.tray.stop()
 
@@ -653,8 +988,62 @@ def _detect_function_like_tokens(text: str) -> list[str]:
     return sorted(tokens)
 
 
-def format_prompt(transcribed_text: str, system_instruction: str | None = None) -> PromptResult:
+def _cleanup_intent_text(text: str) -> str:
+    cleaned = text
+    cleaned = re.sub(r"\b(um+|uh+|erm+|like|you know)\b", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" ,")
+    return cleaned
+
+
+def _build_intent_brief(cleaned_text: str) -> str:
+    lowered = cleaned_text.lower()
+    asks_to_build = any(token in lowered for token in ("build", "create", "make", "start"))
+    asks_how = any(token in lowered for token in ("how", "consider", "approach", "behind that"))
+
+    goal = cleaned_text
+    constraints: list[str] = []
+    assumptions: list[str] = []
+    first_increment: list[str] = []
+    test_plan: list[str] = []
+
+    if asks_to_build:
+        assumptions.append("User is speaking quickly and may not provide complete specs upfront.")
+        first_increment.append("Clarify app type, target users, and must-have feature before coding.")
+        first_increment.append("Build a minimal end-to-end slice first; avoid broad scaffolding.")
+    if asks_how:
+        constraints.append("Do not start implementation on ambiguous requirements without confirmation.")
+        constraints.append("Favor safe defaults and small reviewable changes over speed.")
+        first_increment.append("Propose assumptions explicitly and get a quick confirmation checkpoint.")
+
+    if not constraints:
+        constraints.append("Prefer concise, high-signal execution over literal transcript phrasing.")
+    if not assumptions:
+        assumptions.append("Transcript reflects intent, not final specification detail.")
+    if not first_increment:
+        first_increment.append("Extract concrete deliverable and define acceptance criteria.")
+
+    test_plan.append("Confirm interpreted goal in 1-2 lines before writing code.")
+    test_plan.append("Validate generated plan against user constraints before implementation.")
+
+    sections = [
+        "Intent Brief",
+        f"- Goal: {goal}",
+        "- Constraints: " + " ".join(constraints),
+        "- Assumptions: " + " ".join(assumptions),
+        "- First Increment: " + " ".join(first_increment),
+        "- Test Plan: " + " ".join(test_plan),
+    ]
+    return "\n".join(sections)
+
+
+def format_prompt(
+    transcribed_text: str,
+    system_instruction: str | None = None,
+    intent_cleanup: bool = False,
+) -> PromptResult:
     normalized, files = normalize_technical_text(transcribed_text)
+    if intent_cleanup and normalized:
+        normalized = _build_intent_brief(_cleanup_intent_text(normalized))
     primary_file = files[0] if files else "none"
     function_refs = _detect_function_like_tokens(normalized)
 
@@ -672,7 +1061,7 @@ def format_prompt(transcribed_text: str, system_instruction: str | None = None) 
 
 
 def _default_hotkey() -> str:
-    return "cmd+shift+v" if platform.system() == "Darwin" else "ctrl+shift+v"
+    return "alt+v"
 
 
 def _to_pynput_hotkey_spec(hotkey: str) -> str:
@@ -694,7 +1083,97 @@ def _to_pynput_hotkey_spec(hotkey: str) -> str:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Local voice-to-prompt hotkey tool")
     parser.add_argument("--hotkey", default=_default_hotkey(), help="Hotkey combo, e.g. ctrl+shift+v")
-    parser.add_argument("--autopaste", action="store_true", help="Auto-paste after copying")
+    parser.add_argument(
+        "--speak-hotkey",
+        default="alt+b",
+        help="Hotkey to speak selected text/clipboard aloud (default: alt+b)",
+    )
+    parser.add_argument(
+        "--toggle-speak-hotkey",
+        default="alt+n",
+        help="Hotkey to toggle speech playback on/off (default: alt+n)",
+    )
+    parser.add_argument(
+        "--stop-speak-hotkey",
+        default="alt+m",
+        help="Hotkey to stop current speech playback immediately (default: alt+m)",
+    )
+    parser.add_argument(
+        "--autopaste",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Auto-paste after copying (default: enabled)",
+    )
+    parser.add_argument(
+        "--autopaste-delay-ms",
+        type=int,
+        default=400,
+        help="Delay before auto-paste in milliseconds (default: 400)",
+    )
+    parser.add_argument(
+        "--autopaste-beep",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Play a short beep just before auto-paste (default: enabled)",
+    )
+    parser.add_argument(
+        "--autopaste-one-line",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Paste a single-line version to avoid terminal multiline prompts (default: enabled)",
+    )
+    parser.add_argument(
+        "--intent-cleanup",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Rewrite spoken input into a structured intent brief before copying (default: enabled)",
+    )
+    parser.add_argument(
+        "--speak-output",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Speak the cleaned transcript aloud after transcription (default: disabled)",
+    )
+    parser.add_argument(
+        "--speak-selected-first",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="On speak-hotkey, copy selected text before speaking (default: enabled)",
+    )
+    parser.add_argument(
+        "--speak-rate",
+        type=int,
+        default=0,
+        help="Voice speed for TTS from -10..10 (default: 0)",
+    )
+    parser.add_argument(
+        "--speak-voice-index",
+        type=int,
+        default=None,
+        help="Optional Windows SAPI voice index (default: system voice)",
+    )
+    parser.add_argument(
+        "--speak-voice-name",
+        default=None,
+        help="Voice name: for Edge use e.g. 'en-US-AriaNeural'; for SAPI use e.g. 'Zira'",
+    )
+    parser.add_argument(
+        "--tts-engine",
+        choices=["auto", "edge", "sapi"],
+        default="auto",
+        help="Speech engine (default: auto; try edge then fallback to sapi)",
+    )
+    parser.add_argument(
+        "--list-voices",
+        action="store_true",
+        help="List available TTS voices and exit",
+    )
+    parser.add_argument(
+        "--speak-skip-prompt-envelopes",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Skip TTS when selected/clipboard text looks like your generated prompt envelope (default: enabled)",
+    )
     parser.add_argument("--sample-rate", type=int, default=16000)
     parser.add_argument(
         "--input-device",
@@ -836,6 +1315,33 @@ def list_input_devices() -> str:
     return "\n".join(lines) if lines else "No input-capable devices found."
 
 
+def list_tts_voices() -> str:
+    system = platform.system()
+    if system != "Windows":
+        return f"TTS voice listing is currently only implemented for Windows (current OS: {system})."
+    script = (
+        "$voice = New-Object -ComObject SAPI.SpVoice; "
+        "$voices = $voice.GetVoices(); "
+        "for ($i = 0; $i -lt $voices.Count; $i++) { "
+        "$desc = $voices.Item($i).GetDescription(); "
+        "Write-Output (\"{0}: {1}\" -f $i, $desc) "
+        "}"
+    )
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-Command", script],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    output = (result.stdout or "").strip()
+    if output:
+        return output
+    err = (result.stderr or "").strip()
+    if err:
+        return f"Failed listing TTS voices: {err}"
+    return "No TTS voices found."
+
+
 def main() -> int:
     logging.basicConfig(
         level=logging.INFO,
@@ -849,6 +1355,9 @@ def main() -> int:
         return 2
     if args.list_devices:
         print(list_input_devices())
+        return 0
+    if args.list_voices:
+        print(list_tts_voices())
         return 0
 
     templates = load_templates()
@@ -877,8 +1386,22 @@ def main() -> int:
     try:
         tool = VoicePromptTool(
             hotkey=args.hotkey,
+            speak_hotkey=args.speak_hotkey,
+            toggle_speak_hotkey=args.toggle_speak_hotkey,
+            stop_speak_hotkey=args.stop_speak_hotkey,
             sample_rate=args.sample_rate,
             autopaste=args.autopaste,
+            autopaste_delay_ms=args.autopaste_delay_ms,
+            autopaste_beep=args.autopaste_beep,
+            autopaste_one_line=args.autopaste_one_line,
+            intent_cleanup=args.intent_cleanup,
+            speak_output=args.speak_output,
+            speak_selected_first=args.speak_selected_first,
+            speak_rate=args.speak_rate,
+            speak_voice_index=args.speak_voice_index,
+            speak_voice_name=args.speak_voice_name,
+            tts_engine=args.tts_engine,
+            speak_skip_prompt_envelopes=args.speak_skip_prompt_envelopes,
             input_device=resolved_device,
             system_instruction=selected_instruction,
             continuation_mode=args.continuation_mode,
