@@ -185,7 +185,8 @@ class InstanceLock:
     def release(self) -> None:
         if not self._acquired:
             return
-        self._safe_unlink()
+        if self._read_pid() == os.getpid():
+            self._safe_unlink()
         self._acquired = False
 
     def _read_pid(self) -> int | None:
