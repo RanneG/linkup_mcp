@@ -350,6 +350,8 @@ class VoicePromptTool:
         self._recording_frames: list[np.ndarray] = []
         self._stream: sd.InputStream | None = None
         self._recording_lock = threading.Lock()
+        self._emit_lock = threading.Lock()
+        self._latest_transcription_job_id = 0
         self.hotkey = hotkey
         hotkey_spec = _to_pynput_hotkey_spec(hotkey)
         self._hotkey = keyboard.HotKey(
@@ -476,8 +478,11 @@ class VoicePromptTool:
             self.osd.set_status("TRANSCRIBING", "#1f6feb")
             self.tray.set_state("processing")
             logger.info("Recording stopped. Processing transcription...")
+            frames = self._recording_frames.copy()
+            self._latest_transcription_job_id += 1
+            job_id = self._latest_transcription_job_id
 
-        threading.Thread(target=self._transcribe_and_emit, daemon=True).start()
+        threading.Thread(target=self._transcribe_and_emit, args=(job_id, frames), daemon=True).start()
 
     def _wav_bytes_from_frames(self, frames: list[np.ndarray]) -> bytes:
         if not frames:
@@ -493,8 +498,7 @@ class VoicePromptTool:
             wf.writeframes(pcm.tobytes())
         return buffer.getvalue()
 
-    def _transcribe_and_emit(self) -> None:
-        frames = self._recording_frames.copy()
+    def _transcribe_and_emit(self, job_id: int, frames: list[np.ndarray]) -> None:
         if not frames:
             self.osd.set_status("NO AUDIO", "#d29922")
             self.tray.set_state("idle")
@@ -530,15 +534,19 @@ class VoicePromptTool:
             self.tray.set_state("idle")
             return
 
-        clipboard_text = self._build_clipboard_output(result.formatted_prompt)
-        pyperclip.copy(clipboard_text)
+        with self._emit_lock:
+            if job_id != self._latest_transcription_job_id:
+                logger.info("Discarding stale transcription job id=%s", job_id)
+                return
+            clipboard_text = self._build_clipboard_output(result.formatted_prompt)
+            pyperclip.copy(clipboard_text)
 
-        if self.autopaste:
-            self._attempt_autopaste()
+            if self.autopaste:
+                self._attempt_autopaste()
 
-        self.osd.set_status("COPIED", "#238636")
-        self.tray.set_state("idle")
-        logger.info("Prompt copied to clipboard:\n%s", clipboard_text)
+            self.osd.set_status("COPIED", "#238636")
+            self.tray.set_state("idle")
+            logger.info("Prompt copied to clipboard:\n%s", clipboard_text)
 
     def _build_clipboard_output(self, new_prompt: str) -> str:
         if not self.continuation_mode:
