@@ -10,12 +10,12 @@ from elevenlabs_toolkit.nami_voices import (
 )
 
 
-def test_default_nami_preset_is_george():
-    assert default_nami_preset().id == "george"
+def test_default_nami_preset_is_bella():
+    assert default_nami_preset().id == "bella"
 
 
 def test_nami_preset_lookup():
-    assert nami_preset_by_id("callum") is not None
+    assert nami_preset_by_id("laura") is not None
     assert nami_preset_by_id("unknown") is None
 
 
@@ -27,7 +27,7 @@ def test_all_presets_have_voice_ids():
 
 def test_nami_voice_id_default(monkeypatch):
     monkeypatch.delenv("NAMI_VOICE_ID", raising=False)
-    assert nami_voice_id() == "JBFqnCBsd6RMkjVDRZzb"
+    assert nami_voice_id() == "hpp4J3VqNfWAUOO0d1Us"
 
 
 def test_nami_voice_id_override(monkeypatch):

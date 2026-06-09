@@ -11,6 +11,18 @@ This file is the **source of truth** for who is in the loop and how to work in t
 
 The **Jarvis / Iron Man** framing is about partnership and execution quality—not comic roleplay. Keep tone professional, warm, and concise.
 
+## Current focus (2026)
+
+Ranne is **prioritizing development tools and agent infrastructure** over one-off product/site polish.
+
+| Priority | Home | Examples |
+|----------|------|----------|
+| **Primary** | **linkup_mcp** + ecosystem | MCP tools, RAG, `stitch_rag_bridge`, ElevenLabs/Nami voice, reusable packages, **Hermes on Mac** |
+| **Secondary** | Product apps that *use* the stack | **stitch-app**, **SupplyMe** (Hermes + private engine), standup-bot |
+| **Maintenance** | Shipped surfaces | **pixel-portfolio**, marketing sites — fix bugs/deploy when asked; **don’t** default to UX/feature work here |
+
+When scope is ambiguous, assume **tooling that compounds** (MCP, bridge routes, voice, shared libs) unless Ranne names a specific product repo.
+
 ## Project in one paragraph
 
 **linkup_mcp** ([GitHub](https://github.com/RanneG/linkup_mcp)) is a Python MCP server for Cursor: **web search** via Linkup, **RAG** over `data/` via LlamaIndex + Ollama (`server.py`, `rag.py`). Your local clone folder may still be named `cursor_linkup_mcp`; that is fine. Package and commands are in `README.md` and `.cursorrules`. Reuse libraries from Ranne’s GitHub ecosystem when building adjacent features (see `.cursorrules`).
@@ -44,10 +56,35 @@ Ranne has an **ElevenLabs** account. Use it to **pre-bake MP3s** (portfolio BIOS
 - **Nami (spoken assistant):** **`nami-voices`**, **`nami-audition`**, **`nami-speak`** — **`NAMI_VOICE_ID`** in **`.env`**; see **[docs/elevenlabs/NAMI.md](docs/elevenlabs/NAMI.md)**
 - **Code:** **`elevenlabs_toolkit/`** (`generate_speech`, `compose_music`, `list_voices`)
 
+## SupplyMe + personal agent (Hermes, not OpenClaw for this product)
+
+**SUPPLYME** = personal business agent: email/messages → **Telegram desks** + weekly focus.
+
+| Repo | Role | Local clone |
+|------|------|-------------|
+| [supplyme-site](https://github.com/RanneG/supplyme-site) | Marketing / waitlist | `../supplyme-site` |
+| **[supplyme-crew](https://github.com/RanneG/supplyme-crew)** | **Engine** — Hermes skills, tenants, provisioning | `../supplyme-crew` |
+
+Pointer: **[docs/supplyme/README.md](docs/supplyme/README.md)**. Architecture: `supplyme-crew/docs/ARCHITECTURE.md`.
+
+**Runtime host:** **Hermes on MacBook only** — not on Windows PC. Personal config: **`hermes-nami/`** + **`docs/hermes/MAC_SETUP.md`**. From PC: **Telegram** or **SSH** → [PC_CLIENT.md](docs/hermes/PC_CLIENT.md). Email/social **off** in v1.
+
+**Jarvis-shaped stack (how pieces fit):**
+
+| Layer | Role | Your pieces |
+|-------|------|-------------|
+| **Channel** | Where you talk | Hermes → Telegram; Cursor → chat |
+| **Brain** | Model + memory + skills | Hermes (SupplyMe); Cursor agent (build-time Nami) |
+| **Tools** | Do real work | **linkup_mcp** MCP (search, RAG); Stitch bridge (Gmail, face) |
+| **Voice** | Optional spoken layer | **ElevenLabs / Bella** (`nami-speak`) — not wired to Hermes yet |
+| **Product logic** | Desks, weekly focus, tenants | SupplyMe private engine (on Hermes + MCP) |
+
+**OpenClaw** in this repo = earlier Mac/PKM plan; treat **Hermes as the primary agent host** for holistic assistant work unless Ranne says otherwise. Do not assume both are installed.
+
 ## Where else to look
 
 - **`docs/stitch/`** — Stitch handoff (**MIGRATION.md**, **STATUS.md**); keeps the repo root MCP-focused.
-- **`docs/elevenlabs/`** — ElevenLabs playbook (above).
+- **`docs/hermes/`** — Mac host ([MAC_SETUP.md](docs/hermes/MAC_SETUP.md)), PC client ([PC_CLIENT.md](docs/hermes/PC_CLIENT.md)), memory; **`hermes-nami/`** — SOUL + AGENTS templates.
 - **`.cursorrules`** — detailed setup, MCP tool list, Cursor `mcp.json` snippet, related repos.
 - **`.cursor/rules/*.mdc`** — short rules Cursor loads automatically (identity, defaults).
 - **`ENV_TEMPLATE.md`** — env vars if present.
@@ -70,12 +107,11 @@ Small **GitHub** repos to spin up when you want a shared “feature library” (
 3. **`user-linkup-server`** MCP may be available in this workspace—check tool schemas before calling.
 4. When Ranne asks to **remember something across sessions**, persist it here or in `.cursor/rules/` (concise, actionable), not only in chat.
 5. For **Stitch app vs bridge ownership**, follow **[docs/stitch/MIGRATION.md](docs/stitch/MIGRATION.md)** so UI work targets the future Stitch repo and MCP/bridge work stays here.
+6. **Default to dev tools** (see **Current focus** above) — portfolio and marketing repos are not the default lane unless Ranne says so.
 
-## OpenClaw (separate from this repo)
+## OpenClaw (superseded for personal agent — optional reference)
 
-Ranne is moving personal agent / PKM work to **OpenClaw**, with a **dedicated Mac** as a risk-aware host (see prior discussions on separation). This MCP repo stays focused on Cursor Linkup + RAG; OpenClaw is orchestration, channels, and skills elsewhere.
-
-**Status:** Day-to-day work may be on **Windows**; **OpenClaw is meant to be installed on the Mac**, not assumed on this machine. When Ranne is on the Mac, he will use the **official site / docs** (and may paste the docs link into chat)—treat that as authoritative over videos or old notes.
+Ranne previously planned **OpenClaw** on a dedicated Mac. **Runtime Nami now uses Hermes** ([MAC_SETUP.md](docs/hermes/MAC_SETUP.md)); Hermes can import OpenClaw config via `hermes claw migrate` if needed. This section kept for Mac prep notes and official links only.
 
 **Official entry points (bookmark on the Mac):**
 

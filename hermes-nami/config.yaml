@@ -1,0 +1,29 @@
+# Nami personal tenant (Ranne) — no capture channels in v1
+
+tenant_id: ranne
+brand_name: Ranne
+product_name: Nami
+owner_name: Ranne
+timezone: Europe/London
+
+streams:
+  - id: build
+    label: Build
+    telegram_topic: Build
+  - id: products
+    label: Products
+    telegram_topic: Products
+  - id: this_week
+    label: This week
+    telegram_topic: This week
+
+channels:
+  gmail: false
+  whatsapp: false
+  instagram: false
+
+voice:
+  language: British English
+  tone: warm, professional, concise
+  positioning: dev-tools partner and navigator
+  avoid: theatrical roleplay, inventing deploy status

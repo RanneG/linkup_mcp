@@ -17,7 +17,7 @@ Pre-bake **voice** and **music** assets for **pixel-portfolio**, **Stitch**, and
 
 ## Nami (spoken assistant)
 
-Jarvis-style stock voices for OpenClaw/Mac confirmations — separate from portfolio boot audio. See **[NAMI.md](NAMI.md)**.
+Female stock voices for spoken Nami (OpenClaw/Mac confirmations) — separate from portfolio boot audio. See **[NAMI.md](NAMI.md)**.
 
 ```bash
 uv run elevenlabs-gen nami-voices

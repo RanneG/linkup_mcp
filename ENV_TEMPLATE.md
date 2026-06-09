@@ -48,7 +48,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 # See docs/elevenlabs/README.md. Install: uv sync --extra elevenlabs
 # ELEVENLABS_API_KEY=your_key_from_elevenlabs_io
 # ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM   # portfolio / general TTS; run: uv run elevenlabs-gen voices
-# NAMI_VOICE_ID=JBFqnCBsd6RMkjVDRZzb        # spoken Nami assistant (George); see docs/elevenlabs/NAMI.md
+# NAMI_VOICE_ID=hpp4J3VqNfWAUOO0d1Us        # spoken Nami assistant (Bella); see docs/elevenlabs/NAMI.md
 ```
 
 ## Getting API Keys

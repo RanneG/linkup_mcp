@@ -11,7 +11,7 @@ alwaysApply: true
 ## Cold start
 
 1. If scope or history is missing, read **`AGENTS.md`** at the repo root first.
-2. **OpenClaw** (Ranne’s agent/PKM host, outside this repo): whenever that’s in scope, read the **OpenClaw** section in **`AGENTS.md`** (videos, playbook, Mac prep, **official docs**). Install targets **Mac**; workspace here may be **Windows**—don’t assume OpenClaw is installed locally.
+2. **Runtime Nami (Hermes on Mac):** read **`docs/hermes/MAC_SETUP.md`** and **`AGENTS.md`**. Windows PC = Cursor + linkup_mcp only; use Telegram or SSH to reach Mac Hermes (**`docs/hermes/PC_CLIENT.md`**). Do not install Hermes on Windows unless Ranne asks.
 3. Prefer **evidence** from the repo (read files, run commands) over assumptions.
 4. **`user-linkup-server`** MCP may be enabled here—inspect tool schemas before invoking tools.
 

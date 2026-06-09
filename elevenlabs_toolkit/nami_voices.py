@@ -1,4 +1,4 @@
-"""Nami assistant voice presets (Jarvis-style stock voices on free tier)."""
+"""Nami assistant voice presets — female stock voices (free tier)."""
 
 from __future__ import annotations
 
@@ -6,11 +6,11 @@ from dataclasses import dataclass
 
 # Premade voices — audition with: uv run elevenlabs-gen nami-audition
 NAMI_SAMPLE_LINE = (
-    "Good morning. I've reviewed your calendar — you're clear until noon. "
-    "Shall I start with the portfolio deploy, or the OpenClaw setup?"
+    "Good morning. I've charted your day — calendar's clear until noon. "
+    "Want me to start with the portfolio deploy, or OpenClaw setup?"
 )
 
-NAMI_CONFIRM_LINE = "Task complete. Anything else?"
+NAMI_CONFIRM_LINE = "All set. What's next?"
 
 
 @dataclass(frozen=True)
@@ -23,32 +23,32 @@ class NamiVoicePreset:
 
 NAMI_VOICE_PRESETS: tuple[NamiVoicePreset, ...] = (
     NamiVoicePreset(
-        id="george",
-        name="George",
-        voice_id="JBFqnCBsd6RMkjVDRZzb",
-        vibe="Warm British storyteller — default Jarvis-adjacent pick",
+        id="bella",
+        name="Bella",
+        voice_id="hpp4J3VqNfWAUOO0d1Us",
+        vibe="Professional, bright, warm — default Nami voice",
     ),
     NamiVoicePreset(
-        id="callum",
-        name="Callum",
-        voice_id="N2lVS1w4EtoT3dr4eOWO",
-        vibe="Deeper, husky — more dramatic assistant",
+        id="sarah",
+        name="Sarah",
+        voice_id="EXAVITQu4vr4xnSDxMaL",
+        vibe="Mature, reassuring, confident — steady navigator tone",
     ),
     NamiVoicePreset(
-        id="roger",
-        name="Roger",
-        voice_id="CwhRBWXzGAHq8TQ4Fs17",
-        vibe="Laid-back, resonant — casual butler",
+        id="laura",
+        name="Laura",
+        voice_id="FGY2WhTYpPnrIDTdsKH5",
+        vibe="Enthusiastic, quirky — more playful energy",
     ),
     NamiVoicePreset(
-        id="charlie",
-        name="Charlie",
-        voice_id="IKne3meq5aSn9XLyUdCD",
-        vibe="Deep, confident — energetic briefing style",
+        id="river",
+        name="River",
+        voice_id="SAz9YHcvj6GT2YYXdXww",
+        vibe="Relaxed, neutral, informative — calm and steady",
     ),
 )
 
-_DEFAULT_NAMI_PRESET_ID = "george"
+_DEFAULT_NAMI_PRESET_ID = "bella"
 
 
 def nami_preset_by_id(preset_id: str) -> NamiVoicePreset | None:

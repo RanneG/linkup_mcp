@@ -29,7 +29,7 @@ def default_voice_id() -> str:
 
 
 # Nami assistant (OpenClaw / spoken confirmations) — separate from portfolio voice
-_NAMI_DEFAULT_VOICE = "JBFqnCBsd6RMkjVDRZzb"  # George
+_NAMI_DEFAULT_VOICE = "hpp4J3VqNfWAUOO0d1Us"  # Bella
 
 
 def nami_voice_id() -> str:
