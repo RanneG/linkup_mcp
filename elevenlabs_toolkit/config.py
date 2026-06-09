@@ -26,3 +26,11 @@ def get_api_key() -> str:
 
 def default_voice_id() -> str:
     return os.getenv("ELEVENLABS_VOICE_ID", _DEFAULT_VOICE).strip() or _DEFAULT_VOICE
+
+
+# Nami assistant (OpenClaw / spoken confirmations) — separate from portfolio voice
+_NAMI_DEFAULT_VOICE = "JBFqnCBsd6RMkjVDRZzb"  # George
+
+
+def nami_voice_id() -> str:
+    return os.getenv("NAMI_VOICE_ID", _NAMI_DEFAULT_VOICE).strip() or _NAMI_DEFAULT_VOICE

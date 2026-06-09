@@ -40,7 +40,8 @@ Ranne has an **ElevenLabs** account. Use it to **pre-bake MP3s** (portfolio BIOS
 - **Docs:** **[docs/elevenlabs/README.md](docs/elevenlabs/README.md)**
 - **Env:** **`ELEVENLABS_API_KEY`**, optional **`ELEVENLABS_VOICE_ID`** in **`.env`** — **[ENV_TEMPLATE.md](ENV_TEMPLATE.md)**
 - **Install:** **`uv sync --extra elevenlabs`** (or **`pip install -e ".[elevenlabs]"`**)
-- **CLI:** **`uv run elevenlabs-gen voices`**, **`tts`**, **`music`** — output into **`pixel-portfolio/public/audio/`** then reference from **`music.json`** or React
+- **CLI:** **`voices`**, **`tts`**, **`music`** — portfolio assets in **`pixel-portfolio/public/audio/`**
+- **Nami (spoken assistant):** **`nami-voices`**, **`nami-audition`**, **`nami-speak`** — **`NAMI_VOICE_ID`** in **`.env`**; see **[docs/elevenlabs/NAMI.md](docs/elevenlabs/NAMI.md)**
 - **Code:** **`elevenlabs_toolkit/`** (`generate_speech`, `compose_music`, `list_voices`)
 
 ## Where else to look

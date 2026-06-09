@@ -15,6 +15,18 @@ Pre-bake **voice** and **music** assets for **pixel-portfolio**, **Stitch**, and
 
 3. Optional: set **`ELEVENLABS_VOICE_ID`** (run `voices` below to pick one).
 
+## Nami (spoken assistant)
+
+Jarvis-style stock voices for OpenClaw/Mac confirmations — separate from portfolio boot audio. See **[NAMI.md](NAMI.md)**.
+
+```bash
+uv run elevenlabs-gen nami-voices
+uv run elevenlabs-gen nami-audition --all --confirm
+uv run elevenlabs-gen nami-speak "Task complete." -o data/nami-voice/last.mp3
+```
+
+Set **`NAMI_VOICE_ID`** in `.env` after you pick a preset.
+
 ## CLI
 
 From **linkup_mcp** root:
@@ -59,6 +71,11 @@ compose_music("Chiptune menu theme, 90s game", Path("out/menu.mp3"), music_lengt
 | **Text-to-speech** | `elevenlabs-gen tts` | Multilingual v2 default |
 | **Music** | `elevenlabs-gen music` | Music v1 API; check [music terms](https://elevenlabs.io/eleven-music-v1-terms) for your plan |
 | **Sound effects** | — | Use ElevenLabs UI for now; add `sfx` subcommand when needed |
+
+## Free tier limits (2026)
+
+- **TTS** works on the free plan (~10k credits/month).
+- **Music API** returns `402 paid_plan_required` on free — use a placeholder loop in `pixel-portfolio/public/audio/` until Starter, or generate music in the ElevenLabs web UI and export manually.
 
 ## Windows note
 

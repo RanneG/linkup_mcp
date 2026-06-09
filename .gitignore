@@ -81,6 +81,7 @@ NOTES.md
 # Personal documents
 data/RGerodiasCV.pdf
 data/*.pdf
+data/nami-voice/samples/
 
 # Node / frontend
 node_modules/
