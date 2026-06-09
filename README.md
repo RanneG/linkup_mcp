@@ -29,7 +29,7 @@ cd linkup_mcp
 uv sync
 ```
 
-**Default install** (`uv sync` / `pip install -e .`) is **Cursor MCP + RAG** only (lighter venv). For **`stitch_rag_bridge.py`**, face/OAuth/Gmail, and server-side voice STT, add **`--extra stitch-bridge`**.
+**Default install** (`uv sync` / `pip install -e .`) is **Cursor MCP + RAG** only (lighter venv). For **`stitch_rag_bridge.py`**, face/OAuth/Gmail, and server-side voice STT, add **`--extra stitch-bridge`**. For **ElevenLabs** voice/music asset generation (`elevenlabs-gen` CLI), add **`--extra elevenlabs`** — see **[docs/elevenlabs/README.md](docs/elevenlabs/README.md)**.
 
 ### 2. Install Ollama & Model
 

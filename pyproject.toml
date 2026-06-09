@@ -49,6 +49,14 @@ voice-prompt = [
     "pystray>=0.19.5,<0.20",
     "pillow>=10.0.0,<12",
 ]
+# ElevenLabs TTS + music asset generation (`elevenlabs-gen` CLI). See docs/elevenlabs/README.md.
+elevenlabs = [
+    "elevenlabs>=2.40.0,<3",
+    "requests>=2.31.0,<3",
+]
+
+[project.scripts]
+elevenlabs-gen = "elevenlabs_toolkit.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

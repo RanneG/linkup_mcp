@@ -43,6 +43,11 @@ OPENAI_API_KEY=your_openai_api_key_here
 # STITCH_AUTH_DB=
 # STITCH_GOOGLE_FERNET_KEY=
 # STITCH_SESSION_TTL_SEC=2592000
+
+# --- ElevenLabs (optional — pre-bake voice/music for portfolio, Stitch, demos) ---
+# See docs/elevenlabs/README.md. Install: uv sync --extra elevenlabs
+# ELEVENLABS_API_KEY=your_key_from_elevenlabs_io
+# ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM   # optional; run: uv run elevenlabs-gen voices
 ```
 
 ## Getting API Keys
@@ -57,6 +62,13 @@ OPENAI_API_KEY=your_openai_api_key_here
 
 1. Visit https://platform.openai.com/
 2. Open **API keys** and create a key
+
+### ElevenLabs API Key
+
+1. Visit https://elevenlabs.io/ and sign in
+2. Open **Profile / API keys** and create a key
+3. Add **`ELEVENLABS_API_KEY`** to **`.env`** (repo root)
+4. Optional: **`uv sync --extra elevenlabs`** then **`uv run elevenlabs-gen voices`** to pick **`ELEVENLABS_VOICE_ID`**
 
 ### Google OAuth (Stitch sign-in + Gmail discovery)
 

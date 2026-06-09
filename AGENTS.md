@@ -33,9 +33,20 @@ The **Jarvis / Iron Man** framing is about partnership and execution quality—n
 - **Handoff docs:** **[docs/stitch/MIGRATION.md](docs/stitch/MIGRATION.md)** — split Stitch product vs this repo; **[CHANGELOG.md](CHANGELOG.md)** — file-level Stitch + bridge history; **[docs/stitch/STATUS.md](docs/stitch/STATUS.md)** — current next steps, subscription/UI truth, and **voice roadmap** (surfaces + intents).
 - **Env:** Google client id/secret and redirect URI — see **`ENV_TEMPLATE.md`** (`GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `STITCH_GOOGLE_REDIRECT_URI` / default callback on `8765`).
 
+## ElevenLabs toolkit (voice + music assets)
+
+Ranne has an **ElevenLabs** account. Use it to **pre-bake MP3s** (portfolio BIOS/login, Win98 music window, demo narration)—not live browser API calls.
+
+- **Docs:** **[docs/elevenlabs/README.md](docs/elevenlabs/README.md)**
+- **Env:** **`ELEVENLABS_API_KEY`**, optional **`ELEVENLABS_VOICE_ID`** in **`.env`** — **[ENV_TEMPLATE.md](ENV_TEMPLATE.md)**
+- **Install:** **`uv sync --extra elevenlabs`** (or **`pip install -e ".[elevenlabs]"`**)
+- **CLI:** **`uv run elevenlabs-gen voices`**, **`tts`**, **`music`** — output into **`pixel-portfolio/public/audio/`** then reference from **`music.json`** or React
+- **Code:** **`elevenlabs_toolkit/`** (`generate_speech`, `compose_music`, `list_voices`)
+
 ## Where else to look
 
 - **`docs/stitch/`** — Stitch handoff (**MIGRATION.md**, **STATUS.md**); keeps the repo root MCP-focused.
+- **`docs/elevenlabs/`** — ElevenLabs playbook (above).
 - **`.cursorrules`** — detailed setup, MCP tool list, Cursor `mcp.json` snippet, related repos.
 - **`.cursor/rules/*.mdc`** — short rules Cursor loads automatically (identity, defaults).
 - **`ENV_TEMPLATE.md`** — env vars if present.
