@@ -17,8 +17,12 @@ if hermes gateway status 2>/dev/null | grep -qi running; then
 fi
 
 hermes gateway stop 2>/dev/null || true
-pkill -f 'hermes-gateway' 2>/dev/null || true
 sleep 1
+if hermes gateway status 2>/dev/null | grep -qi running; then
+  echo "Gateway still reports running after 'hermes gateway stop'; not killing by process name." >&2
+  echo "Inspect the default profile gateway before starting another instance." >&2
+  exit 1
+fi
 hermes gateway start
 echo ""
 echo "Test: message your Nami bot on Telegram, or: hermes -z 'Reply OK'"

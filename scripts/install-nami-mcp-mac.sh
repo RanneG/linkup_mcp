@@ -52,19 +52,41 @@ import pathlib, re, textwrap
 
 config = pathlib.Path("$CONFIG")
 runner = "$RUNNER"
-block = textwrap.dedent(f"""
-  linkup:
-    command: /bin/bash
-    args: [{runner!r}]
-    timeout: 180
-    connect_timeout: 120
+entry = textwrap.dedent(f"""
+linkup:
+  command: /bin/bash
+  args: [{runner!r}]
+  timeout: 180
+  connect_timeout: 120
 """).strip()
+block = textwrap.indent(entry, "  ")
+
+def has_mcp_linkup(text: str) -> bool:
+    in_mcp_servers = False
+    mcp_indent = 0
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip(" "))
+        if re.match(r"^\\s*mcp_servers\\s*:", line):
+            in_mcp_servers = True
+            mcp_indent = indent
+            continue
+        if not in_mcp_servers:
+            continue
+        if indent <= mcp_indent:
+            in_mcp_servers = False
+            continue
+        if re.match(r"^\\s*linkup\\s*:", line):
+            return True
+    return False
 
 if not config.exists():
     config.write_text("mcp_servers:\n" + block + "\n", encoding="utf-8")
 else:
     text = config.read_text(encoding="utf-8")
-    if re.search(r"^\\s*linkup:", text, re.M):
+    if has_mcp_linkup(text):
         print("mcp_servers.linkup already present in config.yaml — skipped YAML edit")
     elif "mcp_servers:" in text:
         text = text.replace("mcp_servers:", "mcp_servers:\n" + block, 1)
