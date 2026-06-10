@@ -41,32 +41,34 @@ One **Nami** personality, three surfaces. Same partner on each device; different
 | Local LLM (Ollama `qwen2.5:7b`) | Done |
 | `context_length` / `ollama_num_ctx` 65536 | Set in config — verify with `ollama ps` |
 | Koshi isolated (`hermes -p koshi`) | Done |
-| linkup_mcp MCP on Mac for runtime Nami | **Next** — `scripts/install-nami-mcp-mac.sh` |
-| MEMORY.md / USER.md seeded | Todo |
+| linkup_mcp MCP on Mac for runtime Nami | Done — `hermes mcp test linkup` (6 tools) |
+| MEMORY.md / USER.md seeded | Todo — `bash scripts/install-nami-hermes.sh` |
 | Telegram topic desks (Build / Products / This week) | Todo |
-| Nami gateway launchd (auto-start) | Todo (koshi launchd works; default is background) |
+| Nami gateway after reboot | Todo — run `bash scripts/start-nami-gateway.sh` |
 | Tailscale (Mac reachable away from home Wi‑Fi) | Todo |
 | Bella voice (ElevenLabs) on Telegram | Later |
 
 ---
 
-## Phase 1 — MCP on Mac (search + RAG in Telegram)
+## Phase 1 — MCP on Mac (search + RAG in Telegram) ✅
 
-Same tools as Cursor, on runtime Nami.
+Registered as Hermes MCP server **`linkup`**: `web_search`, `rag`, `rag_stitch`, whisper tools, `spawn_agent`.
 
-**On the Mac** (after `linkup_mcp` clone + `.env` with `LINKUP_API_KEY`):
+**Re-install or update** (SSH on Mac only):
 
 ```bash
 cd ~/Cursor/linkup_mcp
 git pull
-bash scripts/install-nami-mcp-mac.sh
-hermes gateway restart   # or: hermes gateway stop && hermes gateway start
+bash scripts/install-nami-mcp-mac.sh   # or manual: hermes mcp add linkup ...
+hermes mcp test linkup
+hermes gateway restart
 ```
 
-In Telegram, ask Nami something that needs web search or your `data/` docs.  
-If tools fail: `/reload-mcp` in chat, then check `~/.hermes/logs/gateway.log`.
+In Telegram: **`/reload-mcp`**, then ask Nami to search or use RAG.
 
-**Secrets:** Copy `LINKUP_API_KEY` from PC `.env` into Mac `~/Cursor/linkup_mcp/.env` or `~/.hermes/.env` (never commit).
+**Secrets:** `LINKUP_API_KEY=...` in `~/Cursor/linkup_mcp/.env` only ( `KEY=value` format ). Optional for RAG; required for web search. Never `source ~/.hermes/.env` in bash.
+
+**Runner:** `scripts/run-linkup-mcp-stdio.sh` — Python `load_dotenv()` only; no bash `.env` sourcing.
 
 ---
 
@@ -89,9 +91,14 @@ Details: [MEMORY.md](./MEMORY.md).
 
 ## Phase 3 — Reliable gateway
 
-**At home:** Mac awake + `hermes gateway start` (or fix launchd for default profile like koshi).
+**After reboot or when Telegram is silent:**
 
-**After reboot:**
+```bash
+cd ~/Cursor/linkup_mcp
+bash scripts/start-nami-gateway.sh
+```
+
+Or manually:
 
 ```bash
 hermes gateway status
@@ -126,7 +133,8 @@ Wire to Hermes as a skill/shell hook later — text-first for v1.
 | Quick note / priority on the go | Telegram → Nami |
 | Code + repo work | Cursor chat (build-time Nami) |
 | Full TUI on Mac | `ssh mac` → `hermes` |
-| Refresh personality from git | `cd ~/Cursor/linkup_mcp && bash scripts/install-nami-hermes.sh` |
+| Refresh personality + memory seeds from git | `cd ~/Cursor/linkup_mcp && bash scripts/install-nami-hermes.sh` |
+| Start gateway after Mac reboot | `bash scripts/start-nami-gateway.sh` |
 | Check both bots | `hermes profile list` |
 
 ---

@@ -6,19 +6,10 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 if [[ ! -x "$ROOT/.venv/bin/python" ]]; then
-  echo "linkup_mcp venv missing. Run: cd $ROOT && uv sync" >&2
+  echo "linkup_mcp venv missing. Run: cd $ROOT && python3 -m venv .venv && .venv/bin/pip install -e ." >&2
   exit 1
 fi
 
-# Hermes stdio MCP passes a filtered env — load secrets here.
-set -a
-[[ -f "$HOME/.hermes/.env" ]] && source "$HOME/.hermes/.env"
-[[ -f "$ROOT/.env" ]] && source "$ROOT/.env"
-set +a
-
-if [[ -z "${LINKUP_API_KEY:-}" ]]; then
-  echo "LINKUP_API_KEY not set. Add to $ROOT/.env or ~/.hermes/.env" >&2
-  exit 1
-fi
-
-exec "$ROOT/.venv/bin/python" "$ROOT/server.py"
+# Do not `source` any .env here — Hermes and hand-edited .env files often break bash
+# (bare UUIDs, unquoted Chrome paths). server.py calls load_dotenv() from the repo root.
+exec "$ROOT/.venv/bin/python" -u "$ROOT/server.py"

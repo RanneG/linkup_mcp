@@ -13,13 +13,19 @@ chmod +x "$RUNNER"
 
 if [[ ! -x "$ROOT/.venv/bin/python" ]]; then
   echo "Creating venv and installing linkup_mcp..."
-  command -v uv >/dev/null || { echo "Install uv first: https://docs.astral.sh/uv/"; exit 1; }
-  uv sync
+  if command -v uv >/dev/null; then
+    uv sync
+  else
+    echo "uv not found — using python3 -m venv + pip (or: curl -LsSf https://astral.sh/uv/install.sh | sh)"
+    python3 -m venv "$ROOT/.venv"
+    "$ROOT/.venv/bin/pip" install -q -U pip
+    "$ROOT/.venv/bin/pip" install -q -e "$ROOT"
+  fi
 fi
 
 if [[ -z "${LINKUP_API_KEY:-}" ]]; then
   set -a
-  [[ -f "$HOME/.hermes/.env" ]] && source "$HOME/.hermes/.env"
+  # shellcheck disable=SC1091
   [[ -f "$ROOT/.env" ]] && source "$ROOT/.env"
   set +a
 fi
@@ -37,8 +43,9 @@ if [[ ! -f "$CONFIG" ]]; then
 fi
 
 # Prefer CLI if available; fall back to idempotent YAML block.
-if hermes mcp add linkup --command "$RUNNER" 2>/dev/null; then
-  echo "Registered via: hermes mcp add linkup"
+# Use bash explicitly — Hermes probes the subprocess at add time.
+if hermes mcp add linkup --command /bin/bash --args "$RUNNER" 2>/dev/null; then
+  echo "Registered via: hermes mcp add linkup (bash → runner)"
 else
   python3 <<PY
 import pathlib, re, textwrap
@@ -47,10 +54,10 @@ config = pathlib.Path("$CONFIG")
 runner = "$RUNNER"
 block = textwrap.dedent(f"""
   linkup:
-    command: {runner!r}
-    args: []
+    command: /bin/bash
+    args: [{runner!r}]
     timeout: 180
-    connect_timeout: 90
+    connect_timeout: 120
 """).strip()
 
 if not config.exists():

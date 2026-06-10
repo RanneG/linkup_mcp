@@ -86,7 +86,7 @@ hermes gateway start
 
 Then message the bot from **Telegram Desktop on PC** or phone — same runtime Nami.
 
-No Gmail/WhatsApp until you flip `channels` in `hermes-nami/config.yaml`.
+**After Mac reboot:** `bash scripts/start-nami-gateway.sh` from linkup_mcp clone.
 
 ## 7. linkup_mcp MCP (search + RAG in Telegram)
 
