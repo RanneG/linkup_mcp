@@ -26,13 +26,18 @@ hermes --version
 hermes doctor
 ```
 
-## 2. Nous Portal (model + Tool Gateway)
+## 2. Model — local Ollama (recommended for Nami)
 
 ```bash
-hermes setup --portal
+ollama pull qwen2.5:7b
+hermes model   # Custom endpoint → http://127.0.0.1:11434/v1 → qwen2.5:7b
+hermes config set model.context_length 65536
+hermes config set model.ollama_num_ctx 65536
 ```
 
-Press Enter on a free curated model for v1; change later with `hermes model`.
+Optional cloud + Tool Gateway: `hermes setup --portal` (uses Nous credits).
+
+**Koshi** uses a separate profile — see [NAMI.md](./NAMI.md).
 
 ## 3. Install Nami personality (from linkup_mcp clone)
 
@@ -83,9 +88,16 @@ Then message the bot from **Telegram Desktop on PC** or phone — same runtime N
 
 No Gmail/WhatsApp until you flip `channels` in `hermes-nami/config.yaml`.
 
-## 7. linkup_mcp MCP (next)
+## 7. linkup_mcp MCP (search + RAG in Telegram)
 
-Clone linkup_mcp on Mac if not already. Add MCP server per [Hermes MCP docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp) pointing at `server.py` (stdio). Same tools as Cursor: search + RAG.
+```bash
+cd ~/Cursor/linkup_mcp
+# Ensure .env has LINKUP_API_KEY (copy from PC — never commit)
+bash scripts/install-nami-mcp-mac.sh
+hermes gateway restart
+```
+
+Full cross-device map: **[NAMI.md](./NAMI.md)**.
 
 ## 8. Bella voice (optional)
 

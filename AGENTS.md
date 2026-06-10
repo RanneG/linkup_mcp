@@ -67,7 +67,7 @@ Ranne has an **ElevenLabs** account. Use it to **pre-bake MP3s** (portfolio BIOS
 
 Pointer: **[docs/supplyme/README.md](docs/supplyme/README.md)**. Architecture: `supplyme-crew/docs/ARCHITECTURE.md`.
 
-**Runtime host:** **Hermes on MacBook only** — not on Windows PC. Personal config: **`hermes-nami/`** + **`docs/hermes/MAC_SETUP.md`**. From PC: **Telegram** or **SSH** → [PC_CLIENT.md](docs/hermes/PC_CLIENT.md). Email/social **off** in v1.
+**Runtime host:** **Hermes on MacBook only** — not on Windows PC. **Nami** = default profile (Telegram + Ollama). **Koshi** = `hermes -p koshi` (isolated). Cross-device guide: **[docs/hermes/NAMI.md](docs/hermes/NAMI.md)**. Setup: **`hermes-nami/`**, [MAC_SETUP.md](docs/hermes/MAC_SETUP.md). From PC/phone: **Telegram** or **SSH** → [PC_CLIENT.md](docs/hermes/PC_CLIENT.md). Email/social **off** in v1.
 
 **Jarvis-shaped stack (how pieces fit):**
 
@@ -84,7 +84,7 @@ Pointer: **[docs/supplyme/README.md](docs/supplyme/README.md)**. Architecture: `
 ## Where else to look
 
 - **`docs/stitch/`** — Stitch handoff (**MIGRATION.md**, **STATUS.md**); keeps the repo root MCP-focused.
-- **`docs/hermes/`** — Mac host ([MAC_SETUP.md](docs/hermes/MAC_SETUP.md)), PC client ([PC_CLIENT.md](docs/hermes/PC_CLIENT.md)), memory; **`hermes-nami/`** — SOUL + AGENTS templates.
+- **`docs/hermes/`** — **Nami** cross-device ([NAMI.md](docs/hermes/NAMI.md)), Mac host ([MAC_SETUP.md](docs/hermes/MAC_SETUP.md)), PC client ([PC_CLIENT.md](docs/hermes/PC_CLIENT.md)), memory; **`hermes-nami/`** — SOUL + AGENTS + memory seeds.
 - **`.cursorrules`** — detailed setup, MCP tool list, Cursor `mcp.json` snippet, related repos.
 - **`.cursor/rules/*.mdc`** — short rules Cursor loads automatically (identity, defaults).
 - **`ENV_TEMPLATE.md`** — env vars if present.

@@ -2,7 +2,9 @@
 
 Hermes is **not installed on PC**. Runtime Nami lives on the **MacBook**.
 
-## Option A — Telegram (recommended)
+Cross-device overview: **[NAMI.md](./NAMI.md)** (phone + PC + Mac).
+
+## Option A — Telegram (recommended — phone and PC)
 
 1. Complete **`hermes gateway setup`** on the Mac ([MAC_SETUP.md](./MAC_SETUP.md)).
 2. Install [Telegram Desktop](https://desktop.telegram.org/) on Windows (or use web).
