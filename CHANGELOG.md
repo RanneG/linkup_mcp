@@ -2,6 +2,14 @@
 
 This document summarizes **Stitch desktop** work (now canonical in **[stitch-app](https://github.com/RanneG/stitch-app)**) plus the **HTTP bridge** changes in this repo that power Google auth and subscription APIs. It is meant for **cold-start handoff** (developers or hackathon judges).
 
+## 2026-06-12 — Bridge refactor (no behavior change)
+
+- **`stitch_rag_bridge.py`** split into the **`bridge/`** package (blueprints per concern: `rag_routes`, `voice_routes`, `face_routes`, `health`, `spa`, `cors`, `errors`). Entrypoint, route URLs, response bodies, env vars, and the **`app` / `register_stitch_spa_routes`** exports (used by stitch-app `stitch_gui.py`) are unchanged — verified by route-map and payload diffs against v1.
+- **Dedupe:** bridge voice route now uses **`local_whisper_stt`** (same env knobs) instead of a private Whisper loader; `/health` and `/api/health` share one payload helper.
+- **`rag_heuristics.py`** extracted from `rag.py` (confidence label, weak evidence, keyword coverage, snippets) — pure functions, unit-tested in the default CI profile without Ollama.
+- **Tests:** `tests/test_rag_heuristics.py`, `tests/test_bridge_routes.py`, `tests/test_stitch_auth_helpers.py` (bridge tests skip cleanly when the `stitch-bridge` extra is absent). CI runs them per profile.
+- **`pyproject.toml`:** real description; version 0.1.2.
+
 ## 2026-05-05 — linkup_mcp Stitch cleanup
 
 - **Removed** duplicated UI from **`integrations/stitch/`** (and **`integrations/lib/`**, **`integrations/fixtures/`**); **`integrations/stitch/README.md`** is a **pointer** to **stitch-app** only.

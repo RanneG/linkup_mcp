@@ -206,17 +206,53 @@ If MCP-security prompts fall back, add the MCP landscape paper to `data/`:
 
 ```
 linkup_mcp/
-├── server.py          # Main MCP server
-├── local_whisper_stt.py  # faster-whisper helpers (MCP transcribe_wav_file)
-├── rag.py             # RAG workflow
-├── stitch_rag_bridge.py  # Local HTTP bridge for Stitch UI dev (RAG + /api/face)
+├── server.py             # MCP entrypoint (stdio) — all MCP tools live here
+├── agents.py             # spawn_agent sub-agent system (Ollama)
+├── rag.py                # RAGWorkflow (LlamaIndex + Ollama)
+├── rag_heuristics.py     # Pure scoring heuristics (unit-tested, no LLM imports)
+├── rag_runtime.py        # Lazy shared RAG index (MCP + bridge)
+├── rag_stitch_contract.py  # Stitch view JSON contract + guide-grounded help
+├── local_whisper_stt.py  # faster-whisper loader/transcribe (MCP + bridge share it)
+├── stitch_rag_bridge.py  # HTTP bridge ENTRYPOINT — owns Flask app, registers bridge/
+├── bridge/               # Bridge route modules (one per concern)
+│   ├── rag_routes.py     #   /api/rag/stitch, /api/rag/stitch-help, /api/stitch-user-guide
+│   ├── voice_routes.py   #   /api/voice/transcribe + STT engine selection
+│   ├── face_routes.py    #   /api/face/* (DeepFace imports deferred)
+│   ├── health.py         #   /health + /api/health (shared payload)
+│   ├── spa.py            #   /, /favicon.ico, optional built-SPA serving
+│   ├── cors.py           #   STITCH_ALLOWED_ORIGINS handling
+│   └── errors.py         #   JSON error handler for /api/face|auth|subscriptions
+├── stitch_auth/          # Google OAuth (PKCE), sessions, subscriptions SQLite
 ├── face_verification/    # Local 1:1 face match + liveness (used by bridge)
 ├── integrations/stitch/  # Pointer README — UI lives in stitch-app repo
-├── docs/              # e.g. stitch_user_guide.md (bridge Help / Ask Stitch)
-├── data/              # Your documents
-├── pyproject.toml     # Dependencies
-├── .cursorrules       # AI context for Cursor
-└── .env               # Environment variables (create this)
+├── docs/                 # e.g. stitch_user_guide.md (bridge Help / Ask Stitch)
+├── data/                 # Your documents
+├── tests/                # Contract + unit tests (see CI commands below)
+├── pyproject.toml        # Dependencies + extras
+├── .cursorrules          # AI context for Cursor
+└── .env                  # Environment variables (create this)
+```
+
+### Where to add things
+
+| Change | Where |
+|--------|-------|
+| New MCP tool | `server.py` (`@mcp.tool()`); shared logic in a root module |
+| New bridge HTTP route | New/existing module in `bridge/` (Flask blueprint), register in `stitch_rag_bridge.py` |
+| Auth / subscriptions route | `stitch_auth/flask_routes.py` |
+| RAG scoring/threshold tweak | `rag_heuristics.py` (pure, unit-tested) or per-instance attrs on `RAGWorkflow` |
+| Bridge JSON shape change | `rag_stitch_contract.py` **and** `packages/stitch-api-types` (keep in sync, bump that package) |
+
+`stitch_rag_bridge.py` must keep exporting `app` and `register_stitch_spa_routes` — stitch-app's `stitch_gui.py` imports them by name.
+
+### Test matrix
+
+```bash
+# Default profile (uv sync):
+python -m unittest tests.test_rag_stitch_contract tests.test_rag_heuristics -v
+
+# With stitch-bridge extra:
+python -m unittest tests.test_face_storage tests.test_bridge_routes tests.test_stitch_auth_helpers -v
 ```
 
 ## 🔧 How It Works

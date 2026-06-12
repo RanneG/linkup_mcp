@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cursor-linkup-mcp"
-version = "0.1.1"
-description = "Add your description here"
+version = "0.1.2"
+description = "Cursor MCP server (Linkup web search + local LlamaIndex/Ollama RAG) with the Stitch HTTP bridge: face verification, Google OAuth, subscriptions, and voice STT."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -67,6 +67,7 @@ exclude = ["tests*"]
 py-modules = [
     "server",
     "rag",
+    "rag_heuristics",
     "rag_runtime",
     "rag_stitch_contract",
     "agents",
