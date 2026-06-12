@@ -1,5 +1,4 @@
 import nest_asyncio
-import re
 from typing import Any
 from llama_index.llms.ollama import Ollama
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
@@ -8,6 +7,8 @@ from llama_index.core.workflow import Event, Context, Workflow, StartEvent, Stop
 from llama_index.core.schema import NodeWithScore
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
 from llama_index.core.response_synthesizers import CompactAndRefine
+
+import rag_heuristics
 
 # Apply nest_asyncio to allow nested event loops
 nest_asyncio.apply()
@@ -28,42 +29,17 @@ class RAGWorkflow(Workflow):
         Settings.embed_model = self.embed_model
         
         self.index = None
-        self.weak_evidence_threshold = 0.35
-        self.high_confidence_threshold = 0.75
-        self.medium_confidence_threshold = 0.5
-        self.keyword_coverage_threshold = 0.25
-        self._stopwords = {
-            "what",
-            "when",
-            "where",
-            "which",
-            "who",
-            "why",
-            "how",
-            "the",
-            "and",
-            "for",
-            "with",
-            "from",
-            "that",
-            "this",
-            "are",
-            "was",
-            "were",
-            "about",
-            "into",
-            "your",
-            "give",
-            "exact",
-            "official",
-        }
+        # Tunable per-instance; defaults live in rag_heuristics.
+        self.weak_evidence_threshold = rag_heuristics.WEAK_EVIDENCE_THRESHOLD
+        self.high_confidence_threshold = rag_heuristics.HIGH_CONFIDENCE_THRESHOLD
+        self.medium_confidence_threshold = rag_heuristics.MEDIUM_CONFIDENCE_THRESHOLD
+        self.keyword_coverage_threshold = rag_heuristics.KEYWORD_COVERAGE_THRESHOLD
+        self._stopwords = rag_heuristics.STOPWORDS
 
     def _build_sources(self, nodes: list[NodeWithScore]) -> list[dict[str, Any]]:
         sources: list[dict[str, Any]] = []
         for idx, node in enumerate(nodes, start=1):
             metadata = node.node.metadata or {}
-            text = node.node.get_content().strip().replace("\n", " ")
-            snippet = text[:260] + ("..." if len(text) > 260 else "")
             sources.append(
                 {
                     "rank": idx,
@@ -72,39 +48,29 @@ class RAGWorkflow(Workflow):
                     or metadata.get("document_id")
                     or "unknown",
                     "score": node.score,
-                    "snippet": snippet,
+                    "snippet": rag_heuristics.make_snippet(node.node.get_content()),
                 }
             )
         return sources
 
     def _is_weak_evidence(self, nodes: list[NodeWithScore]) -> bool:
-        scores = [n.score for n in nodes if n.score is not None]
-        if not scores:
-            return False
-        return max(scores) < self.weak_evidence_threshold
+        return rag_heuristics.is_weak_evidence(
+            (n.score for n in nodes), threshold=self.weak_evidence_threshold
+        )
 
     def _confidence_label(self, nodes: list[NodeWithScore]) -> str:
-        scores = [n.score for n in nodes if n.score is not None]
-        if not scores:
-            return "low"
-        top_score = max(scores)
-        if top_score >= self.high_confidence_threshold:
-            return "high"
-        if top_score >= self.medium_confidence_threshold:
-            return "medium"
-        return "low"
+        return rag_heuristics.confidence_label(
+            (n.score for n in nodes),
+            high=self.high_confidence_threshold,
+            medium=self.medium_confidence_threshold,
+        )
 
     def _keyword_coverage(self, query: str, nodes: list[NodeWithScore]) -> float:
-        query_terms = {
-            token
-            for token in re.findall(r"[a-zA-Z0-9]+", query.lower())
-            if len(token) >= 4 and token not in self._stopwords
-        }
-        if not query_terms:
-            return 1.0
-        corpus_text = " ".join(node.node.get_content().lower() for node in nodes)
-        matched = {term for term in query_terms if term in corpus_text}
-        return len(matched) / len(query_terms)
+        return rag_heuristics.keyword_coverage(
+            query,
+            [node.node.get_content() for node in nodes],
+            stopwords=self._stopwords,
+        )
 
     @step
     async def ingest(self, ctx: Context, ev: StartEvent) -> StopEvent | None:
