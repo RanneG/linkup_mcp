@@ -23,11 +23,46 @@ if [[ ! -x "$ROOT/.venv/bin/python" ]]; then
   fi
 fi
 
+read_linkup_api_key() {
+  local env_file="$1"
+  [[ -f "$env_file" ]] || return 1
+  python3 - "$env_file" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+try:
+    lines = path.read_text(encoding="utf-8").splitlines()
+except OSError:
+    sys.exit(1)
+
+for raw_line in lines:
+    line = raw_line.strip()
+    if not line or line.startswith("#"):
+        continue
+    if line.startswith("export "):
+        line = line[len("export ") :].lstrip()
+    if not line.startswith("LINKUP_API_KEY="):
+        continue
+    value = line.split("=", 1)[1].strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+        value = value[1:-1]
+    if value:
+        print(value)
+        sys.exit(0)
+
+sys.exit(1)
+PY
+}
+
 if [[ -z "${LINKUP_API_KEY:-}" ]]; then
-  set -a
-  # shellcheck disable=SC1091
-  [[ -f "$ROOT/.env" ]] && source "$ROOT/.env"
-  set +a
+  LINKUP_API_KEY="$(read_linkup_api_key "$ROOT/.env" || true)"
+  export LINKUP_API_KEY
+fi
+
+if [[ -z "${LINKUP_API_KEY:-}" ]]; then
+  LINKUP_API_KEY="$(read_linkup_api_key "$HERMES_HOME/.env" || true)"
+  export LINKUP_API_KEY
 fi
 
 if [[ -z "${LINKUP_API_KEY:-}" ]]; then
@@ -48,17 +83,17 @@ if hermes mcp add linkup --command /bin/bash --args "$RUNNER" 2>/dev/null; then
   echo "Registered via: hermes mcp add linkup (bash → runner)"
 else
   python3 <<PY
-import pathlib, re, textwrap
+import pathlib, re
 
 config = pathlib.Path("$CONFIG")
 runner = "$RUNNER"
-block = textwrap.dedent(f"""
+block = f"""
   linkup:
     command: /bin/bash
     args: [{runner!r}]
     timeout: 180
     connect_timeout: 120
-""").strip()
+""".strip("\n")
 
 if not config.exists():
     config.write_text("mcp_servers:\n" + block + "\n", encoding="utf-8")

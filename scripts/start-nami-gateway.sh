@@ -17,8 +17,6 @@ if hermes gateway status 2>/dev/null | grep -qi running; then
 fi
 
 hermes gateway stop 2>/dev/null || true
-pkill -f 'hermes-gateway' 2>/dev/null || true
-sleep 1
 hermes gateway start
 echo ""
 echo "Test: message your Nami bot on Telegram, or: hermes -z 'Reply OK'"
