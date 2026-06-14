@@ -23,16 +23,35 @@ if [[ ! -x "$ROOT/.venv/bin/python" ]]; then
   fi
 fi
 
-if [[ -z "${LINKUP_API_KEY:-}" ]]; then
-  set -a
-  # shellcheck disable=SC1091
-  [[ -f "$ROOT/.env" ]] && source "$ROOT/.env"
-  set +a
-fi
+has_linkup_api_key() {
+  if [[ -n "${LINKUP_API_KEY:-}" ]]; then
+    return 0
+  fi
 
-if [[ -z "${LINKUP_API_KEY:-}" ]]; then
+  [[ -f "$ROOT/.env" ]] || return 1
+  python3 - "$ROOT/.env" <<'PY'
+import pathlib
+import sys
+
+dotenv_path = pathlib.Path(sys.argv[1])
+for line in dotenv_path.read_text(encoding="utf-8").splitlines():
+    stripped = line.strip()
+    if not stripped or stripped.startswith("#") or "=" not in stripped:
+        continue
+    key, value = stripped.split("=", 1)
+    if key.strip() != "LINKUP_API_KEY":
+        continue
+    value = value.strip().strip("'\"")
+    if value:
+        sys.exit(0)
+
+sys.exit(1)
+PY
+}
+
+if ! has_linkup_api_key; then
   echo "ERROR: LINKUP_API_KEY missing." >&2
-  echo "  Add to $ROOT/.env or ~/.hermes/.env then re-run." >&2
+  echo "  Add to $ROOT/.env then re-run." >&2
   exit 1
 fi
 
