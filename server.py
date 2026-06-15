@@ -8,6 +8,7 @@ from llama_index.llms.ollama import Ollama
 from agents import AgentOrchestrator, AgentType
 from mcp.server.fastmcp import FastMCP
 
+from ollama_config import configured_ollama_model
 from rag_runtime import ensure_rag_ready
 from rag_stitch_contract import _to_stitch_view
 
@@ -22,7 +23,7 @@ if linkup_api_key:
     client = LinkupClient()
 
 # Initialize LLM for agents (reuse the same Ollama instance)
-agent_llm = Ollama(model="llama3.2")
+agent_llm = Ollama(model=configured_ollama_model())
 
 # We'll initialize the orchestrator after defining tools
 agent_orchestrator: Optional[AgentOrchestrator] = None

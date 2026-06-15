@@ -9,6 +9,8 @@ import os
 
 from llama_index.llms.ollama import Ollama
 
+from ollama_config import configured_ollama_model
+
 
 def _to_stitch_view(payload: dict) -> dict:
     """Adapt RAG payload to Stitch-like UI contract."""
@@ -54,7 +56,7 @@ async def rag_stitch_help_query(query_text: str) -> dict:
             "fallback": True,
             "sources": [],
         }
-    model = (os.getenv("OLLAMA_MODEL") or "llama3.2").strip() or "llama3.2"
+    model = configured_ollama_model()
     llm = Ollama(model=model)
     prompt = (
         "You are in-app support for the Stitch desktop app. Answer the user's question using ONLY "

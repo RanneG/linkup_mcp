@@ -93,6 +93,8 @@ Then message the bot from **Telegram Desktop on PC** or phone — same runtime N
 ```bash
 cd ~/Cursor/linkup_mcp
 # Ensure .env has LINKUP_API_KEY (copy from PC — never commit)
+# Keep MCP RAG/agents on the same local model pulled above:
+#   OLLAMA_MODEL=qwen2.5:7b
 bash scripts/install-nami-mcp-mac.sh
 hermes gateway restart
 ```

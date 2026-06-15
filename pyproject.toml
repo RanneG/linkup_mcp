@@ -66,6 +66,7 @@ exclude = ["tests*"]
 [tool.setuptools]
 py-modules = [
     "server",
+    "ollama_config",
     "rag",
     "rag_runtime",
     "rag_stitch_contract",

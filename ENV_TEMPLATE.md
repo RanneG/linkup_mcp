@@ -24,6 +24,9 @@ OPENAI_API_KEY=your_openai_api_key_here
 # Optional: include debug_retrieval_cards on rag_stitch / bridge fallback responses
 # STITCH_RAG_DEBUG=1
 
+# Optional: Ollama model used by MCP RAG, agent tools, and Stitch help
+# OLLAMA_MODEL=llama3.2
+
 # --- Local face verification (stitch_rag_bridge.py /face_verification) ---
 # STITCH_FACE_DB_DIR=         # override default ~/.stitch/face_db/
 # STITCH_FACE_PASSPHRASE=     # optional extra secret mixed into Fernet key derivation
@@ -99,4 +102,4 @@ The Stitch UI calls the bridge on **127.0.0.1:8765** in local dev; the redirect 
 
 Never commit `.env`; it is listed in `.gitignore`.
 
-For Ollama: install from https://ollama.ai/download, then `ollama pull llama3.2` (see **README.md**).
+For Ollama: install from https://ollama.ai/download, then `ollama pull llama3.2` (or set `OLLAMA_MODEL` to a model you have pulled, such as `qwen2.5:7b` for Hermes/Nami).

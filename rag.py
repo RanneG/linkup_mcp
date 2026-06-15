@@ -9,6 +9,8 @@ from llama_index.core.schema import NodeWithScore
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
 from llama_index.core.response_synthesizers import CompactAndRefine
 
+from ollama_config import configured_ollama_model
+
 # Apply nest_asyncio to allow nested event loops
 nest_asyncio.apply()
 
@@ -17,10 +19,10 @@ class RetrieverEvent(Event):
     nodes: list[NodeWithScore]
 
 class RAGWorkflow(Workflow):
-    def __init__(self, model_name="llama3.2", embedding_model="BAAI/bge-small-en-v1.5"):
+    def __init__(self, model_name: str | None = None, embedding_model="BAAI/bge-small-en-v1.5"):
         super().__init__(timeout=60.0)
         # Initialize LLM and embedding model
-        self.llm = Ollama(model=model_name)
+        self.llm = Ollama(model=model_name or configured_ollama_model())
         self.embed_model = HuggingFaceEmbedding(model_name=embedding_model)
         
         # Configure global settings
