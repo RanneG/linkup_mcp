@@ -48,23 +48,42 @@ if hermes mcp add linkup --command /bin/bash --args "$RUNNER" 2>/dev/null; then
   echo "Registered via: hermes mcp add linkup (bash → runner)"
 else
   python3 <<PY
-import pathlib, re, textwrap
+import pathlib, textwrap
 
 config = pathlib.Path("$CONFIG")
 runner = "$RUNNER"
-block = textwrap.dedent(f"""
+block = textwrap.indent(textwrap.dedent(f"""
   linkup:
     command: /bin/bash
     args: [{runner!r}]
     timeout: 180
     connect_timeout: 120
-""").strip()
+""").strip(), "  ")
+
+def has_linkup_server(text: str) -> bool:
+    lines = text.splitlines()
+    for index, line in enumerate(lines):
+        if line.strip() != "mcp_servers:":
+            continue
+
+        base_indent = len(line) - len(line.lstrip())
+        for child in lines[index + 1:]:
+            stripped = child.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+
+            child_indent = len(child) - len(child.lstrip())
+            if child_indent <= base_indent:
+                break
+            if stripped == "linkup:":
+                return True
+    return False
 
 if not config.exists():
     config.write_text("mcp_servers:\n" + block + "\n", encoding="utf-8")
 else:
     text = config.read_text(encoding="utf-8")
-    if re.search(r"^\\s*linkup:", text, re.M):
+    if has_linkup_server(text):
         print("mcp_servers.linkup already present in config.yaml — skipped YAML edit")
     elif "mcp_servers:" in text:
         text = text.replace("mcp_servers:", "mcp_servers:\n" + block, 1)
