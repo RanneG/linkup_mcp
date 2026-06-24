@@ -81,7 +81,15 @@ NOTES.md
 # Personal documents
 data/RGerodiasCV.pdf
 data/*.pdf
+# Inbox media from transcribe_reel.py (keep .md / .workflow.md / .meta.json)
+data/inbox/*.mp4
+data/inbox/*.wav
+data/inbox/*.webm
+data/inbox/*.mkv
 data/nami-voice/samples/
+# Generated RAG mirror (sources live in docs/ and hermes-nami/)
+data/nami-corpus/*
+!data/nami-corpus/.gitkeep
 
 # Node / frontend
 node_modules/

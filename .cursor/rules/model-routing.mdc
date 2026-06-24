@@ -1,0 +1,13 @@
+---
+description: When to use fast vs deep models in Cursor (build-time Nami)
+alwaysApply: true
+---
+
+# Model routing (Cursor)
+
+- **Default:** fast, execution-focused — small diffs, run tests, ship.
+- **Go deep** when Ranne says "go deep", "think hard", "architecture", or "security review" — prefer stronger reasoning models for multi-file refactors and subtle bugs.
+- **Do not** switch models for trivial one-line fixes.
+- **Runtime Nami** (Telegram/Hermes) uses local Ollama on Mac — if the task needs full repo edits, say so and point Ranne to Cursor.
+
+Config reference: `hermes-nami/model-routing.yaml`, skill `hermes-nami/skills/model-routing.md`.

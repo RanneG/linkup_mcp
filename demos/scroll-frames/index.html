@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scroll frame demo</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="hero">
+    <p class="eyebrow">linkup_mcp demo</p>
+    <h1>Scroll-synced frame playback</h1>
+    <p class="lede">
+      Scroll to scrub through frames — the same technique as Whisk → Flow → ezgif → zip → code,
+      without shipping hundreds of PNGs in git.
+    </p>
+  </header>
+
+  <section class="stage-wrap" id="stage-wrap">
+    <div class="sticky">
+      <img id="frame" src="frames/frame_000.svg" alt="Animation frame" width="800" height="800" />
+      <p class="hud"><span id="frame-label">1</span> / <span id="frame-total">24</span></p>
+    </div>
+  </section>
+
+  <section class="copy">
+    <h2>How this maps to the reel workflow</h2>
+    <ol>
+      <li><strong>Whisk</strong> — start/end stills (here: generated SVG gradients).</li>
+      <li><strong>Google Flow</strong> — interpolate video (skipped in placeholder).</li>
+      <li><strong>ezgif</strong> — export frame zip at target FPS.</li>
+      <li><strong>Coding tool</strong> — map <code>scrollY</code> → frame index (this page).</li>
+    </ol>
+    <p>Swap <code>frames/</code> for your own <code>frame_000.png … frame_NNN.png</code> from a zip.</p>
+  </section>
+
+  <footer class="tail">
+    <p>End of scroll track — frame should read last index.</p>
+  </footer>
+
+  <script src="main.js"></script>
+</body>
+</html>

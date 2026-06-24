@@ -54,9 +54,16 @@ elevenlabs = [
     "elevenlabs>=2.40.0,<3",
     "requests>=2.31.0,<3",
 ]
+# Nami Game Lab browser UI (`nami-play-ui` on http://127.0.0.1:8877).
+game-lab-web = [
+    "flask>=3.0.0,<4.0",
+]
 
 [project.scripts]
 elevenlabs-gen = "elevenlabs_toolkit.cli:main"
+nami-play = "nami_game_lab.cli:main"
+nami-play-ui = "nami_game_lab.web:main"
+nami-rag-sync = "nami_corpus.sync:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -68,6 +75,7 @@ py-modules = [
     "server",
     "rag",
     "rag_heuristics",
+    "reel_workflow",
     "rag_runtime",
     "rag_stitch_contract",
     "agents",

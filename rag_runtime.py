@@ -21,6 +21,13 @@ async def ensure_rag_ready() -> RAGWorkflow:
         return _rag_workflow
     async with _rag_ready_lock:
         if _rag_workflow is None:
-            _rag_workflow = RAGWorkflow()
-            await _rag_workflow.ingest_documents("data")
+            import os
+            from pathlib import Path
+
+            model = os.getenv("RAG_LLM_MODEL", "llama3.2")
+            _rag_workflow = RAGWorkflow(model_name=model)
+            data_dir = Path(os.getenv("RAG_DATA_DIR", "data"))
+            if not data_dir.is_dir():
+                data_dir.mkdir(parents=True, exist_ok=True)
+            await _rag_workflow.ingest_documents(str(data_dir))
         return _rag_workflow

@@ -1,0 +1,25 @@
+# Nami model routing — applied on Mac via scripts/apply-nami-model-routing.sh
+# Cursor routing is advisory (.cursor/rules/model-routing.mdc).
+
+hermes:
+  default:
+    provider: ollama
+    base_url: http://127.0.0.1:11434/v1
+    model: qwen2.5:7b
+    context_length: 65536
+    ollama_num_ctx: 65536
+  rag:
+    llm: llama3.2  # linkup_mcp RAGWorkflow (separate from chat model)
+  escalate_to_cursor_when:
+    - multi_file_refactor
+    - security_review
+    - new_feature_with_tests
+
+cursor:
+  fast: composer
+  deep: opus_or_sonnet_thinking
+  triggers_deep:
+    - "go deep"
+    - "think hard"
+    - "architecture"
+    - "security review"

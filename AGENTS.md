@@ -21,6 +21,14 @@ Ranne is **prioritizing development tools and agent infrastructure** over one-of
 | **Secondary** | Product apps that *use* the stack | **stitch-app**, **SupplyMe** (Hermes + private engine), standup-bot |
 | **Maintenance** | Shipped surfaces | **pixel-portfolio**, marketing sites — fix bugs/deploy when asked; **don’t** default to UX/feature work here |
 
+**Marketing landing sources** live as **siblings** under `../` (same `Cursor/` folder as this clone), not inside **linkup_mcp**:
+
+| Folder | Deploy target | Live site |
+|--------|---------------|-----------|
+| **`../koshi-landing/`** | `../koshi-chhyang-site` via `deploy.py` | [koshichhyang.com](https://www.koshichhyang.com) |
+| **`../koshi-landing-v2/`** | same (experimental rebuild) | — |
+| **`../ranne-exe-landing/`** | `../pixel-portfolio/public/exe` via `deploy.py` | [rannegerodias.com](https://rannegerodias.com) |
+
 When scope is ambiguous, assume **tooling that compounds** (MCP, bridge routes, voice, shared libs) unless Ranne names a specific product repo.
 
 ## Project in one paragraph
@@ -69,6 +77,8 @@ Pointer: **[docs/supplyme/README.md](docs/supplyme/README.md)**. Architecture: `
 
 **Runtime host:** **Hermes on MacBook only** — not on Windows PC. **Nami** = default profile (Telegram + Ollama). **Koshi** = `hermes -p koshi` (isolated). Cross-device guide: **[docs/hermes/NAMI.md](docs/hermes/NAMI.md)**. Setup: **`hermes-nami/`**, [MAC_SETUP.md](docs/hermes/MAC_SETUP.md). From PC/phone: **Telegram** or **SSH** → [PC_CLIENT.md](docs/hermes/PC_CLIENT.md). Email/social **off** in v1.
 
+**linkup_mcp ↔ Hermes:** same MCP server on **Mac** (runtime) and **PC** (Cursor build) — not redundant. Mac install: **`bash scripts/install-nami-stack-mac.sh`**. RAG docs: **`python -m nami_corpus.sync`** → `data/nami-corpus/`. Surfaces: **[docs/hermes/SURFACE_MAP.md](docs/hermes/SURFACE_MAP.md)**. Scorecard: **[docs/hermes/STATUS.md](docs/hermes/STATUS.md)**.
+
 **Jarvis-shaped stack (how pieces fit):**
 
 | Layer | Role | Your pieces |
@@ -108,6 +118,7 @@ Small **GitHub** repos to spin up when you want a shared “feature library” (
 4. When Ranne asks to **remember something across sessions**, persist it here or in `.cursor/rules/` (concise, actionable), not only in chat.
 5. For **Stitch app vs bridge ownership**, follow **[docs/stitch/MIGRATION.md](docs/stitch/MIGRATION.md)** so UI work targets the future Stitch repo and MCP/bridge work stays here.
 6. **Default to dev tools** (see **Current focus** above) — portfolio and marketing repos are not the default lane unless Ranne says so.
+7. **Loop engineering default** — closed loops with measurable done criteria, checker pass, turn cap; see **[docs/hermes/LOOP_ENGINEERING.md](docs/hermes/LOOP_ENGINEERING.md)** and `.cursor/rules/loop-engineering.mdc`.
 
 ## OpenClaw (superseded for personal agent — optional reference)
 

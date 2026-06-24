@@ -41,8 +41,9 @@ One **Nami** personality, three surfaces. Same partner on each device; different
 | Local LLM (Ollama `qwen2.5:7b`) | Done |
 | `context_length` / `ollama_num_ctx` 65536 | Set in config — verify with `ollama ps` |
 | Koshi isolated (`hermes -p koshi`) | Done |
-| linkup_mcp MCP on Mac for runtime Nami | Done — `hermes mcp test linkup` (6 tools) |
-| MEMORY.md / USER.md seeded | Todo — `bash scripts/install-nami-hermes.sh` |
+| linkup_mcp MCP on Mac for runtime Nami | Done — `hermes mcp test linkup`; re-run **`bash scripts/install-nami-stack-mac.sh`** after `git pull` |
+| RAG over Nami docs (not PDF-only) | **`python -m nami_corpus.sync`** → `data/nami-corpus/` |
+| MEMORY.md / USER.md seeded | Run `install-nami-hermes.sh` if `~/.hermes/memories/` empty |
 | Telegram topic desks (Build / Products / This week) | Todo |
 | Nami gateway after reboot | Todo — run `bash scripts/start-nami-gateway.sh` |
 | Tailscale (Mac reachable away from home Wi‑Fi) | Todo |
@@ -54,15 +55,18 @@ One **Nami** personality, three surfaces. Same partner on each device; different
 
 Registered as Hermes MCP server **`linkup`**: `web_search`, `rag`, `rag_stitch`, whisper tools, `spawn_agent`.
 
-**Re-install or update** (SSH on Mac only):
+**One-shot install / refresh** (SSH on Mac):
 
 ```bash
 cd ~/Cursor/linkup_mcp
 git pull
-bash scripts/install-nami-mcp-mac.sh   # or manual: hermes mcp add linkup ...
-hermes mcp test linkup
+bash scripts/install-nami-stack-mac.sh
 hermes gateway restart
 ```
+
+Or step-by-step: `install-nami-hermes.sh` → `python -m nami_corpus.sync` → `install-nami-mcp-mac.sh`.
+
+**Non-redundant surfaces:** [SURFACE_MAP.md](./SURFACE_MAP.md). **Honest scorecard:** [STATUS.md](./STATUS.md).
 
 In Telegram: **`/reload-mcp`**, then ask Nami to search or use RAG.
 

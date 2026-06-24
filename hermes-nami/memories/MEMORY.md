@@ -7,6 +7,7 @@
 - **Nami (personal):** Hermes default profile on MacBook. Telegram bot. Ollama `qwen2.5:7b` @ localhost:11434.
 - **Koshi Crew:** Separate Hermes profile `koshi` — Awisha's SupplyMe tenant. Do not merge configs.
 - **Build-time Nami:** Cursor chat on Windows + linkup_mcp MCP.
+- **RAG corpus:** `python -m nami_corpus.sync` (git docs → `data/nami-corpus/`). Eval: `python scripts/nami_rag_eval.py --rebuild`.
 
 ## Active repos
 

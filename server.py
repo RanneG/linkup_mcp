@@ -42,12 +42,24 @@ def web_search(query: str) -> str:
     return search_response
 
 @mcp.tool()
+def rag_status() -> str:
+    """Report Nami RAG corpus size on disk (run nami_corpus sync if stale)."""
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent
+    corpus = root / "data" / "nami-corpus"
+    if not corpus.is_dir():
+        return json.dumps({"ok": False, "error": "data/nami-corpus missing — run: python -m nami_corpus"})
+    files = [p.name for p in corpus.iterdir() if p.is_file() and p.name not in {".manifest.txt", "README.md"}]
+    return json.dumps({"ok": True, "corpus_dir": str(corpus), "file_count": len(files), "sample": files[:5]})
+
+
+@mcp.tool()
 async def rag(query: str) -> str:
-    """Use local PDF RAG and return answer with evidence sources."""
+    """Use local document RAG and return answer with evidence sources."""
     wf = await ensure_rag_ready()
     response_payload = await wf.query(query)
     return json.dumps(response_payload)
-
 
 @mcp.tool()
 async def rag_stitch(query: str) -> str:

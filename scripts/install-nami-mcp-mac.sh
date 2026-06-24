@@ -31,9 +31,8 @@ if [[ -z "${LINKUP_API_KEY:-}" ]]; then
 fi
 
 if [[ -z "${LINKUP_API_KEY:-}" ]]; then
-  echo "ERROR: LINKUP_API_KEY missing." >&2
-  echo "  Add to $ROOT/.env or ~/.hermes/.env then re-run." >&2
-  exit 1
+  echo "WARN: LINKUP_API_KEY missing — web_search will fail; RAG + local tools still work." >&2
+  echo "  Add to $ROOT/.env when ready." >&2
 fi
 
 mkdir -p "$HERMES_HOME"

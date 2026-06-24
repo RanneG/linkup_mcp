@@ -1,0 +1,7 @@
+# Add to %USERPROFILE%\.ssh\config when Mac is on the same LAN:
+#
+# Host nami-mac
+#   HostName rannes-macbook-air.local
+#   User ranne
+#
+# Then: ssh nami-mac "cd ~/Cursor/linkup_mcp && bash scripts/install-nami-stack-mac.sh"

@@ -96,7 +96,7 @@ class RAGWorkflow(Workflow):
             print("Index is empty, load some documents before querying!")
             return None
 
-        retriever = index.as_retriever(similarity_top_k=2)
+        retriever = index.as_retriever(similarity_top_k=4)
         nodes = await retriever.aretrieve(query)
         await ctx.set("query", query)
         return RetrieverEvent(nodes=nodes)
@@ -108,7 +108,7 @@ class RAGWorkflow(Workflow):
         if not ev.nodes:
             return StopEvent(
                 result={
-                    "answer": "I could not find enough relevant evidence in the PDF corpus to answer that confidently.",
+                    "answer": "I could not find enough relevant evidence in the document corpus to answer that confidently.",
                     "confidence": "low",
                     "fallback": True,
                     "sources": [],
@@ -119,7 +119,7 @@ class RAGWorkflow(Workflow):
         if coverage < self.keyword_coverage_threshold:
             return StopEvent(
                 result={
-                    "answer": "I could not find relevant evidence in the current PDF corpus for that request.",
+                    "answer": "I could not find relevant evidence in the current document corpus for that request.",
                     "confidence": "low",
                     "fallback": True,
                     "sources": self._build_sources(ev.nodes),
@@ -129,14 +129,14 @@ class RAGWorkflow(Workflow):
         if self._is_weak_evidence(ev.nodes):
             return StopEvent(
                 result={
-                    "answer": "I found only weak matches in the PDF corpus. Please refine your question or add more targeted documents.",
+                    "answer": "I found only weak matches in the document corpus. Please refine your question or add more targeted documents.",
                     "confidence": "low",
                     "fallback": True,
                     "sources": self._build_sources(ev.nodes),
                 }
             )
 
-        summarizer = CompactAndRefine(streaming=True, verbose=True)
+        summarizer = CompactAndRefine(streaming=False, verbose=False)
         response = await summarizer.asynthesize(query, nodes=ev.nodes)
         return StopEvent(
             result={
