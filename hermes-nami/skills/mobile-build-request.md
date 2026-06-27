@@ -2,7 +2,7 @@
 
 When Ranne asks to **build**, **implement**, **add a feature**, or **fix code in a repo** from Telegram — not just Q&A — use the **mobile build loop**.
 
-Full setup: [MOBILE_BUILD.md](../../docs/hermes/MOBILE_BUILD.md).
+Full setup: [MOBILE_BUILD.md](../../docs/hermes/MOBILE_BUILD.md). Runtime host: **VPS** ([VPS_SETUP.md](../../docs/hermes/VPS_SETUP.md)).
 
 ## When to use
 
@@ -16,12 +16,12 @@ Full setup: [MOBILE_BUILD.md](../../docs/hermes/MOBILE_BUILD.md).
 ## Preconditions
 
 1. PC build bridge running (`nami_build_bridge.py` on port **8770**).
-2. **`NAMI_BUILD_PC_URL`** and **`NAMI_BUILD_TOKEN`** in Mac Hermes env (see MOBILE_BUILD.md).
+2. **`NAMI_BUILD_PC_URL`** and **`NAMI_BUILD_TOKEN`** in VPS `~/.hermes/.env` (see MOBILE_BUILD.md).
 3. PC reachable (Tailscale when away from home).
 
-If bridge unreachable: say so clearly; offer to capture the task in memory for later — do **not** pretend code was changed on Mac.
+If bridge unreachable: say so clearly; offer to capture the task in memory for later — do **not** pretend code was changed on the VPS.
 
-## Enqueue (shell on Mac)
+## Enqueue (shell on VPS)
 
 ```bash
 curl -sS -X POST "${NAMI_BUILD_PC_URL}/api/build/enqueue" \
@@ -56,14 +56,14 @@ Poll every ~30s until `status` is `completed` or `failed` (max ~15 min, then sto
 **On failed:**
 
 > Build failed (`abc123`): …
-> Check PC: CURSOR_API_KEY, cursor-sdk, pytest output.
+> Check PC: CURSOR_API_KEY, agent CLI, pytest output.
 
 ## Limits
 
 - **Turn cap:** default 8 — do not raise above 12 without Ranne asking.
 - **No auto-commit** — Ranne reviews diff in Cursor.
 - **Repos:** default `linkup_mcp`; other repos only if Ranne names path and PC has clone.
-- **Do not** run long builds on Mac Ollama — execution is **PC only**.
+- **Do not** run long builds on VPS Ollama — execution is **PC only**.
 
 ## Checker before telling Ranne "done"
 

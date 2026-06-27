@@ -4,48 +4,49 @@ One personality (**Nami**), three surfaces. Each surface owns **different jobs**
 
 ## Who does what
 
-| Job | **Cursor (PC)** | **Hermes (Mac / Telegram)** |
+| Job | **Cursor (PC)** | **Hermes (VPS / Telegram)** |
 |-----|-----------------|-----------------------------|
 | Edit code, git, PRs | **Primary** | Review after PC mobile build — [MOBILE_BUILD.md](./MOBILE_BUILD.md) |
-| Mobile build enqueue | **PC bridge** `:8770` | Hermes skill → HTTP POST |
+| Mobile build enqueue | **PC bridge** `:8770` | VPS skill → HTTP POST to PC |
 | Web search (Linkup) | MCP `web_search` | Same tool via Hermes MCP `linkup` |
 | RAG over your docs | MCP `rag` | Same via Hermes MCP `linkup` |
-| Stitch bridge (OAuth, Gmail, face) | Run `stitch_rag_bridge.py` locally | Not on Mac by default — PC dev surface |
-| Long-term memory (MEMORY.md) | `AGENTS.md` + rules in git | `~/.hermes/memories/` on Mac |
-| Quick note / priority on phone | — | **Telegram → Hermes** |
+| Stitch bridge (OAuth, Gmail, face) | Run `stitch_rag_bridge.py` locally | Not on VPS by default — PC dev surface |
+| Long-term memory (MEMORY.md) | `AGENTS.md` + rules in git | `~/.hermes/memories/` on VPS |
+| Quick note / priority on phone | — | **Telegram → Hermes (VPS)** |
 | Voice (Bella TTS) | `nami-speak` / ElevenLabs CLI | Optional skill later |
-| Game lab / localhost UI | **PC** (`nami-play-ui`) | Not needed on Mac |
-| SupplyMe / Koshi tenant | Cursor on engine repo | `hermes -p koshi` (isolated profile) |
+| Game lab / localhost UI | **PC** (`nami-play-ui`) | Not on VPS |
+| SupplyMe / Koshi tenant | Cursor on engine repo | `hermes -p koshi` (isolated profile on VPS) |
 
 ## Rule of thumb
 
-- **Building** → Cursor + linkup_mcp MCP (full IDE, repo access).
-- **Living** (priorities, search, RAG, memory) → Hermes on Mac + Telegram.
-- **Same tools, different host:** linkup_mcp MCP is registered **once on the Mac** for runtime Nami; Cursor on PC runs its **own** MCP instance for build-time — not redundant, different machines.
+- **Building** → Cursor + linkup_mcp MCP on PC (full IDE, repo access).
+- **Living** (priorities, search, RAG, memory, Telegram 24/7) → Hermes on **VPS**.
+- **Same tools, different host:** linkup_mcp MCP on VPS for runtime; Cursor on PC runs its **own** MCP for build-time.
 
 ## What not to duplicate
 
 | Avoid | Instead |
 |-------|---------|
-| Running Hermes on Windows *and* Mac for Nami | Mac = runtime only; PC = Cursor |
+| Running Hermes on Windows *and* VPS for Nami | VPS = runtime; PC = Cursor only |
+| Mac + VPS both as Telegram gateway | Pick **VPS**; Mac optional spare |
 | Two Telegram bots for the same profile | One Nami bot; Koshi = separate profile |
-| Copying SOUL.md into chat every session | `install-nami-hermes.sh` → `~/.hermes/` |
-| Manual PDF dumps for every doc change | `python scripts/build_nami_rag_corpus.py` |
+| Manual PDF dumps for every doc change | `python -m nami_corpus.sync` |
 
 ## Sync checklist (after `git pull`)
 
-**On Mac:**
+**On VPS:**
 
 ```bash
 cd ~/Cursor/linkup_mcp
-bash scripts/install-nami-stack-mac.sh
+bash scripts/install-nami-stack-vps.sh
+hermes gateway restart
 ```
 
 **On PC (Cursor):**
 
 ```bash
-python scripts/build_nami_rag_corpus.py
-# Restart Cursor MCP if RAG index was empty
+git pull
+# Restart Cursor MCP if needed; run Nami-Build-Bridge when using mobile builds
 ```
 
 See [STATUS.md](./STATUS.md) for current completion.

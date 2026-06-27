@@ -1,8 +1,10 @@
-# Hermes + Nami on Mac (runtime host)
+# Hermes + Nami on Mac (optional / legacy)
 
-**Hermes runs on the MacBook only.** Windows PC = Cursor + linkup_mcp (build-time Nami). Use runtime Nami from PC via **Telegram** or **SSH**.
+> **Primary runtime is now the Linux VPS** — see **[VPS_SETUP.md](./VPS_SETUP.md)**. Use this doc only if you keep Hermes on a MacBook instead of (or alongside) the VPS. Do **not** run two Telegram gateways for the same Nami bot.
 
-## Architecture
+**Hermes on Mac was the original host.** Windows PC = Cursor + linkup_mcp (build-time Nami). Use runtime Nami from PC via **Telegram** (through VPS) or **SSH** to Mac/VPS.
+
+## Architecture (legacy Mac host)
 
 ```
 ┌─────────────────┐         ┌──────────────────────────────┐

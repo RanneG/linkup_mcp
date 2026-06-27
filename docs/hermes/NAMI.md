@@ -1,4 +1,4 @@
-# Nami — personal assistant (phone, PC, Mac)
+# Nami — personal assistant (phone, PC, VPS)
 
 One **Nami** personality, three surfaces. Same partner on each device; different **capabilities** per surface.
 
@@ -8,24 +8,26 @@ One **Nami** personality, three surfaces. Same partner on each device; different
 |--------|----------------------|-----------------|
 | **Phone** | Telegram → Nami bot | Memory, skills, MCP; **mobile build enqueue** → PC worker |
 | **PC** | **Cursor chat** (build) + **Telegram** (runtime) | Cursor: full IDE + MCP. Telegram: same runtime as phone |
-| **Mac** | Terminal `hermes`, Telegram gateway | Host process — gateway + Ollama + MCP |
+| **VPS** | Hermes gateway (always on) | Telegram, memory, MCP search/RAG — **runtime host** |
+| **Mac** | Optional | Spare — not required if VPS is live |
 
-**Runtime host:** MacBook only (`~/.hermes/`, default profile).  
-**Not on PC:** Hermes was removed from Windows on purpose — see [PC_CLIENT.md](./PC_CLIENT.md).
+**Runtime host:** **Linux VPS** (`~/.hermes/`, default profile). Setup: **[VPS_SETUP.md](./VPS_SETUP.md)**.  
+**Build host:** **Windows PC** — Cursor, git, mobile-build bridge.  
+**Not on PC:** Hermes gateway — see [PC_CLIENT.md](./PC_CLIENT.md).
 
 ```
                     ┌─────────────────────────────────┐
-                    │  MacBook (always-on when open)   │
+                    │  VPS (24/7)                      │
                     │  Hermes default = Nami             │
-                    │  Ollama qwen2.5:7b               │
+                    │  Ollama or cloud LLM             │
                     │  gateway → Telegram              │
                     │  linkup_mcp MCP (search + RAG)   │
                     └───────────────┬─────────────────┘
                                     │
          ┌──────────────────────────┼──────────────────────────┐
          │                          │                          │
-    📱 Phone                   💻 PC Telegram              🖥 Mac CLI
-    Telegram app               Telegram Desktop            ssh → hermes
+    📱 Phone                   💻 PC (when on)            🖥 Mac (optional)
+    Telegram                   Cursor + build bridge      ssh → VPS
 ```
 
 **Separate:** `koshi` profile = Koshi Crew (Awisha). Never share bot tokens with Nami.
@@ -36,31 +38,30 @@ One **Nami** personality, three surfaces. Same partner on each device; different
 
 | Item | Status |
 |------|--------|
-| Hermes on Mac (default = Nami) | Done |
-| Telegram Nami bot + allowlist | Done |
-| Local LLM (Ollama `qwen2.5:7b`) | Done |
-| `context_length` / `ollama_num_ctx` 65536 | Set in config — verify with `ollama ps` |
-| Koshi isolated (`hermes -p koshi`) | Done |
-| linkup_mcp MCP on Mac for runtime Nami | Done — `hermes mcp test linkup`; re-run **`bash scripts/install-nami-stack-mac.sh`** after `git pull` |
-| RAG over Nami docs (not PDF-only) | **`python -m nami_corpus.sync`** → `data/nami-corpus/` |
-| MEMORY.md / USER.md seeded | Run `install-nami-hermes.sh` if `~/.hermes/memories/` empty |
-| Telegram topic desks (Build / Products / This week) | Todo |
-| Nami gateway after reboot | Todo — run `bash scripts/start-nami-gateway.sh` |
-| Tailscale (Mac reachable away from home Wi‑Fi) | Todo |
-| Bella voice (ElevenLabs) on Telegram | Later |
+| Hermes on VPS (default = Nami) | **Todo — [VPS_SETUP.md](./VPS_SETUP.md)** |
+| Telegram Nami bot + allowlist | Migrate from Mac → VPS |
+| Local LLM (Ollama) or cloud model on VPS | Pick tier in VPS_SETUP |
+| Koshi isolated (`hermes -p koshi`) | Same pattern on VPS if needed |
+| linkup_mcp MCP on VPS | `bash scripts/install-nami-stack-vps.sh` |
+| RAG over Nami docs | **`python -m nami_corpus.sync`** → `data/nami-corpus/` |
+| MEMORY.md / USER.md seeded | `install-nami-hermes.sh` on VPS |
+| Gateway survives reboot | `hermes gateway install` or systemd on VPS |
+| Tailscale VPS ↔ PC | Todo — mobile build + SSH |
+| PC mobile build bridge | Done — [MOBILE_BUILD.md](./MOBILE_BUILD.md) |
+| Mac runtime | **Retired** unless Mac stays on (see [MAC_SETUP.md](./MAC_SETUP.md)) |
 
 ---
 
-## Phase 1 — MCP on Mac (search + RAG in Telegram) ✅
+## Phase 1 — MCP on VPS (search + RAG in Telegram)
 
 Registered as Hermes MCP server **`linkup`**: `web_search`, `rag`, `rag_stitch`, whisper tools, `spawn_agent`.
 
-**One-shot install / refresh** (SSH on Mac):
+**One-shot install / refresh** (SSH on VPS):
 
 ```bash
 cd ~/Cursor/linkup_mcp
 git pull
-bash scripts/install-nami-stack-mac.sh
+bash scripts/install-nami-stack-vps.sh
 hermes gateway restart
 ```
 
@@ -70,9 +71,9 @@ Or step-by-step: `install-nami-hermes.sh` → `python -m nami_corpus.sync` → `
 
 In Telegram: **`/reload-mcp`**, then ask Nami to search or use RAG.
 
-**Secrets:** `LINKUP_API_KEY=...` in `~/Cursor/linkup_mcp/.env` only ( `KEY=value` format ). Optional for RAG; required for web search. Never `source ~/.hermes/.env` in bash.
+**Secrets:** `LINKUP_API_KEY=...` in `~/Cursor/linkup_mcp/.env`. Mobile build: `~/.hermes/.env` — [MOBILE_BUILD_VPS.env.example](./MOBILE_BUILD_VPS.env.example).
 
-**Runner:** `scripts/run-linkup-mcp-stdio.sh` — Python `load_dotenv()` only; no bash `.env` sourcing.
+**Runner:** `scripts/run-linkup-mcp-stdio.sh` — Python `load_dotenv()` only.
 
 ---
 
@@ -85,7 +86,7 @@ Hermes built-in files (curated by the agent over time):
 | `~/.hermes/memories/MEMORY.md` | Projects, env, lessons |
 | `~/.hermes/memories/USER.md` | Your preferences, timezone, style |
 
-Seed templates: [hermes-nami/memories/](../../hermes-nami/memories/) (copy to `~/.hermes/memories/` on Mac).
+Seed templates: [hermes-nami/memories/](../../hermes-nami/memories/) (on VPS).
 
 Long recall: agent uses **session_search** across past chats — no extra install.
 
@@ -93,23 +94,17 @@ Details: [MEMORY.md](./MEMORY.md).
 
 ---
 
-## Phase 3 — Reliable gateway
+## Phase 3 — Reliable gateway (VPS)
 
-**After reboot or when Telegram is silent:**
-
-```bash
-cd ~/Cursor/linkup_mcp
-bash scripts/start-nami-gateway.sh
-```
-
-Or manually:
+After provisioning:
 
 ```bash
-hermes gateway status
-hermes gateway start    # if not running
+hermes gateway setup
+bash scripts/install-nami-gateway-systemd.sh
+loginctl enable-linger $USER
 ```
 
-**Away from home LAN:** Tailscale on Mac + PC/phone → SSH or Telegram still works if Mac is on.
+**Away from home:** Tailscale on VPS + PC → Telegram always works; PC build bridge reachable via Tailscale when PC is on.
 
 ---
 
@@ -119,7 +114,7 @@ Topic supergroup matching [hermes-nami/config.yaml](../../hermes-nami/config.yam
 
 - Build · Products · This week
 
-Same pattern as SupplyMe; personal scope only. Configure via `hermes gateway setup` when ready.
+Configure via `hermes gateway setup` when ready.
 
 ---
 
@@ -134,19 +129,19 @@ Wire to Hermes as a skill/shell hook later — text-first for v1.
 
 | I want to… | Do this |
 |------------|---------|
-| Quick note / priority on the go | Telegram → Nami |
-| Build from phone (async) | Telegram → PC build bridge — [MOBILE_BUILD.md](./MOBILE_BUILD.md) |
-| Code + repo work | Cursor chat (build-time Nami) |
-| Full TUI on Mac | `ssh mac` → `hermes` |
-| Refresh personality + memory seeds from git | `cd ~/Cursor/linkup_mcp && bash scripts/install-nami-hermes.sh` |
-| Start gateway after Mac reboot | `bash scripts/start-nami-gateway.sh` |
-| Check both bots | `hermes profile list` |
+| Quick note / priority on the go | Telegram → Nami (VPS) |
+| Build from phone (async) | Telegram → VPS enqueues → PC bridge — [MOBILE_BUILD.md](./MOBILE_BUILD.md) |
+| Code + repo work | Cursor on PC |
+| Hermes TUI | `ssh nami-vps` → `hermes` |
+| Refresh personality from git | On VPS: `bash scripts/install-nami-hermes.sh` |
+| Check both bots | `hermes profile list` (on VPS) |
 
 ---
 
 ## Related docs
 
-- [MAC_SETUP.md](./MAC_SETUP.md) — install, Ollama, gateway
+- **[VPS_SETUP.md](./VPS_SETUP.md)** — primary runtime install
 - [PC_CLIENT.md](./PC_CLIENT.md) — Telegram + SSH from Windows
+- [MAC_SETUP.md](./MAC_SETUP.md) — legacy Mac host (optional)
 - [MEMORY.md](./MEMORY.md) — how recall works
-- [../supplyme/README.md](../supplyme/README.md) — Koshi / SupplyMe (separate product)
+- [../supplyme/README.md](../supplyme/README.md) — Koshi / SupplyMe

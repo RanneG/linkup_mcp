@@ -9,7 +9,7 @@ mkdir -p "$HOME/.hermes/skills" "$HOME/.hermes/memories"
 cp "$ROOT/hermes-nami/SOUL.md" "$HOME/.hermes/SOUL.md"
 cp "$ROOT/hermes-nami/AGENTS.md" "$HOME/.hermes/AGENTS.md"
 
-for skill in linkup-mcp.md model-routing.md loop-checker.md daily-brief-loop.md; do
+for skill in linkup-mcp.md model-routing.md loop-checker.md daily-brief-loop.md mobile-build-request.md; do
   if [[ -f "$ROOT/hermes-nami/skills/$skill" ]]; then
     cp "$ROOT/hermes-nami/skills/$skill" "$HOME/.hermes/skills/"
   fi

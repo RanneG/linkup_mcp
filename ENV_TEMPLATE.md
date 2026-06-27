@@ -104,7 +104,7 @@ Never commit `.env`; it is listed in `.gitignore`.
 # Use: .\scripts\Start-ClaudeCiLoop.ps1 -UseApiKey
 
 # --- Mobile build bridge (Telegram → PC Cursor agent) — docs/hermes/MOBILE_BUILD.md ---
-# NAMI_BUILD_TOKEN=long-random-shared-secret-mac-and-pc
+# NAMI_BUILD_TOKEN=long-random-shared-secret-vps-and-pc
 # NAMI_BUILD_PORT=8770
 # NAMI_BUILD_HOST=127.0.0.1
 # CURSOR_API_KEY=           # Cursor SDK — required for build execution on PC
