@@ -17,7 +17,7 @@ Ranne is **prioritizing development tools and agent infrastructure** over one-of
 
 | Priority | Home | Examples |
 |----------|------|----------|
-| **Primary** | **linkup_mcp** + ecosystem | MCP tools, RAG, `stitch_rag_bridge`, ElevenLabs/Nami voice, reusable packages, **Hermes on VPS** |
+| **Primary** | **linkup_mcp** + ecosystem | MCP tools, RAG, `stitch_rag_bridge`, ElevenLabs/Nami voice, reusable packages, **Hermes on PC (VPS later)** |
 | **Secondary** | Product apps that *use* the stack | **stitch-app**, **SupplyMe** (Hermes + private engine), standup-bot |
 | **Maintenance** | Shipped surfaces | **pixel-portfolio**, marketing sites — fix bugs/deploy when asked; **don’t** default to UX/feature work here |
 
@@ -75,9 +75,9 @@ Ranne has an **ElevenLabs** account. Use it to **pre-bake MP3s** (portfolio BIOS
 
 Pointer: **[docs/supplyme/README.md](docs/supplyme/README.md)**. Architecture: `supplyme-crew/docs/ARCHITECTURE.md`.
 
-**Runtime host:** **Hermes on Linux VPS** (24/7 Telegram) — not on Windows PC. **Nami** = default profile. **Koshi** = `hermes -p koshi` (isolated). Cross-device guide: **[docs/hermes/NAMI.md](docs/hermes/NAMI.md)**. Setup: **[docs/hermes/VPS_SETUP.md](docs/hermes/VPS_SETUP.md)** + **`hermes-nami/`**. From PC/phone: **Telegram** or **SSH to VPS** → [PC_CLIENT.md](docs/hermes/PC_CLIENT.md). Mac optional — [MAC_SETUP.md](docs/hermes/MAC_SETUP.md). Email/social **off** in v1.
+**Runtime host:** **Hermes on Windows PC** while the machine is on; **VPS migration** when 24/7 phone Nami is worth ~€8/mo — **[docs/hermes/PC_SETUP.md](docs/hermes/PC_SETUP.md)**, **[docs/hermes/VPS_MIGRATION.md](docs/hermes/VPS_MIGRATION.md)**. **Nami** = default profile. **Koshi** = `hermes -p koshi` (isolated). Cross-device: **[docs/hermes/NAMI.md](docs/hermes/NAMI.md)**. From phone: **Telegram** (PC must be on). Mac optional.
 
-**linkup_mcp ↔ Hermes:** same MCP server on **VPS** (runtime) and **PC** (Cursor build) — not redundant. VPS install: **`bash scripts/install-nami-stack-vps.sh`**. RAG docs: **`python -m nami_corpus.sync`** → `data/nami-corpus/`. Surfaces: **[docs/hermes/SURFACE_MAP.md](docs/hermes/SURFACE_MAP.md)**. Scorecard: **[docs/hermes/STATUS.md](docs/hermes/STATUS.md)**.
+**linkup_mcp ↔ Hermes:** MCP on **PC runtime** + **Cursor build** — not redundant. PC install: **`.\scripts\install-nami-stack-pc.ps1`**. Future VPS: **`bash scripts/install-nami-stack-vps.sh`**. RAG: **`python -m nami_corpus.sync`**. Surfaces: **[docs/hermes/SURFACE_MAP.md](docs/hermes/SURFACE_MAP.md)**. Scorecard: **[docs/hermes/STATUS.md](docs/hermes/STATUS.md)**.
 
 **Jarvis-shaped stack (how pieces fit):**
 
@@ -94,7 +94,7 @@ Pointer: **[docs/supplyme/README.md](docs/supplyme/README.md)**. Architecture: `
 ## Where else to look
 
 - **`docs/stitch/`** — Stitch handoff (**MIGRATION.md**, **STATUS.md**); keeps the repo root MCP-focused.
-- **`docs/hermes/`** — **Nami** cross-device ([NAMI.md](docs/hermes/NAMI.md)), **VPS host** ([VPS_SETUP.md](docs/hermes/VPS_SETUP.md)), PC client ([PC_CLIENT.md](docs/hermes/PC_CLIENT.md)), memory; **`hermes-nami/`** — SOUL + AGENTS + memory seeds.
+- **`docs/hermes/`** — **Nami** ([NAMI.md](docs/hermes/NAMI.md)), **PC runtime** ([PC_SETUP.md](docs/hermes/PC_SETUP.md)), **VPS migration** ([VPS_MIGRATION.md](docs/hermes/VPS_MIGRATION.md)), memory; **`hermes-nami/`** — SOUL + skills seeds.
 - **`.cursorrules`** — detailed setup, MCP tool list, Cursor `mcp.json` snippet, related repos.
 - **`.cursor/rules/*.mdc`** — short rules Cursor loads automatically (identity, defaults).
 - **`ENV_TEMPLATE.md`** — env vars if present.

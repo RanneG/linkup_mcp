@@ -1,48 +1,35 @@
-# Using runtime Nami from Windows PC
+# Using Nami from your Windows PC
 
-Runtime Nami lives on the **Linux VPS** (24/7 Telegram). **Windows PC** = Cursor + git + mobile-build bridge. Hermes is **not** on PC.
+**Runtime Nami lives on this PC** for now (Hermes gateway when the machine is on). **VPS migration** when you want 24/7 phone access — [VPS_MIGRATION.md](./VPS_MIGRATION.md).
 
-Cross-device overview: **[NAMI.md](./NAMI.md)**. VPS setup: **[VPS_SETUP.md](./VPS_SETUP.md)**.
+Setup: **[PC_SETUP.md](./PC_SETUP.md)**.
 
-## Option A — Telegram (recommended — phone and PC)
+## Telegram (phone + PC)
 
-1. Complete **`hermes gateway setup`** on the VPS ([VPS_SETUP.md](./VPS_SETUP.md)).
-2. Install [Telegram Desktop](https://desktop.telegram.org/) on Windows (or use web).
-3. Message your Nami bot — same memory and skills as on phone.
+1. Install Hermes + run `install-nami-stack-pc.ps1` ([PC_SETUP.md](./PC_SETUP.md)).
+2. `hermes gateway setup` + `Start-NamiGateway.ps1`.
+3. Message Nami bot from phone or Telegram Desktop.
 
-Works anywhere; VPS stays on — no Mac required.
+**Limit:** Telegram Nami is **offline when this PC is off**.
 
-## Option B — SSH + CLI
+## Cursor (build-time Nami)
 
-When you want the Hermes TUI:
+Full IDE + linkup_mcp MCP — no Hermes required for coding, but same repo and `.env`.
 
-```powershell
-ssh nami-vps    # Tailscale or public IP — see VPS_SETUP.md
-hermes
-```
+## Mobile build
 
-**Tip:** Add to `~/.ssh/config` on PC:
-
-```
-Host nami-vps
-  HostName 100.x.x.x
-  User nami
-```
-
-## Option C — Cursor only (build-time Nami)
-
-For coding in **linkup_mcp**, stay in **Cursor chat** — no Hermes required on PC. Runtime Nami (memory, Telegram) is on the VPS.
+Same PC — Hermes enqueues to `http://127.0.0.1:8770`. See [MOBILE_BUILD.md](./MOBILE_BUILD.md).
 
 ## What stays on PC
 
 | Tool | Purpose |
 |------|---------|
-| **Cursor + Nami chat** | Build, debug, MCP in IDE |
-| **linkup_mcp** | Dev clone + MCP in Cursor |
-| **nami_build_bridge** | Mobile builds from Telegram ([MOBILE_BUILD.md](./MOBILE_BUILD.md)) |
-| **Stitch bridge** | OAuth, Gmail, face on `:8765` |
-| **elevenlabs-gen / nami-speak** | Generate Bella MP3s locally if desired |
+| **Hermes gateway** | Telegram runtime (while PC on) |
+| **Cursor** | Build, debug, MCP |
+| **nami_build_bridge** | Phone → agent jobs |
+| **Stitch bridge** | OAuth, Gmail, face |
 
-## PC Hermes removed
+## Mac / VPS
 
-Windows install under `%LOCALAPPDATA%\hermes` was removed intentionally. Runtime = VPS. Do not re-install Hermes on PC unless you explicitly want a second brain.
+- **Mac:** optional; stop its gateway if you duplicate the same Telegram bot.
+- **VPS:** not provisioned yet — follow [VPS_MIGRATION.md](./VPS_MIGRATION.md) when ready.

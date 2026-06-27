@@ -1,6 +1,9 @@
-# Hermes + Nami on VPS (runtime host)
+# Hermes + Nami on VPS (future runtime host)
 
-**Decision (2026):** Runtime Nami lives on a **small Linux VPS** (24/7 Telegram). **Windows PC** = Cursor, git, Stitch bridge, mobile-build worker. **Mac** = optional spare — not required.
+> **Not active yet.** Ranne runs Nami on the **Windows PC** today — [PC_SETUP.md](./PC_SETUP.md).  
+> Use this doc when executing [VPS_MIGRATION.md](./VPS_MIGRATION.md).
+
+**Future decision:** Runtime Nami on a **small Linux VPS** (24/7 Telegram). **Windows PC** = Cursor, git, Stitch bridge, mobile-build worker.
 
 ## Architecture
 

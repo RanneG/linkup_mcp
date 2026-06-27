@@ -2,15 +2,15 @@
 
 **Goal:** Describe an app change on your phone; **PC runs Cursor agent + pytest**; you **review in Cursor** at your desk.
 
-Phone Nami stays Telegram via **VPS**. Building happens on **Windows PC** (Cursor, git, Stitch bridge).
+Phone Nami stays Telegram on **PC Hermes** (same machine). Building on **Windows PC** (Cursor, git, Stitch bridge).
 
 ## Architecture
 
 ```
 📱 Telegram (Ranne)
        ↓
-☁️  VPS Hermes — triage, enqueue (curl)
-       ↓  Tailscale / LAN
+💻 PC Hermes — triage, enqueue (curl → localhost)
+       ↓
 💻 PC nami_build_bridge :8770
        ↓
    Build worker → Cursor Agent CLI → pytest
@@ -23,24 +23,23 @@ Phone Nami stays Telegram via **VPS**. Building happens on **Windows PC** (Curso
 | Surface | Role |
 |---------|------|
 | Phone / Telegram | Describe task, get status |
-| VPS Hermes | Enqueue via skill [mobile-build-request.md](../../hermes-nami/skills/mobile-build-request.md) |
+| VPS Hermes | Enqueue via skill (future — [VPS_MIGRATION.md](./VPS_MIGRATION.md)) |
+| PC Hermes | Enqueue via skill — **localhost** today |
 | PC bridge + worker | Queue, run agent, tests |
 | Cursor (PC) | Review diffs |
 
-Runtime VPS setup: [VPS_SETUP.md](./VPS_SETUP.md).
+Runtime VPS setup (future): [VPS_SETUP.md](./VPS_SETUP.md). **Now:** [PC_SETUP.md](./PC_SETUP.md).
 
 ---
 
 ## Phase 1 — Reliable mobile Nami (parallel)
 
-See [NAMI.md](./NAMI.md) + [VPS_SETUP.md](./VPS_SETUP.md):
+See [NAMI.md](./NAMI.md) + [PC_SETUP.md](./PC_SETUP.md):
 
-- VPS gateway always on (`install-nami-gateway-systemd.sh`)
-- Tailscale on VPS + PC
-- RAG corpus sync on VPS
-- Telegram topic desk **Build** (optional)
-
----
+- PC gateway when machine is on
+- RAG corpus sync on PC
+- Optional: Task Scheduler for gateway at logon
+- **Later:** VPS for 24/7 — [VPS_MIGRATION.md](./VPS_MIGRATION.md)
 
 ## Phase 2 — PC setup (one-time)
 
@@ -55,7 +54,7 @@ pip install cursor-sdk
 ### 2. `.env` on PC
 
 ```bash
-# Shared secret — VPS ~/.hermes/.env uses same value
+# Shared secret — PC Hermes %LOCALAPPDATA%\hermes\.env uses same value
 NAMI_BUILD_TOKEN=generate-a-long-random-string
 
 # Cursor Cloud Agents API key — https://cursor.com/dashboard/integrations
@@ -101,32 +100,29 @@ irm 'https://cursor.com/install?win32=true' | iex   # Cursor Agent CLI (Windows)
 
 Health check: `http://127.0.0.1:8770/api/build/health`
 
-### 4. Tailscale (VPS → PC away from home)
+### 4. Tailscale (only after VPS migration)
 
-1. Install Tailscale on PC + VPS.
-2. Set `NAMI_BUILD_HOST=0.0.0.0` in PC `.env` (bridge listens on all interfaces).
-3. VPS `~/.hermes/.env`: `NAMI_BUILD_PC_URL=http://100.x.x.x:8770` (PC Tailscale IP).
+When Hermes runs on VPS and PC is elsewhere: Tailscale + `NAMI_BUILD_HOST=0.0.0.0`.  
+See [VPS_MIGRATION.md](./VPS_MIGRATION.md) and [MOBILE_BUILD_VPS.env.example](./MOBILE_BUILD_VPS.env.example).
 
-See [MOBILE_BUILD_VPS.env.example](./MOBILE_BUILD_VPS.env.example).
-
-Firewall: allow inbound **8770** on Tailscale interface only if needed.
+**PC-local mode (now):** `127.0.0.1` only — next section.
 
 ---
 
-## VPS Hermes setup
+## PC Hermes setup (current)
 
-Add to `~/.hermes/.env` on the VPS:
+Add to **`%LOCALAPPDATA%\hermes\.env`**:
 
 ```bash
-NAMI_BUILD_PC_URL=http://100.x.x.x:8770
+NAMI_BUILD_PC_URL=http://127.0.0.1:8770
 NAMI_BUILD_TOKEN=same-as-pc
 ```
 
 Sync skill:
 
-```bash
-cd ~/Cursor/linkup_mcp
-bash scripts/install-nami-hermes.sh
+```powershell
+cd C:\Users\ranne\Cursor\cursor_linkup_mcp
+.\scripts\install-nami-hermes.ps1
 hermes gateway restart
 ```
 
@@ -181,11 +177,11 @@ When `status` is `completed`, open Cursor and review diff.
 
 | Symptom | Fix |
 |---------|-----|
-| `401 Unauthorized` | Token mismatch VPS vs PC |
+| `401 Unauthorized` | Token mismatch Hermes `.env` vs PC `.env` |
 | `CURSOR_API_KEY not set` | Add to PC `.env`, restart bridge |
 | `cursor-sdk not installed` | `pip install cursor-sdk` on PC |
 | Job stuck `pending` | Bridge worker not running — restart `Start-NamiBuildBridge.ps1` |
-| VPS can't reach PC | Tailscale + `NAMI_BUILD_HOST=0.0.0.0` + PC bridge running |
+| Enqueue fails | PC gateway running? Bridge on :8770? |
 
 ---
 

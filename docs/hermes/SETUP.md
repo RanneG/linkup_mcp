@@ -2,19 +2,21 @@
 
 | Machine | Role |
 |---------|------|
-| **Linux VPS** | **Runtime Nami** — Hermes, memory, Telegram gateway 24/7 → [VPS_SETUP.md](./VPS_SETUP.md) |
-| **Windows PC** | **Build-time Nami** — Cursor + linkup_mcp + mobile-build bridge → [PC_CLIENT.md](./PC_CLIENT.md) |
-| **MacBook** | Optional spare — not required if VPS is live → [MAC_SETUP.md](./MAC_SETUP.md) |
-
-Hermes is **not** installed on Windows (offloaded intentionally).
+| **Windows PC** | **Runtime + build (now)** — Hermes gateway when on, Cursor, bridge → [PC_SETUP.md](./PC_SETUP.md) |
+| **Linux VPS** | **Future 24/7 runtime** — migrate when ready → [VPS_MIGRATION.md](./VPS_MIGRATION.md) |
+| **MacBook** | Optional spare — [MAC_SETUP.md](./MAC_SETUP.md) |
 
 ## Quick links
 
-- **VPS install (primary):** [VPS_SETUP.md](./VPS_SETUP.md)
-- **Use from PC:** [PC_CLIENT.md](./PC_CLIENT.md)
+- **PC install (current):** [PC_SETUP.md](./PC_SETUP.md)
+- **VPS migration plan:** [VPS_MIGRATION.md](./VPS_MIGRATION.md)
+- **VPS install (later):** [VPS_SETUP.md](./VPS_SETUP.md)
 - **Memory:** [MEMORY.md](./MEMORY.md)
-- **Personality templates:** `hermes-nami/` in repo root
 
-## Windows helper script
+## Windows helper
 
-`scripts/hermes.ps1` only runs if a local install exists; otherwise it points you to VPS setup.
+```powershell
+.\scripts\hermes.ps1
+.\scripts\Start-NamiGateway.ps1
+.\scripts\install-nami-stack-pc.ps1
+```
