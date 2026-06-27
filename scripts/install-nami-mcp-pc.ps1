@@ -44,7 +44,7 @@ if (-not $Hermes) {
 
 & hermes mcp add linkup --command $Python --args $Server
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "hermes mcp add failed — check hermes mcp list" -ForegroundColor Yellow
+    Write-Host "hermes mcp add failed - check hermes mcp list" -ForegroundColor Yellow
 }
 
 Write-Host ""

@@ -33,8 +33,8 @@ if (-not $env:NAMI_BUILD_TOKEN) {
 }
 
 if (-not $env:NAMI_BUILD_TOKEN) {
-    Write-Host "WARN: NAMI_BUILD_TOKEN not set — enqueue will reject requests." -ForegroundColor Yellow
-    Write-Host "Add NAMI_BUILD_TOKEN to .env — see docs/hermes/MOBILE_BUILD.md"
+    Write-Host "WARN: NAMI_BUILD_TOKEN not set - enqueue will reject requests." -ForegroundColor Yellow
+    Write-Host "Add NAMI_BUILD_TOKEN to .env - see docs/hermes/MOBILE_BUILD.md"
 }
 
 Write-Host "=== Nami build bridge ===" -ForegroundColor Cyan

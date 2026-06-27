@@ -14,7 +14,7 @@ Write-Host "Installing nami-build extra ..."
 & .\.venv\Scripts\pip install -e ".[nami-build]"
 
 Write-Host ""
-Write-Host "Install Cursor Agent CLI (Windows — required for build execution):" -ForegroundColor Cyan
+Write-Host "Install Cursor Agent CLI (Windows - required for build execution):" -ForegroundColor Cyan
 Write-Host "  irm 'https://cursor.com/install?win32=true' | iex"
 Write-Host "  agent --version"
 

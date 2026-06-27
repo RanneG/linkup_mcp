@@ -42,7 +42,7 @@ $weekly = Join-Path $SupplyRoot "skills\weekly-focus.md"
 if (Test-Path $weekly) {
     Copy-Item $weekly (Join-Path $SkillsDir "weekly-focus.md") -Force
 } else {
-    Write-Host "Note: supplyme-crew not at $SupplyRoot — skipped weekly-focus" -ForegroundColor Yellow
+    Write-Host "Note: supplyme-crew not at $SupplyRoot - skipped weekly-focus" -ForegroundColor Yellow
 }
 
 Write-Host "Installed Nami files to $HermesHome"
@@ -51,5 +51,5 @@ $venvPy = Join-Path $Root ".venv\Scripts\python.exe"
 if (Test-Path $venvPy) {
     & $venvPy -m nami_corpus.sync
 } else {
-    Write-Host "No .venv — run uv sync or pip install -e . first for RAG corpus sync" -ForegroundColor Yellow
+    Write-Host "No .venv - run uv sync or pip install -e . first for RAG corpus sync" -ForegroundColor Yellow
 }

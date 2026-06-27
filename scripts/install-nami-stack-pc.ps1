@@ -28,7 +28,7 @@ else { $checks += "WARN no .venv" }
 
 $corpus = Join-Path $Root "data\nami-corpus"
 if (Test-Path $corpus) { $checks += "OK  RAG corpus dir" }
-else { $checks += "WARN RAG corpus — run nami_corpus.sync" }
+else { $checks += "WARN RAG corpus - run nami_corpus.sync" }
 
 $checks | ForEach-Object { Write-Host "  $_" }
 
