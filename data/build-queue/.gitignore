@@ -1,0 +1,3 @@
+# Build job JSON — local queue state (do not commit job files)
+*.json
+!.gitkeep

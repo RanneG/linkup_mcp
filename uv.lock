@@ -492,6 +492,10 @@ elevenlabs = [
 game-lab-web = [
     { name = "flask" },
 ]
+nami-build = [
+    { name = "flask" },
+    { name = "requests" },
+]
 stitch-bridge = [
     { name = "cryptography" },
     { name = "deepface" },
@@ -527,6 +531,7 @@ requires-dist = [
     { name = "elevenlabs", marker = "extra == 'elevenlabs'", specifier = ">=2.40.0,<3" },
     { name = "faster-whisper", marker = "extra == 'stitch-whisper'", specifier = ">=1.0.3,<2.0" },
     { name = "flask", marker = "extra == 'game-lab-web'", specifier = ">=3.0.0,<4.0" },
+    { name = "flask", marker = "extra == 'nami-build'", specifier = ">=3.0.0,<4.0" },
     { name = "flask", marker = "extra == 'stitch-bridge'", specifier = ">=3.0.0,<4.0" },
     { name = "google-api-python-client", marker = "extra == 'stitch-bridge'", specifier = ">=2.130.0,<3" },
     { name = "google-auth", marker = "extra == 'stitch-bridge'", specifier = ">=2.29.0,<3" },
@@ -549,13 +554,14 @@ requires-dist = [
     { name = "pystray", marker = "extra == 'voice-prompt'", specifier = ">=0.19.5,<0.20" },
     { name = "python-dotenv", specifier = ">=1.0.0,<2.0" },
     { name = "requests", marker = "extra == 'elevenlabs'", specifier = ">=2.31.0,<3" },
+    { name = "requests", marker = "extra == 'nami-build'", specifier = ">=2.31.0,<3" },
     { name = "requests", marker = "extra == 'stitch-bridge'", specifier = ">=2.31.0,<3" },
     { name = "sounddevice", marker = "extra == 'voice-prompt'", specifier = ">=0.4.6,<1.0" },
     { name = "speechrecognition", marker = "extra == 'stitch-bridge'", specifier = ">=3.10.4,<4" },
     { name = "tensorflow", marker = "extra == 'stitch-bridge'", specifier = ">=2.16.0,<2.22" },
     { name = "tf-keras", marker = "extra == 'stitch-bridge'", specifier = ">=2.16.0" },
 ]
-provides-extras = ["stitch-bridge", "stitch-whisper", "voice-prompt", "elevenlabs", "game-lab-web"]
+provides-extras = ["stitch-bridge", "stitch-whisper", "voice-prompt", "elevenlabs", "game-lab-web", "nami-build"]
 
 [[package]]
 name = "dataclasses-json"

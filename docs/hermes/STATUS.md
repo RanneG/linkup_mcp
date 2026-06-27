@@ -34,6 +34,7 @@ Last reviewed: 2026-06-23. Update this file when you ship a phase.
 - [ ] **First closed loop (Mac wire-up):** heartbeat/cron → daily brief; verify read-only Telegram — [LOOP_ENGINEERING.md](./LOOP_ENGINEERING.md)
 - [ ] Telegram topic desks (Build / Products / This week) — optional
 - [ ] Tailscale on Mac for away-from-home
+- [ ] **Mobile build bridge on PC** — [MOBILE_BUILD.md](./MOBILE_BUILD.md); `Nami-Build-Bridge.bat` + Mac `NAMI_BUILD_*` env
 - [ ] Weekly: run `python scripts/nami_rag_eval.py` after doc changes
 
 ## Todo (later)

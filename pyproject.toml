@@ -58,12 +58,19 @@ elevenlabs = [
 game-lab-web = [
     "flask>=3.0.0,<4.0",
 ]
+# Mobile build bridge (Telegram → PC Cursor agent). See docs/hermes/MOBILE_BUILD.md
+nami-build = [
+    "flask>=3.0.0,<4.0",
+    "requests>=2.31.0,<3",
+]
 
 [project.scripts]
 elevenlabs-gen = "elevenlabs_toolkit.cli:main"
 nami-play = "nami_game_lab.cli:main"
 nami-play-ui = "nami_game_lab.web:main"
+nami-dev-dash = "dev_dashboard.web:main"
 nami-rag-sync = "nami_corpus.sync:main"
+nami-build-bridge = "nami_build.http:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -84,5 +91,6 @@ py-modules = [
     "rag_regression",
     "notes_app_pokemon",
     "voice_prompt_tool",
+    "nami_build_bridge",
 ]
 

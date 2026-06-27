@@ -6,7 +6,7 @@
   Targets loopback dev servers for this repo only (defaults below). Does not "close localhost"
   itself; it ends the processes holding those TCP listen sockets.
 
-  Default ports: 8765 (stitch_rag_bridge / stitch_gui), 1420 (Tauri dev), 5173 (Vite).
+  Default ports: 8765 (stitch_rag_bridge / stitch_gui), 1420 (Tauri dev), 5173 (Vite), 8888 (dev dashboard).
 
   If STITCH_RAG_BRIDGE_PORT is set to a number, that port is included even if not in -Ports.
 
@@ -33,7 +33,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$defaultSet = @(8765, 1420, 5173)
+$defaultSet = @(8765, 1420, 5173, 8888)
 $all = New-Object System.Collections.Generic.HashSet[int]
 if (-not $NoDefaults) {
   foreach ($p in $defaultSet) { [void]$all.Add($p) }
@@ -78,12 +78,12 @@ function Get-ListenPids([int]$port) {
 $skip = @{ 0 = $true; 4 = $true }
 $toStop = @{}
 foreach ($port in $portList) {
-  foreach ($pid in (Get-ListenPids $port)) {
-    if ($skip.ContainsKey($pid)) { continue }
-    if (-not $toStop.ContainsKey($pid)) {
-      $toStop[$pid] = New-Object System.Collections.Generic.HashSet[int]
+  foreach ($listenPid in (Get-ListenPids $port)) {
+    if ($skip.ContainsKey($listenPid)) { continue }
+    if (-not $toStop.ContainsKey($listenPid)) {
+      $toStop[$listenPid] = New-Object System.Collections.Generic.HashSet[int]
     }
-    [void]$toStop[$pid].Add($port)
+    [void]$toStop[$listenPid].Add($port)
   }
 }
 

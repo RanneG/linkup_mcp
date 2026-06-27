@@ -6,7 +6,7 @@ One **Nami** personality, three surfaces. Same partner on each device; different
 
 | Device | How you talk to Nami | What she can do |
 |--------|----------------------|-----------------|
-| **Phone** | Telegram → Nami bot | Memory, skills, MCP (after Mac setup), cron |
+| **Phone** | Telegram → Nami bot | Memory, skills, MCP; **mobile build enqueue** → PC worker |
 | **PC** | **Cursor chat** (build) + **Telegram** (runtime) | Cursor: full IDE + MCP. Telegram: same runtime as phone |
 | **Mac** | Terminal `hermes`, Telegram gateway | Host process — gateway + Ollama + MCP |
 
@@ -135,6 +135,7 @@ Wire to Hermes as a skill/shell hook later — text-first for v1.
 | I want to… | Do this |
 |------------|---------|
 | Quick note / priority on the go | Telegram → Nami |
+| Build from phone (async) | Telegram → PC build bridge — [MOBILE_BUILD.md](./MOBILE_BUILD.md) |
 | Code + repo work | Cursor chat (build-time Nami) |
 | Full TUI on Mac | `ssh mac` → `hermes` |
 | Refresh personality + memory seeds from git | `cd ~/Cursor/linkup_mcp && bash scripts/install-nami-hermes.sh` |
