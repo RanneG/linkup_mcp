@@ -6,7 +6,8 @@ One personality (**Nami**), three surfaces. Each surface owns **different jobs**
 
 | Job | **Cursor (PC)** | **Hermes (Mac / Telegram)** |
 |-----|-----------------|-----------------------------|
-| Edit code, git, PRs | **Primary** | No — use SSH + terminal only if needed |
+| Edit code, git, PRs | **Primary** | Review after PC mobile build — [MOBILE_BUILD.md](./MOBILE_BUILD.md) |
+| Mobile build enqueue | **PC bridge** `:8770` | Hermes skill → HTTP POST |
 | Web search (Linkup) | MCP `web_search` | Same tool via Hermes MCP `linkup` |
 | RAG over your docs | MCP `rag` | Same via Hermes MCP `linkup` |
 | Stitch bridge (OAuth, Gmail, face) | Run `stitch_rag_bridge.py` locally | Not on Mac by default — PC dev surface |

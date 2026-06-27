@@ -31,6 +31,8 @@ CORPUS_SOURCES: tuple[str, ...] = (
     "hermes-nami/skills/daily-brief-loop.md",
     "hermes-nami/skills/linkup-mcp.md",
     "hermes-nami/skills/model-routing.md",
+    "hermes-nami/skills/mobile-build-request.md",
+    "docs/hermes/MOBILE_BUILD.md",
     "docs/stitch/MIGRATION.md",
     "docs/stitch/STATUS.md",
     "docs/stitch_user_guide.md",

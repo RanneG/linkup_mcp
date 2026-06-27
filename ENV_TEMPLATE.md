@@ -99,4 +99,16 @@ The Stitch UI calls the bridge on **127.0.0.1:8765** in local dev; the redirect 
 
 Never commit `.env`; it is listed in `.gitignore`.
 
+# Optional: Claude Code sidecar (unattended CI loops — separate API budget)
+# ANTHROPIC_API_KEY=your_anthropic_api_key_here
+# Use: .\scripts\Start-ClaudeCiLoop.ps1 -UseApiKey
+
+# --- Mobile build bridge (Telegram → PC Cursor agent) — docs/hermes/MOBILE_BUILD.md ---
+# NAMI_BUILD_TOKEN=long-random-shared-secret-mac-and-pc
+# NAMI_BUILD_PORT=8770
+# NAMI_BUILD_HOST=127.0.0.1
+# CURSOR_API_KEY=           # Cursor SDK — required for build execution on PC
+# NAMI_BUILD_MODEL=composer-2.5
+# NAMI_BUILD_POLL_SECONDS=15
+
 For Ollama: install from https://ollama.ai/download, then `ollama pull llama3.2` (see **README.md**).

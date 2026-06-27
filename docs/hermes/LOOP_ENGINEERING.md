@@ -92,7 +92,8 @@ Loop engineering gives **design language** for those tasks: every routine needs 
 | 1 | **Corpus sync after doc changes** — `build_nami_rag_corpus.py` | Memory layer for Hermes loops |
 | 2 | **Reel → workflow pipeline** — `transcribe_reel.py` | Ingest loop-engineering sources into RAG inbox |
 | 3 | **Explicit done criteria in rules** — e.g. “run tests before claiming done” | Cursor-native checker |
-| 4 | **Optional:** small `slug_from_url` YouTube ID fix | Cleaner `data/inbox/{videoId}.md` names |
+| 4 | **Claude Code sidecar (PC)** — [CLAUDE_CODE.md](../dev/CLAUDE_CODE.md): CI loops, reel ingest; API key for unattended runs | Terminal closed loops; Cursor stays default IDE |
+| 5 | **Optional:** small `slug_from_url` YouTube ID fix | Cleaner `data/inbox/{videoId}.md` names |
 
 ### Defer (product or Claude-specific)
 

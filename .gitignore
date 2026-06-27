@@ -81,6 +81,10 @@ NOTES.md
 # Personal documents
 data/RGerodiasCV.pdf
 data/*.pdf
+data/_award_pdf_extract.txt
+# Mobile build queue job JSON (see data/build-queue/.gitignore)
+data/build-queue/**/*.json
+!data/build-queue/**/.gitkeep
 # Inbox media from transcribe_reel.py (keep .md / .workflow.md / .meta.json)
 data/inbox/*.mp4
 data/inbox/*.wav
