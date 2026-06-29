@@ -62,13 +62,18 @@ YYYY-MM-DD daily-brief PASS|FAIL — <6-word summary>
 (read-only · corpus + memory)
 ```
 
-## Wire on Mac (manual)
+## Wire on PC (current)
 
-1. Pull repo; `bash scripts/install-nami-stack-mac.sh` (syncs skills).
-2. Add heartbeat or cron pointing at this skill (Hermes routine UI or config — see [MAC_SETUP.md](../../docs/hermes/MAC_SETUP.md)).
-3. Verify: `bash scripts/verify-nami-hermes.sh`, then trigger once; confirm read-only Telegram output.
+1. Pull repo; `.\scripts\install-nami-hermes.ps1` (syncs skills + LOOP_LOG.md).
+2. `hermes config set TELEGRAM_HOME_CHANNEL <your_telegram_user_id>`
+3. Test: Telegram **`/brief`** (or full prompt in [DAILY_BRIEF.md](../../docs/hermes/DAILY_BRIEF.md)).
+4. Schedule: `.\scripts\Setup-NamiDailyBrief.ps1` (weekdays 07:30 Europe/London).
 
-Gateway launchd (`hermes gateway install`) is separate — see [STATUS.md](../../docs/hermes/STATUS.md); loops need gateway up, but install is not documented here.
+Gateway must be running (Scheduled Task or `Start-NamiGateway.ps1`). PC off at 07:30 = no cron — VPS later.
+
+## Wire on Mac (legacy)
+
+See `bash scripts/install-nami-stack-mac.sh` + [MAC_SETUP.md](../../docs/hermes/MAC_SETUP.md).
 
 ## Do not
 

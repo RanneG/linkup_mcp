@@ -42,9 +42,10 @@ if (-not $Hermes) {
     Write-Error "hermes not on PATH. Run: iex (irm https://hermes-agent.nousresearch.com/install.ps1)"
 }
 
-& hermes mcp add linkup --command $Python --args $Server
+Write-Host "Registering linkup MCP (overwrite if already present)..." -ForegroundColor Cyan
+"y" | & hermes mcp add linkup --command $Python --args $Server 2>&1 | ForEach-Object { Write-Host $_ }
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "hermes mcp add failed - check hermes mcp list" -ForegroundColor Yellow
+    Write-Host "hermes mcp add failed - check: hermes mcp list" -ForegroundColor Yellow
 }
 
 Write-Host ""

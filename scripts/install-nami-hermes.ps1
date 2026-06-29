@@ -29,6 +29,11 @@ foreach ($skill in $skills) {
     }
 }
 
+$loopLog = Join-Path $MemDir "LOOP_LOG.md"
+if (-not (Test-Path $loopLog)) {
+    Copy-Item (Join-Path $Root "hermes-nami\memories\LOOP_LOG.md") $loopLog
+}
+
 $userMd = Join-Path $MemDir "USER.md"
 $memoryMd = Join-Path $MemDir "MEMORY.md"
 if (-not (Test-Path $userMd)) {

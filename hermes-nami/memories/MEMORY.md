@@ -4,10 +4,12 @@
 
 ## Runtime
 
-- **Nami (personal):** Hermes default profile on MacBook. Telegram bot. Ollama `qwen2.5:7b` @ localhost:11434.
+- **Nami (personal):** Hermes on **Windows PC** (gateway when PC is on). Telegram bot. Model via Nous Portal (or Ollama if configured).
 - **Koshi Crew:** Separate Hermes profile `koshi` — Awisha's SupplyMe tenant. Do not merge configs.
 - **Build-time Nami:** Cursor chat on Windows + linkup_mcp MCP.
+- **VPS:** Deferred — see `docs/hermes/VPS_MIGRATION.md` when 24/7 phone Nami is needed.
 - **RAG corpus:** `python -m nami_corpus.sync` (git docs → `data/nami-corpus/`). Eval: `python scripts/nami_rag_eval.py --rebuild`.
+- **Daily brief:** `/brief` on Telegram or cron job `nami-daily-brief` — skill `daily-brief-loop`.
 
 ## Active repos
 

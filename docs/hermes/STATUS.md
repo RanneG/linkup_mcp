@@ -18,13 +18,8 @@ Last reviewed: 2026-06-27.
 | **Gateway reliability** | 2/5 | Manual start; PC off = Nami off (accepted) |
 | **VPS migration plan** | 4/5 | [VPS_MIGRATION.md](./VPS_MIGRATION.md) + [VPS_SETUP.md](./VPS_SETUP.md) |
 
-## Todo (PC local — now)
-
-- [ ] `iex (irm https://hermes-agent.nousresearch.com/install.ps1)`
-- [ ] `.\scripts\install-nami-stack-pc.ps1`
-- [ ] `hermes gateway setup` + `Start-NamiGateway.ps1`
-- [ ] `%LOCALAPPDATA%\hermes\.env` — mobile build localhost ([MOBILE_BUILD_PC.env.example](./MOBILE_BUILD_PC.env.example))
-- [ ] Stop Mac gateway if same bot token (avoid duplicates)
+- [ ] **`/brief` test** — [DAILY_BRIEF.md](./DAILY_BRIEF.md)
+- [ ] Weekday cron — `.\scripts\Setup-NamiDailyBrief.ps1`
 
 ## Todo (VPS — when needed)
 

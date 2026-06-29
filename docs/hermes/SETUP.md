@@ -9,6 +9,7 @@
 ## Quick links
 
 - **PC install (current):** [PC_SETUP.md](./PC_SETUP.md)
+- **Daily brief:** [DAILY_BRIEF.md](./DAILY_BRIEF.md)
 - **VPS migration plan:** [VPS_MIGRATION.md](./VPS_MIGRATION.md)
 - **VPS install (later):** [VPS_SETUP.md](./VPS_SETUP.md)
 - **Memory:** [MEMORY.md](./MEMORY.md)
