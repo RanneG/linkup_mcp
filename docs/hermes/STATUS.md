@@ -11,14 +11,15 @@ Last reviewed: 2026-06-27.
 
 | Area | Score | Notes |
 |------|-------|-------|
-| **Runtime host (PC)** | 2/5 | Docs + scripts ready; Hermes reinstall on PC todo |
+| **Runtime host (PC)** | 4/5 | Hermes + Telegram + MCP live on PC |
+| **Daily brief `/brief`** | 4/5 | Tested PASS; tune MEMORY for sharper bullets |
 | **PC mobile build bridge** | 4/5 | Merged; localhost enqueue |
 | **linkup_mcp ↔ Hermes MCP** | 3/5 | `install-nami-mcp-pc.ps1` — run after Hermes install |
 | **RAG corpus** | 4/5 | `nami_corpus.sync` |
 | **Gateway reliability** | 2/5 | Manual start; PC off = Nami off (accepted) |
 | **VPS migration plan** | 4/5 | [VPS_MIGRATION.md](./VPS_MIGRATION.md) + [VPS_SETUP.md](./VPS_SETUP.md) |
 
-- [ ] **`/brief` test** — [DAILY_BRIEF.md](./DAILY_BRIEF.md)
+- [x] **`/brief` test** — [DAILY_BRIEF.md](./DAILY_BRIEF.md) (2026-06-29)
 - [ ] Weekday cron — `.\scripts\Setup-NamiDailyBrief.ps1`
 
 ## Todo (VPS — when needed)

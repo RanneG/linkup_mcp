@@ -23,14 +23,16 @@ Read-only morning digest for Ranne on Telegram.
 
 ## Execution steps
 
-1. Read `MEMORY.md` and recent `LOOP_LOG.md` via memory tools or `read_file`.
+1. Read `MEMORY.md` and `LOOP_LOG.md` with **`read_file`** or memory tools only — **no terminal/bash**.
 2. Call MCP tool **`rag`** with: "What is Ranne's current focus and open todos?"
 3. Skip **`web_search`** unless USER.md explicitly asks for live news.
-4. Draft 3 bullets (each <= 120 chars).
-5. Load **`/loop-checker`** skill and run checker pass on the draft.
-6. On **PASS**: send Telegram message below. On **FAIL**: send short FAIL note only.
+4. Draft 3 bullets (each <= 120 chars). Prefer **This week** lines from MEMORY over generic repo lists.
+5. Load **`/loop-checker`** and run checker pass on the draft.
+6. On **PASS**: send **one** Telegram message (template below). On **FAIL**: one short FAIL note only.
 
 **Turn cap:** 8 tool rounds. Stop and report partial if cap hit.
+
+**Writes:** append **only** one line to `memories/LOOP_LOG.md` after verdict — no other `write_file` calls.
 
 ## Telegram template (PASS)
 
@@ -55,5 +57,6 @@ YYYY-MM-DD daily-brief PASS|FAIL - <6-word summary>
 ## Do not
 
 - Open-ended research loops.
-- Browser or email connectors for v1.
+- Browser, email, or **terminal** for v1.
+- Send the brief more than once per `/brief` invocation.
 - Send on FAIL or without loop-checker PASS.
