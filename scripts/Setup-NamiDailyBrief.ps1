@@ -22,7 +22,7 @@ Write-Host "TELEGRAM_HOME_CHANNEL=$TelegramUserId"
 
 $prompt = @"
 Run daily-brief-loop skill exactly: 3 bullets (Build, Products, This week), read-only.
-Use loop-checker before sending. Turn cap 8. Append LOOP_LOG.md on PASS or FAIL.
+Use /loop-checker before sending. Turn cap 8. Append LOOP_LOG.md on PASS or FAIL.
 Skip web_search unless USER.md says otherwise.
 "@
 
@@ -33,7 +33,7 @@ if ($existing -match $JobName) {
     Write-Host "Job '$JobName' already exists. Edit with: hermes cron edit $JobName --schedule `"$Schedule`"" -ForegroundColor Yellow
 } else {
     & hermes cron create $Schedule $prompt `
-        --skill daily-brief-loop `
+        --skill brief `
         --skill loop-checker `
         --name $JobName `
         --deliver "telegram:$TelegramUserId"

@@ -22,4 +22,4 @@ Use Hermes built-in **MEMORY.md** and **USER.md** for stable facts. Use **sessio
 
 ## Commands
 
-- **`/brief`** — run **[daily-brief-loop](../skills/daily-brief-loop.md)** then **[loop-checker](../skills/loop-checker.md)**; send only on PASS (read-only).
+- **`/brief`** — run skill **`brief`** then **`/loop-checker`**; send only on PASS (read-only).

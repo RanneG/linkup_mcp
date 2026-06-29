@@ -57,7 +57,9 @@ On **Telegram**, message your Nami bot:
 /brief
 ```
 
-If `/brief` is not recognized as a command, send this instead:
+Hermes registers skills as `/brief`, `/loop-checker`, etc. after `install-nami-hermes.ps1` (folder + `SKILL.md` format). If unknown, run install again and `hermes gateway restart`, then `/commands` to list skills.
+
+Fallback prompt:
 
 ```text
 Run daily-brief-loop skill exactly. Use loop-checker before sending. Read-only. Turn cap 8.
