@@ -210,6 +210,38 @@ def session_update(session_id: str, account_ids: list[int], active_email: str) -
         c.commit()
 
 
+def session_set_active_email(session_id: str, account_id: int, active_email: str) -> str | None:
+    """Switch ``active_email`` without rewriting ``account_ids`` from a stale snapshot.
+
+    ``POST /api/auth/active-email`` used to ``session_load`` then ``session_update``
+    with the ids it had in memory. If an OAuth Add-account callback appended a
+    newly linked Google account between those two calls, the later write dropped
+    that id from the session (token row remained, but Gmail/switcher lost it).
+
+    Returns ``None`` on success, or ``"invalid_session"`` / ``"email_not_linked"``.
+    """
+    c = _get_conn()
+    with _lock:
+        row = c.execute("SELECT * FROM sessions WHERE id = ?", (session_id,)).fetchone()
+        if row is None:
+            return "invalid_session"
+        if time.time() > float(row["expires_at"]):
+            c.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+            c.commit()
+            return "invalid_session"
+        payload = json.loads(row["payload_json"])
+        ids = [int(x) for x in (payload.get("account_ids") or [])]
+        if int(account_id) not in ids:
+            return "email_not_linked"
+        payload["active_email"] = active_email
+        c.execute(
+            "UPDATE sessions SET active_email = ?, payload_json = ? WHERE id = ?",
+            (active_email, json.dumps(payload), session_id),
+        )
+        c.commit()
+        return None
+
+
 def session_delete(session_id: str) -> None:
     c = _get_conn()
     with _lock:
