@@ -41,19 +41,19 @@ Always **cap iterations** (turn limit, time box, or “stop after N tool calls�
 
 ## Claude Code vs Ranne stack
 
-Sabrina’s stack is **Claude Code `/goal` + cloud Routines**. Ranne’s runtime is **Hermes + Ollama on Mac**; build-time is **Cursor + linkup_mcp**. Same loop *pattern*, different hosts.
+Sabrina’s stack is **Claude Code `/goal` + cloud Routines**. Ranne’s current runtime is **Hermes on the Windows PC** (Telegram works while the PC is on); build-time is **Cursor + linkup_mcp**. Same loop *pattern*, different hosts.
 
-| Loop part | Claude Code | **Hermes (Mac runtime)** | **Cursor (build-time Nami)** |
+| Loop part | Claude Code | **Hermes (PC runtime)** | **Cursor (build-time Nami)** |
 |-----------|-------------|--------------------------|------------------------------|
-| Automations | Routines @ claude.ai | Heartbeat / cron / `hermes gateway install` | `.cursor` rules, skills, optional Automations |
+| Automations | Routines @ claude.ai | Cron / gateway / Windows startup task | `.cursor` rules, skills, optional Automations |
 | Goal + check | `/goal` + fast verifier | Skill with explicit done criteria + sub-agent review | Agent task with test/lint as checker |
-| Skills | Claude skills | `hermes-nami/skills/*.md` | `.cursor/skills/`, `AGENTS.md` |
+| Skills | Claude skills | `hermes-nami/skills/<name>/SKILL.md` | `.cursor/skills/`, `AGENTS.md` |
 | Connectors | Gmail, Slack plugins | MCP `linkup` (search, RAG), browser (`/browser`) | MCP `web_search`, `rag`, repo tools |
 | Sub-agents | Spawned sessions | Hermes workers (research, build notes) | Cursor `Task` subagents |
 | Memory | Repo / notes file | `~/.hermes/memories/`, `MEMORY.md` | Git `AGENTS.md`, rules, `data/nami-corpus/` |
 | Worktrees | Claude worktrees | Parallel Hermes tasks / isolated profiles (`koshi`) | Git branches, worktrees, PR slices |
 
-**Do not duplicate:** Claude Routines on Mac *and* Hermes heartbeats for the same job. Pick **one runtime loop host** — Hermes for living (Telegram, brief, memory); Cursor for shipping code.
+**Do not duplicate:** Claude Routines and Hermes cron/gateway loops for the same job. Pick **one runtime loop host** — Hermes for living (Telegram, brief, memory); Cursor for shipping code.
 
 ---
 
@@ -67,7 +67,7 @@ Sabrina’s stack is **Claude Code `/goal` + cloud Routines**. Ranne’s runtime
 | Browser connect | Connector for research / read-only checks |
 | Sub-agents + skills | Doer + checker split |
 | Daily brief routine | **Automation + closed loop** — the first real loop |
-| Gateway launchd | Loop must survive reboot (24/7 timer) |
+| Gateway startup task | Loop must survive PC sign-in/reboot while PC remains the runtime host |
 
 Loop engineering gives **design language** for those tasks: every routine needs **starts when**, **done looks like**, **the check**, **turn cap**, **read-only first**.
 
@@ -75,13 +75,13 @@ Loop engineering gives **design language** for those tasks: every routine needs 
 
 ## Ranked next actions (leverage)
 
-### Mac Hermes (runtime loops)
+### PC Hermes (runtime loops)
 
 | # | Action | Why |
 |---|--------|-----|
-| 1 | **Ship daily brief as first closed loop** — skill: [daily-brief-loop.md](../../hermes-nami/skills/daily-brief-loop.md); read-only Telegram digest from RAG + memory; done = “3 bullets + 0 sends” | Smallest autonomous agent; matches Sabrina routine + Luke “brief by sit-down” |
-| 2 | **`hermes gateway install` (launchd)** | Without reliable timer, loops die on reboot |
-| 3 | **Checker skill** — [loop-checker.md](../../hermes-nami/skills/loop-checker.md): verify goal before posting/sending | Implements “don’t grade your own homework” |
+| 1 | **Ship daily brief as first closed loop** — skill: [brief/SKILL.md](../../hermes-nami/skills/brief/SKILL.md); read-only Telegram digest from RAG + memory; done = “3 bullets + one allowed send” | Smallest autonomous agent; matches Sabrina routine + Luke “brief by sit-down” |
+| 2 | **Gateway startup reliability** — `Start-NamiGateway.ps1` or a Windows startup task | Without the gateway, Telegram and cron loops do not run while the PC is on |
+| 3 | **Checker skill** — [loop-checker/SKILL.md](../../hermes-nami/skills/loop-checker/SKILL.md): verify goal before posting/sending | Implements “don’t grade your own homework” |
 | 4 | **Sub-agent split** — main Nami delegates research scout; orchestrator synthesizes (video pattern) | After brief works; reuse for weekly RAG eval summary |
 | 5 | **Browser + voice** | Connectors that make loops useful beyond chat |
 
@@ -105,7 +105,7 @@ Loop engineering gives **design language** for those tasks: every routine needs 
 
 ## First loop template (copy to Hermes skill)
 
-**Shipped specs:** [daily-brief-loop.md](../../hermes-nami/skills/daily-brief-loop.md) (routine) + [loop-checker.md](../../hermes-nami/skills/loop-checker.md) (checker pass).
+**Shipped specs:** [brief/SKILL.md](../../hermes-nami/skills/brief/SKILL.md) (routine) + [loop-checker/SKILL.md](../../hermes-nami/skills/loop-checker/SKILL.md) (checker pass).
 
 Generic scaffold for **new** routines:
 
@@ -127,16 +127,16 @@ Sabrina cheatsheet maps 1:1: Cheatsheet 1 → goal sentence; Cheatsheet 2 → `/
 
 ## Hermes install/config vs Cursor rules
 
-| Lives on Mac Hermes | Lives in Cursor / git |
+| Lives on PC Hermes | Lives in Cursor / git |
 |---------------------|------------------------|
-| Heartbeat / cron / launchd gateway | `AGENTS.md`, `.cursor/rules/` |
+| Cron / gateway / Windows startup task | `AGENTS.md`, `.cursor/rules/` |
 | `~/.hermes/memories/` curation | `hermes-nami/memories/` seeds |
 | Telegram allowlist + runtime skills | `hermes-nami/skills/` (sync via install script) |
 | MCP `linkup` registration | `server.py`, MCP `mcp.json` on PC |
 | Browser allowlist + security posture | Docs only (`REEL_BACKLOG`, this file) |
 | Loop execution logs | `data/inbox/*.workflow.md`, corpus for RAG |
 
-**Install path (Mac):** after pulling — `bash scripts/install-nami-stack-mac.sh` (syncs skills), then wire heartbeat/cron to [daily-brief-loop.md](../../hermes-nami/skills/daily-brief-loop.md).
+**Install path (PC):** after pulling — `.\scripts\install-nami-stack-pc.ps1` (syncs skills, MCP, and corpus), then wire cron to [brief/SKILL.md](../../hermes-nami/skills/brief/SKILL.md) with [Setup-NamiDailyBrief.ps1](../../scripts/Setup-NamiDailyBrief.ps1).
 
 ---
 
@@ -147,5 +147,7 @@ cd ~/Cursor/linkup_mcp
 bash scripts/verify-nami-hermes.sh
 # Manual: trigger daily brief once; confirm read-only output on Telegram
 ```
+
+On Windows, `.\scripts\install-nami-stack-pc.ps1` also prints basic Hermes, SOUL, venv, and corpus checks before the manual `/brief` test.
 
 See [STATUS.md](./STATUS.md) for scorecard and [SURFACE_MAP.md](./SURFACE_MAP.md) for surface ownership.
