@@ -23,6 +23,7 @@ from stitch_auth.store import (
     session_create,
     session_delete,
     session_load,
+    session_set_active_email,
     session_update,
     subscription_delete,
     subscriptions_list,
@@ -258,11 +259,16 @@ def register_stitch_auth_routes(app: Flask) -> None:
         sess = session_load(sid)
         if not sess:
             return jsonify({"ok": False, "error": "invalid_session"}), 401
-        ids = [int(x) for x in sess.get("account_ids") or []]
         acc = google_account_by_email(em)
-        if not acc or int(acc["id"]) not in ids:
+        if not acc:
             return jsonify({"ok": False, "error": "email_not_linked"}), 400
-        session_update(sid, ids, em)
+        # Re-read account_ids under the store lock so a concurrent OAuth
+        # Add-account callback cannot be clobbered by this switcher write.
+        err = session_set_active_email(sid, int(acc["id"]), em)
+        if err == "invalid_session":
+            return jsonify({"ok": False, "error": "invalid_session"}), 401
+        if err:
+            return jsonify({"ok": False, "error": "email_not_linked"}), 400
         return jsonify({"ok": True, "activeEmail": em})
 
     def _access_for_account(account_id: int) -> str:
