@@ -2,7 +2,12 @@
 
 Three Telegram bullets every morning (or on demand): **Build · Products · This week**. Read-only, RAG + memory grounded.
 
-Skills: `hermes-nami/skills/daily-brief-loop.md` + `loop-checker.md`.
+Skills:
+
+- `hermes-nami/skills/brief/SKILL.md` registers the `/brief` command.
+- `hermes-nami/skills/loop-checker/SKILL.md` verifies the draft before any Telegram send.
+
+The old flat skill file `daily-brief-loop.md` is intentionally removed by `install-nami-hermes.ps1` / `.sh`; use the `brief` skill name in cron and fallback prompts.
 
 ---
 
@@ -62,19 +67,19 @@ Hermes registers skills as `/brief`, `/loop-checker`, etc. after `install-nami-h
 Fallback prompt:
 
 ```text
-Run daily-brief-loop skill exactly. Use loop-checker before sending. Read-only. Turn cap 8.
+Run the brief skill exactly. Use /loop-checker before sending. Read-only. Turn cap 8.
 ```
 
 **Pass looks like:**
 
 ```text
-☀️ Daily brief
+Daily brief
 
-• Build: …
-• Products: …
-• This week: …
+- Build: …
+- Products: …
+- This week: …
 
-(read-only · corpus + memory)
+(read-only - corpus + memory)
 ```
 
 **If it fails:** reply with the error text. Common fixes: gateway not running, RAG empty (`python -m nami_corpus.sync`), model rate limit.
@@ -93,8 +98,10 @@ cd C:\Users\ranne\Cursor\cursor_linkup_mcp
 Or ask Nami in Telegram:
 
 ```text
-/cron add "every weekday at 07:30" "Run daily-brief-loop and loop-checker skills. Read-only daily brief to Telegram. Turn cap 8." --skill daily-brief-loop --skill loop-checker --name nami-daily-brief --deliver telegram
+/cron add "every weekday at 07:30" "Run the brief and loop-checker skills. Read-only daily brief to Telegram. Turn cap 8." --skill brief --skill loop-checker --name nami-daily-brief --deliver telegram
 ```
+
+The PowerShell setup script uses the same skill binding: `--skill brief --skill loop-checker`.
 
 List / test:
 
@@ -121,6 +128,8 @@ After the brief ships 3 days in a row:
 | Symptom | Fix |
 |---------|-----|
 | No reply to `/brief` | `hermes gateway status`; restart gateway |
+| `/commands` shows no `/brief` | Run `.\scripts\install-nami-hermes.ps1`, restart the gateway, then check `/commands` again |
+| Cron mentions `daily-brief-loop` | Recreate it with `.\scripts\Setup-NamiDailyBrief.ps1`; current skill name is `brief` |
 | Invented todos | Strengthen `MEMORY.md`; brief must cite RAG/memory |
 | Cron silent | `TELEGRAM_HOME_CHANNEL` unset; PC asleep at 07:30 |
 | Too long bullets | Re-run — skill caps at 120 chars per bullet |
