@@ -41,6 +41,25 @@ class BuildQueueTests(unittest.TestCase):
             jobs = q.list_recent(limit=5)
             self.assertEqual(len(jobs), 2)
 
+    def test_corrupt_json_does_not_block_queue(self):
+        """Truncated/invalid job files must not 500 health or stall sibling jobs."""
+        with tempfile.TemporaryDirectory() as tmp:
+            q = BuildQueue(root=Path(tmp))
+            good = q.enqueue("valid task")
+            pending_dir = Path(tmp) / "pending"
+            (pending_dir / "deadbeefcafe.json").write_text("{truncated", encoding="utf-8")
+            (pending_dir / "badstatus.json").write_text(
+                json.dumps({"id": "badstatus0000", "task": "x", "status": "not-a-status"}),
+                encoding="utf-8",
+            )
+            (pending_dir / "empty.json").write_text("", encoding="utf-8")
+
+            pending = q.pending_jobs()
+            self.assertEqual([job.id for job in pending], [good.id])
+            self.assertIsNone(q.get("deadbeefcafe"))
+            listed = q.list_recent(limit=10)
+            self.assertEqual([job.id for job in listed], [good.id])
+
 
 class BuildPromptTests(unittest.TestCase):
     def test_prompt_includes_task(self):
@@ -86,6 +105,28 @@ class BuildHttpTests(unittest.TestCase):
             self.assertTrue(data["ok"])
             self.assertEqual(data["job"]["task"], "Add route")
             self.assertEqual(len(q.pending_jobs()), 1)
+
+    @patch("nami_build.http._auth_ok", return_value=True)
+    def test_health_and_list_survive_corrupt_pending_json(self, _mock_auth):
+        from nami_build.http import create_app
+
+        q = BuildQueue(root=self.queue_root)
+        (self.queue_root / "pending").mkdir(parents=True, exist_ok=True)
+        (self.queue_root / "pending" / "corrupt.json").write_text("{nope", encoding="utf-8")
+        q.enqueue("ok")
+        with patch("nami_build.http.BuildQueue", return_value=q):
+            app = create_app(start_worker=False)
+            client = app.test_client()
+            health = client.get("/api/build/health")
+            self.assertEqual(health.status_code, 200)
+            body = health.get_json()
+            self.assertTrue(body["ok"])
+            self.assertEqual(body["pending_jobs"], 1)
+            listing = client.get("/api/build/jobs")
+            self.assertEqual(listing.status_code, 200)
+            jobs = listing.get_json()["jobs"]
+            self.assertEqual(len(jobs), 1)
+            self.assertEqual(jobs[0]["task"], "ok")
 
 
 if __name__ == "__main__":
