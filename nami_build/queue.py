@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any
+
+log = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parents[1]
 QUEUE_ROOT = ROOT / "data" / "build-queue"
@@ -106,11 +109,23 @@ class BuildQueue:
         self._write(job, JobStatus.PENDING)
         return job
 
+    def _load_job(self, path: Path) -> BuildJob | None:
+        """Parse a job JSON file. Unreadable/corrupt files are skipped, not raised.
+
+        A crash mid-`write_text` (or a timeout-killed worker) can leave truncated
+        JSON in pending/running. Raising would 500 health/list and stall every job.
+        """
+        try:
+            return BuildJob.from_dict(json.loads(path.read_text(encoding="utf-8")))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError, ValueError, TypeError) as exc:
+            log.warning("Skipping unreadable build job %s: %s", path, exc)
+            return None
+
     def get(self, job_id: str) -> BuildJob | None:
         path = self._find_path(job_id)
         if not path:
             return None
-        return BuildJob.from_dict(json.loads(path.read_text(encoding="utf-8")))
+        return self._load_job(path)
 
     def list_recent(self, limit: int = 10) -> list[BuildJob]:
         jobs: list[BuildJob] = []
@@ -120,7 +135,10 @@ class BuildQueue:
                 key=lambda p: p.stat().st_mtime,
                 reverse=True,
             ):
-                jobs.append(BuildJob.from_dict(json.loads(path.read_text(encoding="utf-8"))))
+                job = self._load_job(path)
+                if job is None:
+                    continue
+                jobs.append(job)
         jobs.sort(key=lambda j: j.updated_at, reverse=True)
         return jobs[:limit]
 
@@ -151,8 +169,10 @@ class BuildQueue:
 
     def pending_jobs(self) -> list[BuildJob]:
         pending_dir = self.root / JobStatus.PENDING.value
-        jobs = [
-            BuildJob.from_dict(json.loads(p.read_text(encoding="utf-8")))
-            for p in sorted(pending_dir.glob("*.json"), key=lambda x: x.stat().st_mtime)
-        ]
+        jobs: list[BuildJob] = []
+        for path in sorted(pending_dir.glob("*.json"), key=lambda x: x.stat().st_mtime):
+            job = self._load_job(path)
+            if job is None:
+                continue
+            jobs.append(job)
         return jobs
