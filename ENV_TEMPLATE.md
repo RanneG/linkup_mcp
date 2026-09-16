@@ -18,6 +18,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 # STITCH_WHISPER_MODEL=tiny.en   # faster-whisper model id (e.g. base.en, small.en); first run downloads weights
 # STITCH_WHISPER_DEVICE=cpu      # cpu or cuda
 # STITCH_WHISPER_COMPUTE_TYPE=int8
+# STITCH_WHISPER_MAX_WAV_BYTES=52428800  # MCP/path STT cap (default 50MB); HTTP voice route stays 2MB
 # STITCH_ALLOWED_ORIGINS=http://127.0.0.1:1420,http://localhost:1420
 # STITCH_DESKTOP_DIST=C:/path/to/stitch-app/apps/desktop/dist   # stitch_gui.py: serve built SPA from same process
 

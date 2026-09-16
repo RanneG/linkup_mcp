@@ -2,7 +2,8 @@
 Local faster-whisper STT for MCP testing (no Flask, no Stitch UI).
 
 Uses the same env knobs as stitch_rag_bridge: STITCH_WHISPER_MODEL, STITCH_WHISPER_DEVICE,
-STITCH_WHISPER_COMPUTE_TYPE. Install optional deps: pip install -e ".[stitch-whisper]"
+STITCH_WHISPER_COMPUTE_TYPE, STITCH_WHISPER_MAX_WAV_BYTES (default 50MB).
+Install optional deps: pip install -e ".[stitch-whisper]"
 """
 from __future__ import annotations
 
@@ -16,6 +17,24 @@ logger = logging.getLogger(__name__)
 _model = None
 _model_key: str | None = None
 _model_lock = threading.Lock()
+# Cap before model load. HTTP /api/voice/transcribe is tighter (2MB); MCP/path can be longer clips.
+_DEFAULT_MAX_WAV_BYTES = 50 * 1024 * 1024
+
+
+def _max_wav_bytes() -> int:
+    raw = (os.getenv("STITCH_WHISPER_MAX_WAV_BYTES") or "").strip()
+    if not raw:
+        return _DEFAULT_MAX_WAV_BYTES
+    try:
+        return max(44, int(raw))
+    except ValueError:
+        logger.warning("Invalid STITCH_WHISPER_MAX_WAV_BYTES=%r; using default", raw)
+        return _DEFAULT_MAX_WAV_BYTES
+
+
+def _require_riff_wave_header(raw: bytes) -> None:
+    if len(raw) < 12 or raw[:4] != b"RIFF" or raw[8:12] != b"WAVE":
+        raise ValueError("Not a RIFF WAVE file")
 
 
 def whisper_import_ok() -> bool:
@@ -46,10 +65,12 @@ def _get_model():
 
 def transcribe_wav_bytes(raw: bytes, *, language: str = "en") -> str:
     """RIFF WAVE bytes in, plain text out."""
+    max_bytes = _max_wav_bytes()
+    if len(raw) > max_bytes:
+        raise ValueError(f"WAV too large ({len(raw)} bytes; max {max_bytes})")
     if len(raw) < 44:
         raise ValueError("WAV too small")
-    if raw[:4] != b"RIFF" or raw[8:12] != b"WAVE":
-        raise ValueError("Not a RIFF WAVE file")
+    _require_riff_wave_header(raw)
     model = _get_model()
     path: str | None = None
     try:
@@ -75,6 +96,15 @@ def transcribe_wav_path(path: str, *, language: str = "en") -> str:
     p = os.path.abspath(os.path.expanduser(path.strip()))
     if not os.path.isfile(p):
         raise FileNotFoundError(f"Not a file: {p}")
+    max_bytes = _max_wav_bytes()
+    size = os.path.getsize(p)
+    if size < 44:
+        raise ValueError("WAV too small")
+    if size > max_bytes:
+        raise ValueError(f"WAV too large ({size} bytes; max {max_bytes})")
     with open(p, "rb") as f:
-        raw = f.read()
+        header = f.read(12)
+        _require_riff_wave_header(header)
+        f.seek(0)
+        raw = f.read(max_bytes + 1)
     return transcribe_wav_bytes(raw, language=language)
