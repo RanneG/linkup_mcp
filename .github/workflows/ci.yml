@@ -19,7 +19,7 @@ jobs:
           python -m pip install -U pip setuptools wheel
           python -m pip install -e .
       - name: Contract and script tests
-        run: python -m unittest tests.test_rag_stitch_contract tests.test_nami_mcp_scripts -v
+        run: python -m unittest tests.test_rag_stitch_contract tests.test_nami_mcp_scripts tests.test_local_whisper_stt -v
 
   stitch-api-types:
     runs-on: ubuntu-latest
