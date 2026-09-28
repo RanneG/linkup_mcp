@@ -113,4 +113,4 @@ Track: minutes to green, intervention count, “would use again?”
 
 - **`CLAUDE.md`** — agent instructions at repo root
 - **`scripts/Start-ClaudeCiLoop.ps1`** — prefilled CI loop launcher
-- **`hermes-nami/skills/loop-checker.md`** — checker format before “done”
+- **`hermes-nami/skills/loop-checker/SKILL.md`** — checker format before “done”

@@ -12,12 +12,12 @@ Prefer **loop engineering** over one-off prompt chains. Reference: `docs/hermes/
 1. **State the goal** — one measurable done condition (not “make it better”).
 2. **Closed loop first** — do → **check** → repeat; cap turns/iterations.
 3. **Separate checker** — verify before send/deploy/commit when impact is external (Telegram, PR, production).
-4. **Surface map** — Cursor builds; Hermes runs scheduled loops on Mac; don’t duplicate.
+4. **Surface map** — Cursor builds; Hermes runs scheduled loops on PC now (VPS later); don’t duplicate.
 5. **Ingest external workflows** — reel/YouTube URL → `scripts/transcribe_reel.py` → workflow card → bounded MVP slice.
 
 ## Hermes runtime
 
-First autonomous loop spec: `hermes-nami/skills/daily-brief-loop.md` + `loop-checker.md`.
+First autonomous loop spec: `hermes-nami/skills/brief/SKILL.md` + `hermes-nami/skills/loop-checker/SKILL.md`.
 
 ## Skip
 

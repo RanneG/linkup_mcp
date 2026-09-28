@@ -22,7 +22,7 @@ Use council (multi-persona or chairman synthesis) only when Ranne invokes it. Ne
 
 ## Checker (before claiming done)
 
-Run a loop-check pass using **`hermes-nami/skills/loop-checker.md`** format:
+Run a loop-check pass using **`hermes-nami/skills/loop-checker/SKILL.md`** format:
 
 1. Restate goal in one sentence.
 2. List done criteria with evidence (test output, file paths).
