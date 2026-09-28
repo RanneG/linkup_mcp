@@ -27,16 +27,15 @@ CORPUS_SOURCES: tuple[str, ...] = (
     "docs/hermes/STATUS.md",
     "docs/hermes/LOOP_ENGINEERING.md",
     "docs/hermes/REEL_BACKLOG.md",
-    "hermes-nami/skills/loop-checker.md",
-    "hermes-nami/skills/daily-brief-loop.md",
-    "hermes-nami/skills/linkup-mcp.md",
-    "hermes-nami/skills/model-routing.md",
-    "hermes-nami/skills/mobile-build-request.md",
+    "hermes-nami/skills/brief/SKILL.md",
+    "hermes-nami/skills/loop-checker/SKILL.md",
+    "hermes-nami/skills/linkup-mcp/SKILL.md",
+    "hermes-nami/skills/model-routing/SKILL.md",
+    "hermes-nami/skills/mobile-build-request/SKILL.md",
     "docs/hermes/MOBILE_BUILD.md",
     "docs/stitch/MIGRATION.md",
     "docs/stitch/STATUS.md",
     "docs/stitch_user_guide.md",
-    "docs/nami-game-lab/README.md",
     "docs/elevenlabs/NAMI.md",
     "docs/elevenlabs/README.md",
     "docs/supplyme/README.md",
@@ -86,7 +85,7 @@ def sync_corpus(*, dry_run: bool = False) -> dict[str, int]:
         manifest_path.write_text("\n".join(manifest_lines) + "\n", encoding="utf-8")
         (OUT / "README.md").write_text(
             "# Nami RAG corpus (generated)\n\n"
-            "Run `python -m nami_corpus.sync` after updating source docs.\n",
+            "Run `python -m nami_corpus` after updating source docs.\n",
             encoding="utf-8",
         )
 

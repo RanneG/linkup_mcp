@@ -77,7 +77,7 @@ Pointer: **[docs/supplyme/README.md](docs/supplyme/README.md)**. Architecture: `
 
 **Runtime host:** **Hermes on Windows PC** while the machine is on; **VPS migration** when 24/7 phone Nami is worth ~€8/mo — **[docs/hermes/PC_SETUP.md](docs/hermes/PC_SETUP.md)**, **[docs/hermes/VPS_MIGRATION.md](docs/hermes/VPS_MIGRATION.md)**. **Nami** = default profile. **Koshi** = `hermes -p koshi` (isolated). Cross-device: **[docs/hermes/NAMI.md](docs/hermes/NAMI.md)**. From phone: **Telegram** (PC must be on). Mac optional.
 
-**linkup_mcp ↔ Hermes:** MCP on **PC runtime** + **Cursor build** — not redundant. PC install: **`.\scripts\install-nami-stack-pc.ps1`**. Future VPS: **`bash scripts/install-nami-stack-vps.sh`**. RAG: **`python -m nami_corpus.sync`**. Surfaces: **[docs/hermes/SURFACE_MAP.md](docs/hermes/SURFACE_MAP.md)**. Scorecard: **[docs/hermes/STATUS.md](docs/hermes/STATUS.md)**.
+**linkup_mcp ↔ Hermes:** MCP on **PC runtime** + **Cursor build** — not redundant. PC install: **`.\scripts\install-nami-stack-pc.ps1`**. Future VPS: **`bash scripts/install-nami-stack-vps.sh`**. RAG: **`python -m nami_corpus`**. Surfaces: **[docs/hermes/SURFACE_MAP.md](docs/hermes/SURFACE_MAP.md)**. Scorecard: **[docs/hermes/STATUS.md](docs/hermes/STATUS.md)**.
 
 **Jarvis-shaped stack (how pieces fit):**
 

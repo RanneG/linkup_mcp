@@ -24,7 +24,7 @@ Use when Ranne needs **grounded** answers about his stack, not guesses.
 
 ## RAG corpus
 
-From `data/nami-corpus/`. If weak: suggest `python -m nami_corpus.sync` on linkup_mcp clone.
+From `data/nami-corpus/`. If weak: suggest `python -m nami_corpus` on linkup_mcp clone.
 
 ## Secrets
 

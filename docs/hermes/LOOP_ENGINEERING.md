@@ -75,13 +75,13 @@ Loop engineering gives **design language** for those tasks: every routine needs 
 
 ## Ranked next actions (leverage)
 
-### Mac Hermes (runtime loops)
+### PC Hermes (runtime loops)
 
 | # | Action | Why |
 |---|--------|-----|
-| 1 | **Ship daily brief as first closed loop** — skill: [daily-brief-loop.md](../../hermes-nami/skills/daily-brief-loop.md); read-only Telegram digest from RAG + memory; done = “3 bullets + 0 sends” | Smallest autonomous agent; matches Sabrina routine + Luke “brief by sit-down” |
+| 1 | **Ship daily brief as first closed loop** — skill: [`brief/SKILL.md`](../../hermes-nami/skills/brief/SKILL.md); read-only Telegram digest from RAG + memory; done = “3 bullets + 0 extra sends” | Smallest autonomous agent; matches Sabrina routine + Luke “brief by sit-down” |
 | 2 | **`hermes gateway install` (launchd)** | Without reliable timer, loops die on reboot |
-| 3 | **Checker skill** — [loop-checker.md](../../hermes-nami/skills/loop-checker.md): verify goal before posting/sending | Implements “don’t grade your own homework” |
+| 3 | **Checker skill** — [`loop-checker/SKILL.md`](../../hermes-nami/skills/loop-checker/SKILL.md): verify goal before posting/sending | Implements “don’t grade your own homework” |
 | 4 | **Sub-agent split** — main Nami delegates research scout; orchestrator synthesizes (video pattern) | After brief works; reuse for weekly RAG eval summary |
 | 5 | **Browser + voice** | Connectors that make loops useful beyond chat |
 
@@ -105,7 +105,7 @@ Loop engineering gives **design language** for those tasks: every routine needs 
 
 ## First loop template (copy to Hermes skill)
 
-**Shipped specs:** [daily-brief-loop.md](../../hermes-nami/skills/daily-brief-loop.md) (routine) + [loop-checker.md](../../hermes-nami/skills/loop-checker.md) (checker pass).
+**Shipped specs:** [`brief/SKILL.md`](../../hermes-nami/skills/brief/SKILL.md) (routine) + [`loop-checker/SKILL.md`](../../hermes-nami/skills/loop-checker/SKILL.md) (checker pass).
 
 Generic scaffold for **new** routines:
 
@@ -136,7 +136,7 @@ Sabrina cheatsheet maps 1:1: Cheatsheet 1 → goal sentence; Cheatsheet 2 → `/
 | Browser allowlist + security posture | Docs only (`REEL_BACKLOG`, this file) |
 | Loop execution logs | `data/inbox/*.workflow.md`, corpus for RAG |
 
-**Install path (Mac):** after pulling — `bash scripts/install-nami-stack-mac.sh` (syncs skills), then wire heartbeat/cron to [daily-brief-loop.md](../../hermes-nami/skills/daily-brief-loop.md).
+**Install path (PC):** after pulling — `.\scripts\install-nami-hermes.ps1` (syncs skills), then wire heartbeat/cron to [`brief/SKILL.md`](../../hermes-nami/skills/brief/SKILL.md) with [`Setup-NamiDailyBrief.ps1`](../../scripts/Setup-NamiDailyBrief.ps1).
 
 ---
 

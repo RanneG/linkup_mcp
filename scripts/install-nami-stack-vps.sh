@@ -14,8 +14,8 @@ bash "$ROOT/scripts/install-nami-hermes.sh"
 
 echo ""
 echo "=== 2/5 RAG corpus ==="
-"$ROOT/.venv/bin/python" -m nami_corpus.sync 2>/dev/null || \
-  python3 -m nami_corpus.sync
+"$ROOT/.venv/bin/python" -m nami_corpus 2>/dev/null || \
+  python3 -m nami_corpus
 
 echo ""
 echo "=== 3/5 linkup MCP ==="

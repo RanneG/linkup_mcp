@@ -21,7 +21,7 @@ Write-Host "=== Home channel ===" -ForegroundColor Cyan
 Write-Host "TELEGRAM_HOME_CHANNEL=$TelegramUserId"
 
 $prompt = @"
-Run daily-brief-loop skill exactly: 3 bullets (Build, Products, This week), read-only.
+Run /brief exactly: 3 bullets (Build, Products, This week), read-only.
 Use /loop-checker before sending. Turn cap 8. Append LOOP_LOG.md on PASS or FAIL.
 Skip web_search unless USER.md says otherwise.
 "@

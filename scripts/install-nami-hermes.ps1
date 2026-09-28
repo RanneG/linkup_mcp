@@ -86,7 +86,7 @@ Write-Host "Skills: $($skillNames -join ', ') (use /brief, /loop-checker, etc.)"
 
 $venvPy = Join-Path $Root ".venv\Scripts\python.exe"
 if (Test-Path $venvPy) {
-    & $venvPy -m nami_corpus.sync
+    & $venvPy -m nami_corpus
 } else {
     Write-Host "No .venv - run uv sync or pip install -e . first for RAG corpus sync" -ForegroundColor Yellow
 }

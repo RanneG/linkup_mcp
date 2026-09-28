@@ -54,7 +54,7 @@ echo "Installed Nami files to ~/.hermes/ (skills: brief, loop-checker, …)"
 ls -la "$HOME/.hermes/SOUL.md" "$HOME/.hermes/AGENTS.md"
 
 if [[ -x "$ROOT/.venv/bin/python" ]]; then
-  "$ROOT/.venv/bin/python" -m nami_corpus.sync || true
+  "$ROOT/.venv/bin/python" -m nami_corpus || true
 elif command -v python3 >/dev/null; then
-  python3 -m nami_corpus.sync || true
+  python3 -m nami_corpus || true
 fi
