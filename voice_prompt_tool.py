@@ -167,9 +167,22 @@ class InstanceLock:
                 if existing_pid is None:
                     self._safe_unlink()
                     continue
-                if not _process_exists(existing_pid):
+                owner = _lock_owner_kind(existing_pid)
+                if owner in {"dead", "other"}:
+                    if owner == "other":
+                        logger.warning(
+                            "Lock pid=%s is not voice_prompt_tool (PID reused). "
+                            "Removing stale lock without terminating it.",
+                            existing_pid,
+                        )
                     self._safe_unlink()
                     continue
+                if owner == "unknown":
+                    logger.error(
+                        "Lock pid=%s is alive but its command line could not be read; not terminating it.",
+                        existing_pid,
+                    )
+                    return False
                 if replace_existing:
                     logger.warning("Existing voice prompt instance detected (pid=%s). Stopping it.", existing_pid)
                     _terminate_process(existing_pid)
@@ -203,8 +216,15 @@ class InstanceLock:
 
 
 def _process_exists(pid: int) -> bool:
+    """Return whether pid is alive. Must not signal or terminate the process.
+
+    On Windows, ``os.kill(pid, 0)`` calls ``TerminateProcess`` (any signal other than
+    the console-break events). Use a query-only check there.
+    """
     if pid <= 0:
         return False
+    if platform.system() == "Windows":
+        return _windows_process_alive(pid)
     try:
         os.kill(pid, 0)
         return True
@@ -214,6 +234,108 @@ def _process_exists(pid: int) -> bool:
         return True
     except Exception:
         return False
+
+
+def _windows_process_alive(pid: int) -> bool:
+    """Query a Windows process without terminating it."""
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        process_query_limited_information = 0x1000
+        still_active = 259
+        error_access_denied = 5
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        open_process = kernel32.OpenProcess
+        open_process.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+        open_process.restype = wintypes.HANDLE
+        get_exit_code = kernel32.GetExitCodeProcess
+        get_exit_code.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+        get_exit_code.restype = wintypes.BOOL
+        close_handle = kernel32.CloseHandle
+        close_handle.argtypes = [wintypes.HANDLE]
+        close_handle.restype = wintypes.BOOL
+
+        handle = open_process(process_query_limited_information, False, int(pid))
+        if not handle:
+            return ctypes.get_last_error() == error_access_denied
+        try:
+            code = wintypes.DWORD()
+            if not get_exit_code(handle, ctypes.byref(code)):
+                return False
+            return int(code.value) == still_active
+        finally:
+            close_handle(handle)
+    except Exception:
+        return False
+
+
+def _process_command_line(pid: int) -> str | None:
+    """Best-effort command line for pid.
+
+    ``None`` means the command line could not be read. An empty string means it was
+    read and is empty (so this cannot be the voice prompt tool).
+    """
+    if pid <= 0:
+        return None
+    system = platform.system()
+    if system == "Windows":
+        return _windows_command_line(pid)
+    if system == "Linux":
+        try:
+            raw = Path(f"/proc/{int(pid)}/cmdline").read_bytes()
+        except OSError:
+            return None
+        return raw.replace(b"\x00", b" ").decode("utf-8", errors="replace")
+    try:
+        proc = subprocess.run(
+            ["ps", "-p", str(int(pid)), "-o", "command="],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if proc.returncode != 0:
+        return None
+    return proc.stdout or ""
+
+
+def _windows_command_line(pid: int) -> str | None:
+    script = f"(Get-CimInstance Win32_Process -Filter 'ProcessId={int(pid)}').CommandLine"
+    try:
+        proc = subprocess.run(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+            capture_output=True,
+            text=True,
+            timeout=8,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if proc.returncode != 0:
+        return None
+    return proc.stdout or ""
+
+
+def _lock_owner_kind(pid: int) -> str:
+    """Classify a lock-file PID: ``dead``, ``voice``, ``other``, or ``unknown``.
+
+    A lock that already names this process is stale (the previous holder exited and
+    the OS reused the PID, or this process has not published the lock yet). Do not
+    treat it as another voice-prompt instance — signaling it would kill ourselves.
+    """
+    if pid == os.getpid():
+        return "other"
+    if not _process_exists(pid):
+        return "dead"
+    cmdline = _process_command_line(pid)
+    if cmdline is None:
+        return "unknown"
+    if "voice_prompt_tool" in cmdline.lower():
+        return "voice"
+    return "other"
 
 
 def _terminate_process(pid: int) -> None:
