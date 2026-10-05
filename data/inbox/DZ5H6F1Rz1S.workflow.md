@@ -36,9 +36,9 @@
 
 | Item | Surface | Notes |
 |------|---------|-------|
-| Hermes | Hermes | Runtime agent host on Mac |
-| Voice | Hermes | Built-in Hermes voice (Mac) |
-| Chrome | Hermes | Browser control from Mac agent |
+| Hermes | Hermes | Runtime agent host (PC now, VPS later) |
+| Voice | Hermes | Built-in Hermes voice on the runtime host |
+| Chrome | Hermes | Browser control from the runtime agent |
 | sub agent | Hermes | Hermes sub-agents + skills |
 | Claude design | external | Anthropic design tool |
 | Claude Code | Cursor | IDE coding assistant |
@@ -50,11 +50,11 @@
 
 ## MVP slice
 
-Mac: enable Hermes voice + document `/browser` Chrome connect in `docs/hermes/REEL_BACKLOG.md` priority 1–3 (~1–2h each).
+Hermes runtime host: enable Hermes voice + document `/browser` Chrome connect in `docs/hermes/REEL_BACKLOG.md` priority 1–3 (~1–2h each).
 
 ## Not doing
 
-- Full Jarvis clone in Cursor — runtime stays on Hermes (Mac).
+- Full Jarvis clone in Cursor — runtime stays on Hermes (PC now, VPS later).
 - RevenueCat / Metricool / Meta Ads MCP unless a shipped app needs them.
 - 24/7 customer-support agent — deferred (SupplyMe lane).
 - Scroll-frame demo — not relevant to this reel.

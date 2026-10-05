@@ -2,7 +2,7 @@
 
 **Cursor** = default IDE agent (features, diffs, MCP in chat).  
 **Claude Code** = terminal sidecar for **closed loops** (CI fix, reel ingest, council).  
-**Hermes** = runtime on Mac (Telegram, briefs) — not Claude Routines.
+**Hermes** = runtime on the Windows PC now, VPS later (Telegram, briefs) — not Claude Routines.
 
 Surface map: [SURFACE_MAP.md](../hermes/SURFACE_MAP.md). Loop pattern: [LOOP_ENGINEERING.md](../hermes/LOOP_ENGINEERING.md).
 
@@ -20,7 +20,7 @@ Surface map: [SURFACE_MAP.md](../hermes/SURFACE_MAP.md). Loop pattern: [LOOP_ENG
 | Cursor feature work | Cursor subscription |
 | Claude.ai chat | Claude Pro/Max |
 | **Unattended CI / ingest loops** | Prefer **`ANTHROPIC_API_KEY`** (separate API budget) |
-| Hermes / Ollama | Local on Mac |
+| Hermes / Ollama | Local on PC now; VPS later |
 
 Pro/Max shared pools can burn interactive budget on 8-turn CI loops. Use **`scripts/Start-ClaudeCiLoop.ps1 -UseApiKey`** for Lane A so subscription stays for watched work.
 
@@ -56,7 +56,7 @@ Tools: **`web_search`** (Linkup key in `.env`), **`rag`** (local docs under `dat
 |------|------|
 | Multi-file features, Stitch/Tauri, inline review | **Cursor** |
 | CI until green, reel → inbox, git worktree slices | **Claude Code** |
-| Daily brief, Telegram, scheduled memory | **Hermes (Mac)** |
+| Daily brief, Telegram, scheduled memory | **Hermes runtime (PC now, VPS later)** |
 
 ### Lane A — CI loop (start here)
 
@@ -113,4 +113,4 @@ Track: minutes to green, intervention count, “would use again?”
 
 - **`CLAUDE.md`** — agent instructions at repo root
 - **`scripts/Start-ClaudeCiLoop.ps1`** — prefilled CI loop launcher
-- **`hermes-nami/skills/loop-checker.md`** — checker format before “done”
+- **`hermes-nami/skills/loop-checker/SKILL.md`** — checker format before “done”

@@ -32,7 +32,7 @@ SupplyMe is the **productized** version of “holistic assistant”:
 | Jarvis layer | SupplyMe implementation | Ranne personal (Nami) |
 |--------------|-------------------------|------------------------|
 | Channel | Telegram topics | Hermes Telegram + Cursor chat |
-| Brain | Hermes + SOUL.md | Hermes (Mac/VPS) + Cursor agent |
+| Brain | Hermes + SOUL.md | Hermes (PC now, VPS later) + Cursor agent |
 | Memory | Hermes memory + Google Sheet | Hermes memory; Cursor per-session |
 | Tools | Hermes skills + gateways | linkup_mcp MCP + Stitch bridge |
 | Voice | (not in crew yet) | ElevenLabs Bella (`nami-speak`) |

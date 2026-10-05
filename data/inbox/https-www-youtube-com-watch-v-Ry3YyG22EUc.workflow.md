@@ -38,7 +38,7 @@ Extract one numbered procedure from the reel and automate the first manual step 
 
 ## Not doing
 
-- Full Jarvis clone in Cursor — runtime stays on Hermes (Mac).
+- Full Jarvis clone in Cursor — runtime stays on Hermes (PC now, VPS later).
 - RevenueCat / Metricool / Meta Ads MCP unless a shipped app needs them.
 - 24/7 customer-support agent — deferred (SupplyMe lane).
 - Scroll-frame demo — not relevant to this reel.
