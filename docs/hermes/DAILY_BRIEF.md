@@ -2,7 +2,8 @@
 
 Three Telegram bullets every morning (or on demand): **Build · Products · This week**. Read-only, RAG + memory grounded.
 
-Skills: `hermes-nami/skills/daily-brief-loop.md` + `loop-checker.md`.
+Skills in git: `hermes-nami/skills/brief/SKILL.md` + `hermes-nami/skills/loop-checker/SKILL.md`.
+Installed on the PC as `%LOCALAPPDATA%\hermes\skills\brief\SKILL.md` and `...\loop-checker\SKILL.md`.
 
 ---
 
@@ -62,19 +63,19 @@ Hermes registers skills as `/brief`, `/loop-checker`, etc. after `install-nami-h
 Fallback prompt:
 
 ```text
-Run daily-brief-loop skill exactly. Use loop-checker before sending. Read-only. Turn cap 8.
+Run the brief skill exactly. Use loop-checker before sending. Read-only. Turn cap 8.
 ```
 
 **Pass looks like:**
 
 ```text
-☀️ Daily brief
+Daily brief
 
-• Build: …
-• Products: …
-• This week: …
+- Build: …
+- Products: …
+- This week: …
 
-(read-only · corpus + memory)
+(read-only - corpus + memory)
 ```
 
 **If it fails:** reply with the error text. Common fixes: gateway not running, RAG empty (`python -m nami_corpus.sync`), model rate limit.
@@ -93,7 +94,7 @@ cd C:\Users\ranne\Cursor\cursor_linkup_mcp
 Or ask Nami in Telegram:
 
 ```text
-/cron add "every weekday at 07:30" "Run daily-brief-loop and loop-checker skills. Read-only daily brief to Telegram. Turn cap 8." --skill daily-brief-loop --skill loop-checker --name nami-daily-brief --deliver telegram
+/cron add "every weekday at 07:30" "Run brief and loop-checker skills. Read-only daily brief to Telegram. Turn cap 8." --skill brief --skill loop-checker --name nami-daily-brief --deliver telegram:<your-user-id>
 ```
 
 List / test:
@@ -121,6 +122,7 @@ After the brief ships 3 days in a row:
 | Symptom | Fix |
 |---------|-----|
 | No reply to `/brief` | `hermes gateway status`; restart gateway |
+| `/daily-brief-loop` or `daily-brief-loop` is unknown | Re-run `.\scripts\install-nami-hermes.ps1`; the current command is `/brief` |
 | Invented todos | Strengthen `MEMORY.md`; brief must cite RAG/memory |
 | Cron silent | `TELEGRAM_HOME_CHANNEL` unset; PC asleep at 07:30 |
 | Too long bullets | Re-run — skill caps at 120 chars per bullet |

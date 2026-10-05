@@ -34,7 +34,7 @@ Ship `demos/scroll-frames/` with 24 placeholder frames and scroll-synced playbac
 
 ## Not doing
 
-- Full Jarvis clone in Cursor — runtime stays on Hermes (Mac).
+- Full Jarvis clone in Cursor — runtime stays on Hermes (PC now, VPS later).
 - RevenueCat / Metricool / Meta Ads MCP unless a shipped app needs them.
 - 24/7 customer-support agent — deferred (SupplyMe lane).
 - Claude design skill — only if you adopt Anthropic design tooling.
