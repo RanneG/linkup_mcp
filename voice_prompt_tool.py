@@ -350,6 +350,10 @@ class VoicePromptTool:
         self._recording_frames: list[np.ndarray] = []
         self._stream: sd.InputStream | None = None
         self._recording_lock = threading.Lock()
+        # Monotonic id of the latest stopped recording. Older transcription
+        # workers must not publish after a newer stop has been queued.
+        self._transcription_seq = 0
+        self._emit_lock = threading.Lock()
         self.hotkey = hotkey
         hotkey_spec = _to_pynput_hotkey_spec(hotkey)
         self._hotkey = keyboard.HotKey(
@@ -473,11 +477,22 @@ class VoicePromptTool:
                 except Exception as exc:
                     logger.warning("Error closing mic stream: %s", exc)
                 self._stream = None
+            # Own the frames before releasing the lock. start_recording() clears
+            # the shared buffer, and a later stop must not see this audio.
+            frames_snapshot = list(self._recording_frames)
+            self._recording_frames.clear()
             self.osd.set_status("TRANSCRIBING", "#1f6feb")
             self.tray.set_state("processing")
             logger.info("Recording stopped. Processing transcription...")
+        with self._emit_lock:
+            self._transcription_seq += 1
+            job_id = self._transcription_seq
 
-        threading.Thread(target=self._transcribe_and_emit, daemon=True).start()
+        threading.Thread(
+            target=self._transcribe_and_emit,
+            args=(frames_snapshot, job_id),
+            daemon=True,
+        ).start()
 
     def _wav_bytes_from_frames(self, frames: list[np.ndarray]) -> bytes:
         if not frames:
@@ -493,52 +508,71 @@ class VoicePromptTool:
             wf.writeframes(pcm.tobytes())
         return buffer.getvalue()
 
-    def _transcribe_and_emit(self) -> None:
-        frames = self._recording_frames.copy()
-        if not frames:
-            self.osd.set_status("NO AUDIO", "#d29922")
+    def _status_if_latest(self, job_id: int, text: str, color: str, tray_state: str) -> bool:
+        """Update OSD/tray only for the newest stopped recording."""
+        with self._emit_lock:
+            if job_id != self._transcription_seq:
+                logger.info("Discarding stale voice transcription job %s", job_id)
+                return False
+            self.osd.set_status(text, color)
+            self.tray.set_state(tray_state)
+            return True
+
+    def _publish_prompt(self, job_id: int, formatted_prompt: str) -> None:
+        """Copy the latest transcription only. Older workers must not clobber it."""
+        with self._emit_lock:
+            if job_id != self._transcription_seq:
+                logger.info("Discarding stale voice transcription job %s", job_id)
+                return
+            clipboard_text = self._build_clipboard_output(formatted_prompt)
+            try:
+                if pyperclip is None:
+                    raise RuntimeError("pyperclip unavailable")
+                pyperclip.copy(clipboard_text)
+            except Exception as exc:
+                logger.warning("Clipboard copy failed: %s", exc)
+                self.osd.set_status("COPY ERROR", "#da3633")
+                self.tray.set_state("idle")
+                return
+            do_paste = self.autopaste
+            if do_paste:
+                self._attempt_autopaste()
+            self.osd.set_status("COPIED", "#238636")
             self.tray.set_state("idle")
+        logger.info("Prompt copied to clipboard:\n%s", clipboard_text)
+
+    def _transcribe_and_emit(self, frames: list[np.ndarray], job_id: int) -> None:
+        if not frames:
+            self._status_if_latest(job_id, "NO AUDIO", "#d29922", "idle")
             return
         wav_bytes = self._wav_bytes_from_frames(frames)
         if not wav_bytes:
-            self.osd.set_status("AUDIO ERROR", "#da3633")
-            self.tray.set_state("idle")
+            self._status_if_latest(job_id, "AUDIO ERROR", "#da3633", "idle")
             return
 
         try:
             raw_text = transcribe_wav_bytes(wav_bytes, language="en")
         except Exception as exc:
             logger.exception("Transcription failed")
-            self.osd.set_status("STT ERROR", "#da3633")
             logger.error("Transcription failed: %s", exc)
             if "PaError" in str(exc):
                 logger.error("PORTAUDIO_ERROR during transcription: %s", exc)
-            self.tray.set_state("idle")
+            self._status_if_latest(job_id, "STT ERROR", "#da3633", "idle")
             return
 
         logger.info("Transcription length chars=%s words=%s", len(raw_text), len(raw_text.split()))
         if not raw_text.strip():
-            self.osd.set_status("NO SPEECH", "#d29922")
             logger.info("No speech detected; clipboard not updated.")
-            self.tray.set_state("idle")
+            self._status_if_latest(job_id, "NO SPEECH", "#d29922", "idle")
             return
 
         result = format_prompt(raw_text, system_instruction=self.system_instruction)
         if not result.normalized_text.strip():
-            self.osd.set_status("NO SPEECH", "#d29922")
             logger.info("No usable text after normalization; clipboard not updated.")
-            self.tray.set_state("idle")
+            self._status_if_latest(job_id, "NO SPEECH", "#d29922", "idle")
             return
 
-        clipboard_text = self._build_clipboard_output(result.formatted_prompt)
-        pyperclip.copy(clipboard_text)
-
-        if self.autopaste:
-            self._attempt_autopaste()
-
-        self.osd.set_status("COPIED", "#238636")
-        self.tray.set_state("idle")
-        logger.info("Prompt copied to clipboard:\n%s", clipboard_text)
+        self._publish_prompt(job_id, result.formatted_prompt)
 
     def _build_clipboard_output(self, new_prompt: str) -> str:
         if not self.continuation_mode:
