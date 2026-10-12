@@ -1,6 +1,6 @@
 # Stitch integration — status & next steps
 
-_Last updated: 2026-05-05._
+_Last updated: 2026-10-12._
 
 **Production split:** Stitch UI lives in **[RanneG/stitch-app](https://github.com/RanneG/stitch-app)** (`main` has first import + CI). **linkup_mcp** remains **bridge + MCP**. **Inventory and remaining cutover steps:** **[MIGRATION.md](MIGRATION.md)**.
 
@@ -24,7 +24,8 @@ _Last updated: 2026-05-05._
 - **Subscription persistence API:** Bridge stores imported/edited subscriptions in SQLite per active authenticated email (`/api/subscriptions/list|upsert|delete` + persisted `/api/subscriptions/import`).
 - **Dashboard wired to persistence:** **stitch-app** `AppShell.tsx` loads with **`GET /api/subscriptions/list`** when a session id exists; mutations use **`POST /api/subscriptions/upsert`** / **`POST /api/subscriptions/delete`**.
 - **Voice commands (Stitch):** With **Voice activation** on, Web Speech drives approve + navigation + Gmail discovery + document brain / RAG (see voice intents table and **stitch-app** `voiceCommands.ts`).
-- **Health:** `GET /api/health` includes `google_oauth: true|false` when client id/secret are set.
+- **Bridge voice STT fallback:** `POST /api/voice/transcribe` accepts short WAV clips from WebViews where browser Web Speech is blocked. `GET /api/health` reports `voice_stt` availability.
+- **Health:** `GET /api/health` includes `google_oauth: true|false`, `voice_stt`, and `stitch_spa` status.
 - **Env docs:** `ENV_TEMPLATE.md` — Google OAuth vars documented.
 
 ## What you need to run Google sign-in
@@ -52,10 +53,32 @@ _Last updated: 2026-05-05._
 | Priority | Surface | Role |
 |----------|---------|------|
 | **1 — near-term default** | **Stitch + Chromium Web Speech API** | Matches **stitch-app** `AppShell.tsx` (`SpeechRecognition` / `webkitSpeechRecognition`). Best path for rapid iteration in **Vite browser dev** (`/api` proxy to the bridge). |
-| **2 — verify, do not assume** | **Stitch Tauri packaged WebView** | May or may not expose the same speech APIs depending on **WebView2** (Windows) / **WKWebView** (macOS). Treat as **compatibility QA** before relying on voice in production builds; if missing, fall back to push-to-talk UI copy or a bridge-based STT route later. |
+| **2 — verify, do not assume** | **Stitch Tauri packaged WebView** | May or may not expose the same speech APIs depending on **WebView2** (Windows) / **WKWebView** (macOS). Treat as **compatibility QA** before relying on voice in production builds; if missing, use push-to-talk UI copy or the bridge STT fallback below. |
 | **3 — separate product track** | **Cursor + `cursor_linkup_mcp` MCP** | MCP tools are **text-in** today (`server.py` stdio). Voice for “Cursor in general” means a **different client layer**: e.g. OS dictation → chat, **Cursor hooks**, or automation against the Cursor SDK — **not** the Stitch React bundle. Keep scope explicit so Stitch voice work does not block MCP releases. |
 
-**Technology note for Stitch phase 1:** Stay on **browser STT** for new intents until Tauri behavior is validated or you intentionally add **`POST /api/stt`** (or similar) on the bridge for audio uploaded from the shell.
+**Technology note for Stitch phase 1:** Keep **browser STT** as the default for new intents while it works in the active surface. Use the bridge route only when the shell can upload audio but cannot expose `SpeechRecognition` / `webkitSpeechRecognition`.
+
+### Bridge STT fallback
+
+Source: `bridge/voice_routes.py`, `local_whisper_stt.py`, `stitch_rag_bridge.py`, and `tests/test_bridge_routes.py`.
+
+| Concern | Contract |
+|---------|----------|
+| **Route** | `POST /api/voice/transcribe` with raw `audio/wav` bytes. `OPTIONS` returns `204` for CORS preflight. |
+| **Input constraints** | Body must be RIFF/WAVE, at least 200 bytes, and no larger than 2 MiB. Short 16-bit mono WAV clips are the intended UI payload. |
+| **Success** | `{"text":"...","engine":"whisper"}` or `{"text":"...","engine":"google"}`. Google may return `{"text":"","engine":"google","note":"unintelligible"}`. |
+| **Unavailable** | `503 {"error":"voice transcribe unavailable","voice_stt":{...}}` when disabled or no backend is installed. |
+| **Engine selection** | `STITCH_VOICE_STT_ENGINE=auto|google|whisper`; `auto` prefers local `faster-whisper`, then Google via `SpeechRecognition`. Unknown values log a warning and fall back to `auto`. |
+| **Disable** | `STITCH_VOICE_TRANSCRIBE=0` (also accepts `false`, `off`, `no`). |
+| **Whisper knobs** | `STITCH_WHISPER_MODEL` (default `tiny.en`), `STITCH_WHISPER_DEVICE` (default `cpu`), `STITCH_WHISPER_COMPUTE_TYPE` (default `int8`). |
+| **Install profiles** | Google path is part of `stitch-bridge`; offline Whisper additionally needs `uv sync --extra stitch-whisper` or `pip install -e ".[stitch-whisper]"`. |
+| **Health check** | `GET /api/health` includes `voice_stt: { ok, engine, engines, reason? }`, so the UI can hide or explain push-to-talk before uploading audio. |
+
+Operational notes:
+
+- The bridge serializes STT work with a process-local lock because both local models and `SpeechRecognition` are treated as non-re-entrant.
+- Local Whisper downloads model weights on first use; use `tiny.en`/CPU/int8 for the lowest-friction dev path.
+- Keep API clients on the exported `STITCH_BRIDGE_API_ROUTES.voiceTranscribe` path from `packages/stitch-api-types` when possible.
 
 ### Voice intents (3–5) mapped to actions
 
