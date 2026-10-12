@@ -1,6 +1,6 @@
 # Stitch → dedicated repository (production split)
 
-_Last updated: 2026-05-06._
+_Last updated: 2026-10-12._
 
 **Canonical Stitch app repo:** [github.com/RanneG/stitch-app](https://github.com/RanneG/stitch-app) — `git clone https://github.com/RanneG/stitch-app.git`. Initial **`main`** import landed 2026-05-04.
 
@@ -22,7 +22,7 @@ The **HTTP contract** (paths under `/api/*`) stays stable. Vite proxy notes live
 | Path | Role |
 |------|------|
 | `server.py`, `rag.py`, `rag_runtime.py`, `rag_stitch_contract.py`, `tests/test_rag_stitch_contract.py` | MCP + RAG; shared lazy RAG init; Stitch JSON contract (no Flask import from bridge → server) |
-| `stitch_rag_bridge.py` | Flask `/api` surface for Stitch |
+| `stitch_rag_bridge.py`, `bridge/`, `local_whisper_stt.py` | Flask `/api` surface for Stitch, including RAG, Help, voice STT fallback, health, face, auth, and subscription routes |
 | `stitch_auth/` | Google OAuth, sessions, subscription SQLite on the bridge |
 | `face_verification/` | Local enroll/verify + storage |
 | `stitch_gui.py` | Bundled window (built SPA + bridge) |
@@ -33,7 +33,8 @@ The **HTTP contract** (paths under `/api/*`) stays stable. Vite proxy notes live
 ## Python dependency profiles (same repo)
 
 - **Default (`uv sync` / `pip install -e .`):** MCP stdio + LlamaIndex RAG — no Flask, DeepFace, TensorFlow, Google client libs, or SpeechRecognition.
-- **`stitch-bridge` extra:** everything needed for **`stitch_rag_bridge.py`** (Flask, face stack, OAuth/Gmail, `SpeechRecognition` for `/api/voice/transcribe`).
+- **`stitch-bridge` extra:** everything needed for **`stitch_rag_bridge.py`** (Flask, face stack, OAuth/Gmail, `SpeechRecognition` for Google-backed `/api/voice/transcribe`).
+- **`stitch-whisper` extra:** optional offline faster-whisper backend for `/api/voice/transcribe` and MCP `transcribe_wav_file`. When installed, `STITCH_VOICE_STT_ENGINE=auto` prefers Whisper over Google.
 - **`stitch-gui` extra:** pywebview for **`stitch_gui.py`**. Bundled single-window flow needs **both** `stitch-bridge` and `stitch-gui`.
 
 ## RAG coupling: B2 (current) vs B1 (optional later)
@@ -49,7 +50,7 @@ Done: **stitch-app** on GitHub with CI typecheck, **`docs/BACKEND.md`**, **`docs
 
 ### Phase 2 — Dual-run validation
 
-Run **linkup_mcp** `stitch_rag_bridge.py` and **stitch-app** `npm run dev:browser`; confirm auth, subscriptions, face, RAG, Help, voice. Tune **`STITCH_ALLOWED_ORIGINS`** if dev ports differ.
+Run **linkup_mcp** `stitch_rag_bridge.py` and **stitch-app** `npm run dev:browser`; confirm auth, subscriptions, face, RAG, Help, voice intents, and `/api/voice/transcribe` if the shell needs bridge STT. Tune **`STITCH_ALLOWED_ORIGINS`** if dev ports differ.
 
 ### Phase 3 — Cut linkup_mcp coupling
 

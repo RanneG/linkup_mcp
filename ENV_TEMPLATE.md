@@ -2,7 +2,7 @@
 
 Create a `.env` file in the project root with the following variables:
 
-Python install profiles (see **README** Quick Start): default **`uv sync`** is MCP + RAG only. For **`stitch_rag_bridge.py`** / face / OAuth / server STT use **`uv sync --extra stitch-bridge`**; for **`stitch_gui.py`** add **`--extra stitch-gui`**.
+Python install profiles (see **README** Quick Start): default **`uv sync`** is MCP + RAG only. For **`stitch_rag_bridge.py`** / face / OAuth / Google-backed server STT use **`uv sync --extra stitch-bridge`**; add **`--extra stitch-whisper`** for offline Whisper STT; for **`stitch_gui.py`** add **`--extra stitch-gui`**.
 
 ```bash
 # Linkup API Key — get your key from https://www.linkup.so/

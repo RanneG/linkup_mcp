@@ -29,7 +29,7 @@ cd linkup_mcp
 uv sync
 ```
 
-**Default install** (`uv sync` / `pip install -e .`) is **Cursor MCP + RAG** only (lighter venv). For **`stitch_rag_bridge.py`**, face/OAuth/Gmail, and server-side voice STT, add **`--extra stitch-bridge`**. For **ElevenLabs** voice/music asset generation (`elevenlabs-gen` CLI), add **`--extra elevenlabs`** — see **[docs/elevenlabs/README.md](docs/elevenlabs/README.md)**.
+**Default install** (`uv sync` / `pip install -e .`) is **Cursor MCP + RAG** only (lighter venv). For **`stitch_rag_bridge.py`**, face/OAuth/Gmail, and Google-backed server-side voice STT, add **`--extra stitch-bridge`**; add **`--extra stitch-whisper`** for offline Whisper STT. For **ElevenLabs** voice/music asset generation (`elevenlabs-gen` CLI), add **`--extra elevenlabs`** — see **[docs/elevenlabs/README.md](docs/elevenlabs/README.md)**.
 
 ### 2. Install Ollama & Model
 
@@ -153,6 +153,15 @@ uv sync --extra stitch-bridge
 Then point the Stitch app’s Vite dev proxy at `http://127.0.0.1:8765` (see [stitch-app docs/BACKEND.md](https://github.com/RanneG/stitch-app/blob/main/docs/BACKEND.md) or [integrations/stitch/README.md](integrations/stitch/README.md); proxy `/api` for RAG, face, auth, subscriptions, and help routes).
 
 **Who needs what:** Anyone can run the **Stitch UI** from **[stitch-app](https://github.com/RanneG/stitch-app)** with Node (see [docs/RUNNING.md](https://github.com/RanneG/stitch-app/blob/main/docs/RUNNING.md)). **linkup_mcp** is required for **`/api/*`** backend capabilities (auth, data, RAG, face, server-backed Help).
+
+#### Server-side voice STT fallback
+
+Stitch should prefer browser Web Speech where available. When a desktop shell can record audio but does not expose `SpeechRecognition`, the bridge provides:
+
+- `GET /api/health` → includes `voice_stt: { ok, engine, engines, reason? }`
+- `POST /api/voice/transcribe` → raw short `audio/wav` body, returns `{"text":"...","engine":"google"|"whisper"}`
+
+Constraints: WAV must be RIFF/WAVE, at least 200 bytes, and no larger than 2 MiB. `STITCH_VOICE_STT_ENGINE=auto|google|whisper` controls backend choice; `auto` prefers local Whisper when `stitch-whisper` is installed, otherwise Google via `SpeechRecognition`. Set `STITCH_VOICE_TRANSCRIBE=0` to disable the route. Full runbook: **[docs/stitch/STATUS.md](docs/stitch/STATUS.md#bridge-stt-fallback)**.
 
 ### Develop Stitch UI from this repo (optional)
 
