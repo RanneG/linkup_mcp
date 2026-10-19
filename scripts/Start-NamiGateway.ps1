@@ -17,7 +17,11 @@ Write-Host "=== Nami (default profile) ===" -ForegroundColor Cyan
 & hermes profile list 2>$null | Select-Object -First 5
 
 $status = & hermes gateway status 2>&1 | Out-String
-if ($status -match "running") {
+# "Gateway is not running" contains "running". Only skip start when status
+# reports running and is not the stopped message.
+$stopped = $status -match '(?i)not\s+running'
+$mentionsRunning = $status -match '(?i)running'
+if (-not $stopped -and $mentionsRunning) {
     Write-Host "Gateway already running."
     exit 0
 }

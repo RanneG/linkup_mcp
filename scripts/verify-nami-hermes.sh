@@ -57,7 +57,10 @@ if command -v hermes >/dev/null; then
     warn "linkup MCP not registered — run install-nami-mcp-mac.sh"
   fi
 
-  if hermes gateway status 2>/dev/null | grep -qi running; then
+  # "Gateway is not running" contains "running"; don't treat that as up.
+  status="$(hermes gateway status 2>/dev/null || true)"
+  if ! printf '%s\n' "$status" | grep -qi 'not running' \
+    && printf '%s\n' "$status" | grep -qi 'running'; then
     pass "gateway running"
   else
     warn "gateway not running — bash scripts/start-nami-gateway.sh"
