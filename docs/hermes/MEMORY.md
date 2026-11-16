@@ -19,14 +19,14 @@ Two small files, injected every session:
 
 | File | Purpose | Limit |
 |------|---------|-------|
-| `~/.hermes/memories/MEMORY.md` | Agent notes — projects, env, lessons | ~2,200 chars |
-| `~/.hermes/memories/USER.md` | Your profile — preferences, style | ~1,375 chars |
+| `%LOCALAPPDATA%\hermes\memories\MEMORY.md` (PC) / `~/.hermes/memories/MEMORY.md` (POSIX) | Agent notes — projects, env, lessons | ~2,200 chars |
+| `%LOCALAPPDATA%\hermes\memories\USER.md` (PC) / `~/.hermes/memories/USER.md` (POSIX) | Your profile — preferences, style | ~1,375 chars |
 
 The agent curates these with the `memory` tool (add / replace / remove). Think **sticky notes in the system prompt**, not a full database.
 
 ## Session search (long-term recall)
 
-All past chats are stored in SQLite (`~/.hermes/state.db`) with full-text search. The agent can use `session_search` to find old conversations even when they're not in MEMORY.md.
+All past chats are stored in SQLite (`%LOCALAPPDATA%\hermes\state.db` on PC, `~/.hermes/state.db` on POSIX) with full-text search. The agent can use `session_search` to find old conversations even when they're not in MEMORY.md.
 
 | | Built-in memory | Session search |
 |--|-----------------|----------------|

@@ -2,7 +2,7 @@
 
 Three Telegram bullets every morning (or on demand): **Build · Products · This week**. Read-only, RAG + memory grounded.
 
-Skills: `hermes-nami/skills/daily-brief-loop.md` + `loop-checker.md`.
+Skills: `hermes-nami/skills/brief/SKILL.md` (`/brief`) + `hermes-nami/skills/loop-checker/SKILL.md` (`/loop-checker`).
 
 ---
 
@@ -62,22 +62,24 @@ Hermes registers skills as `/brief`, `/loop-checker`, etc. after `install-nami-h
 Fallback prompt:
 
 ```text
-Run daily-brief-loop skill exactly. Use loop-checker before sending. Read-only. Turn cap 8.
+Run the brief skill exactly: 3 bullets (Build, Products, This week), read-only.
+Use /loop-checker before sending. Turn cap 8. Append LOOP_LOG.md on PASS or FAIL.
+Skip web_search unless USER.md says otherwise.
 ```
 
 **Pass looks like:**
 
 ```text
-☀️ Daily brief
+Daily brief
 
-• Build: …
-• Products: …
-• This week: …
+- Build: …
+- Products: …
+- This week: …
 
-(read-only · corpus + memory)
+(read-only - corpus + memory)
 ```
 
-**If it fails:** reply with the error text. Common fixes: gateway not running, RAG empty (`python -m nami_corpus.sync`), model rate limit.
+**If it fails:** reply with the error text. Common fixes: gateway not running, RAG empty (`python -m nami_corpus.sync`), missing `/loop-checker`, model rate limit.
 
 ---
 
@@ -93,7 +95,7 @@ cd C:\Users\ranne\Cursor\cursor_linkup_mcp
 Or ask Nami in Telegram:
 
 ```text
-/cron add "every weekday at 07:30" "Run daily-brief-loop and loop-checker skills. Read-only daily brief to Telegram. Turn cap 8." --skill daily-brief-loop --skill loop-checker --name nami-daily-brief --deliver telegram
+/cron add "every weekday at 07:30" "Run the brief skill exactly: 3 bullets (Build, Products, This week), read-only. Use /loop-checker before sending. Turn cap 8." --skill brief --skill loop-checker --name nami-daily-brief --deliver telegram
 ```
 
 List / test:
