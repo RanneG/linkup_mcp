@@ -60,7 +60,7 @@ $goal = @"
 /goal Fix failing tests on this branch. Done = pytest exits 0.
 Turn cap: $TurnCap rounds. Read-only on .env. Run pytest after each fix.
 Read CLAUDE.md and AGENTS.md first. Do not commit unless Ranne asks.
-Run loop-checker format from hermes-nami/skills/loop-checker.md before claiming done.
+Run loop-checker format from hermes-nami/skills/loop-checker/SKILL.md before claiming done.
 "@
 
 Write-Host ""
